@@ -29,10 +29,10 @@ function createWindow() {
   if (isDev) {
     startUrl = 'http://localhost:5173'
   } else {
-    // 在打包后的环境中，使用正确的路径
+    // 在打包后的环境中，使用统一的构建目录
     startUrl = app.isPackaged 
-      ? path.join(__dirname, '../dist/index.html')
-      : path.join(__dirname, '../dist/index.html')
+      ? path.join(__dirname, '../build/web/index.html')
+      : path.join(__dirname, '../build/web/index.html')
     startUrl = `file://${startUrl}`
   }
   
@@ -66,6 +66,42 @@ function createWindow() {
     if (parsedUrl.origin !== 'http://localhost:5173' && !isDev) {
       event.preventDefault()
     }
+  })
+
+  // 添加右键菜单功能
+  mainWindow.webContents.on('context-menu', (event, params) => {
+    const { selectionText, isEditable } = params
+    
+    // 创建右键菜单
+    const contextMenu = Menu.buildFromTemplate([
+      {
+        label: '剪切',
+        accelerator: 'CmdOrCtrl+X',
+        enabled: selectionText.length > 0 && isEditable,
+        click: () => {
+          mainWindow.webContents.cut()
+        }
+      },
+      {
+        label: '复制',
+        accelerator: 'CmdOrCtrl+C',
+        enabled: selectionText.length > 0,
+        click: () => {
+          mainWindow.webContents.copy()
+        }
+      },
+      {
+        label: '粘贴',
+        accelerator: 'CmdOrCtrl+V',
+        enabled: isEditable,
+        click: () => {
+          mainWindow.webContents.paste()
+        }
+      }
+    ])
+    
+    // 显示右键菜单
+    contextMenu.popup({ window: mainWindow })
   })
 }
 

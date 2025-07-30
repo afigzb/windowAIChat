@@ -21,7 +21,7 @@ dist-ssr
 build
 out
 
-# Electron builds and releases
+# Electron builds and releases (old)
 release
 dist-electron
 app-builds
