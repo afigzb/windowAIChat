@@ -6,27 +6,6 @@ export type MessageRole = 'user' | 'assistant' | 'system'
 // 对话模式
 export type ChatMode = 'v3' | 'r1'
 
-// 语料类型
-export type CorpusType = 'initial' | 'emphasis'
-
-// ===== 语料相关 =====
-
-// 语料项
-export interface CorpusItem {
-  id: string
-  name: string           // 语料名称
-  type: CorpusType      // 语料类型：首发或强调
-  content: string       // 语料内容
-  enabled: boolean      // 是否启用
-  created: Date         // 创建时间
-}
-
-// 语料配置
-export interface CorpusConfig {
-  initialCorpus: CorpusItem[]    // 首发语料列表
-  emphasisCorpus: CorpusItem[]   // 强调语料列表
-}
-
 // ===== 消息相关 =====
 
 // 扁平结构的聊天消息
@@ -87,7 +66,7 @@ export interface DeepSeekStreamResponse {
 
 // ===== 配置相关 =====
 
-// 合并配置类型，减少重复定义
+// AI配置类型
 export interface AIConfig {
   v3Config: {
     temperature: number
@@ -97,14 +76,14 @@ export interface AIConfig {
     maxTokens: number
   }
   showThinking: boolean
-  corpus: CorpusConfig     // 语料配置
+  apiKey: string           // API密钥
 }
 
 // ===== 组件Props =====
 
-// 聊天页面属性
+// 聊天页面属性（暂时保留接口以保持兼容性）
 export interface ChatPageProps {
-  onBack: () => void
+  // 已删除onBack属性
 }
 
 // 消息气泡属性（优化后）

@@ -3,59 +3,30 @@ import type {
   ChatPageProps, 
   AIConfig, 
   ChatMode
-} from '../data/types'
-import { DEFAULT_CONFIG } from '../api/api'
+} from './types'
+import { DEFAULT_CONFIG } from './api'
 import { MessageBubble, AISettings, ChatInputArea } from './components'
-import { CorpusManager } from './CorpusManager'
-import { useConversationManager } from '../managers/conversation-manager'
-import { useBranchManager } from '../managers/branch-manager'
+import { useConversationManager } from './conversation-manager'
+import { useBranchManager } from './branch-manager'
 
 // 页面头部组件
 function Header({ 
-  onBack, 
   onSettingsClick, 
-  showSettings, 
-  onCorpusClick,
-  showCorpus 
+  showSettings
 }: { 
-  onBack: () => void
   onSettingsClick: () => void
   showSettings: boolean
-  onCorpusClick: () => void
-  showCorpus: boolean
 }) {
   return (
     <header className="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-40">
       <div className="max-w-4xl mx-auto flex items-center justify-between">
         {/* 左侧：标题 */}
         <div className="flex items-center gap-3">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 text-slate-800 hover:text-slate-600 transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            <span className="font-medium">AI助手</span>
-          </button>
+          <h1 className="text-xl font-semibold text-slate-800">AI助手</h1>
         </div>
         
-        {/* 右侧：工具按钮 */}
+        {/* 右侧：设置按钮 */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={onCorpusClick}
-            className={`p-2 rounded-xl transition-colors ${
-              showCorpus 
-                ? 'bg-teal-500 text-white' 
-                : 'text-slate-600 hover:text-teal-600 hover:bg-teal-50'
-            }`}
-            title="语料管理"
-          >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd"/>
-            </svg>
-          </button>
-          
           <button
             onClick={onSettingsClick}
             className={`p-2 rounded-xl transition-colors ${
@@ -75,12 +46,12 @@ function Header({
   )
 }
 
-export default function ChatPage({ onBack }: ChatPageProps) {
+export default function ChatPage() {
   // UI状态
   const [config, setConfig] = useState<AIConfig>(DEFAULT_CONFIG)
   const [currentMode, setCurrentMode] = useState<ChatMode>('r1')
   const [showSettings, setShowSettings] = useState(false)
-  const [showCorpusManager, setShowCorpusManager] = useState(false)
+
   
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -123,25 +94,13 @@ export default function ChatPage({ onBack }: ChatPageProps) {
         isOpen={showSettings}
       />
 
-      {/* 语料管理器 */}
-      {showCorpusManager && (
-        <CorpusManager
-          config={config.corpus}
-          onConfigChange={(corpusConfig) => {
-            setConfig(prev => ({ ...prev, corpus: corpusConfig }))
-          }}
-          onClose={() => setShowCorpusManager(false)}
-        />
-      )}
+
 
       {/* 主内容区 */}
       <div className="flex flex-col min-h-screen">
         <Header 
-          onBack={onBack} 
           onSettingsClick={() => setShowSettings(!showSettings)} 
           showSettings={showSettings}
-          onCorpusClick={() => setShowCorpusManager(!showCorpusManager)}
-          showCorpus={showCorpusManager}
         />
 
         {/* 聊天区域 */}

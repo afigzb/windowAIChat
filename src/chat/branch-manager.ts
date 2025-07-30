@@ -1,11 +1,11 @@
 import type { 
   ConversationTree, 
   BranchNavigation 
-} from '../data/types'
+} from './types'
 import {
   getBranchNavigation,
   navigateBranch
-} from '../data/tree-utils'
+} from './tree-utils'
 
 // 分支管理器的操作接口
 export interface BranchManager {

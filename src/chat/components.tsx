@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import type { MessageNode, AIConfig, ChatMode, MessageBubbleProps, BranchNavigation } from '../data/types'
-import { DEFAULT_CONFIG } from '../api/api'
+import type { MessageNode, AIConfig, ChatMode, MessageBubbleProps, BranchNavigation } from './types'
+import { DEFAULT_CONFIG } from './api'
 import { MarkdownRenderer } from './MarkdownRenderer'
 
 // ===== 公共组件 =====
@@ -509,6 +509,24 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
               marks={['100', '32K 推荐', '64K 最大']}
               formatValue={(v) => v.toLocaleString() + ' tokens'}
             />
+          </div>
+
+          {/* API Key设置 */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-slate-900">🔑 API 设置</h3>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-700">API Key</label>
+              <input
+                type="password"
+                value={config.apiKey}
+                onChange={(e) => onConfigChange({ ...config, apiKey: e.target.value })}
+                placeholder="输入你的 DeepSeek API Key"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
+              />
+              <p className="text-xs text-slate-600">
+                请输入你的 DeepSeek API Key。此密钥仅在本次会话中使用，不会被保存。
+              </p>
+            </div>
           </div>
 
           {/* 显示设置 */}
