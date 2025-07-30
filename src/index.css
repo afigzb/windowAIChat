@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+/* 自定义样式可以添加在这里 */
+
+/* 修复长文本换行问题 */
+* {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* 美化滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f5f6f7;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #e8eaed;
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* 输入框自动高度调整 */
+textarea {
+  field-sizing: content;
+}
