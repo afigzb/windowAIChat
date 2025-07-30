@@ -523,9 +523,6 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
                 placeholder="输入你的 DeepSeek API Key"
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
               />
-              <p className="text-xs text-slate-600">
-                请输入你的 DeepSeek API Key。此密钥仅在本次会话中使用，不会被保存。
-              </p>
             </div>
           </div>
 
