@@ -79,7 +79,7 @@ export function FileTreeNode({
     <div>
       <div 
         data-file-node
-        className={`flex items-center gap-1 py-1 px-1 cursor-pointer ${
+        className={`group flex items-center gap-1 py-1 px-1 cursor-pointer ${
           isSelected 
             ? 'bg-indigo-100 text-indigo-900 border-l-2 border-indigo-500' 
             : 'hover:bg-gray-100'
@@ -89,20 +89,20 @@ export function FileTreeNode({
         onContextMenu={handleContextMenu}
       >
         {node.isDirectory && (
-          <span className="text-xs">
-            {isExpanded ? '▼' : '▶'}
+          <span className={`text-sm transition-transform duration-200 ${isExpanded ? '' : '-rotate-90'}`}>
+            ▼
           </span>
         )}
         <FileIcon node={node} />
         <span className="text-sm truncate flex-1">{node.name}</span>
         {node.isDirectory && (
-          <div className="opacity-0 hover:opacity-100 flex gap-1">
+          <div className="opacity-0 group-hover:opacity-100 flex gap-1">
             <button
               onClick={(e) => {
                 e.stopPropagation()
                 onCreateFile?.(node.path)
               }}
-              className="text-xs hover:bg-gray-200 p-1 rounded"
+              className="text-sm hover:bg-gray-200 p-1 rounded"
               title="新建文件"
             >
               📝
@@ -112,7 +112,7 @@ export function FileTreeNode({
                 e.stopPropagation()
                 onCreateDirectory?.(node.path)
               }}
-              className="text-xs hover:bg-gray-200 p-1 rounded"
+              className="text-sm hover:bg-gray-200 p-1 rounded"
               title="新建文件夹"
             >
               📁

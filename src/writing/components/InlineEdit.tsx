@@ -55,7 +55,7 @@ export function InlineEdit({
       className="flex items-center gap-1 py-1 px-1"
       style={{ marginLeft: level * 16 }}
     >
-      <span className="text-xs">
+      <span>
         {type === 'directory' ? '📁' : '📄'}
       </span>
       <input

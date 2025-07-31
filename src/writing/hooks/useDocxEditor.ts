@@ -17,10 +17,7 @@ export function useDocxEditor() {
   const [error, setError] = useState<string | null>(null)
   const [wordCount, setWordCount] = useState<WordCountResult>({
     characters: 0,
-    charactersNoSpaces: 0,
-    words: 0,
-    paragraphs: 0,
-    lines: 0
+    words: 0
   })
 
   // 判断文件是否为支持的格式
@@ -93,10 +90,7 @@ export function useDocxEditor() {
     setError(null)
     setWordCount({
       characters: 0,
-      charactersNoSpaces: 0,
-      words: 0,
-      paragraphs: 0,
-      lines: 0
+      words: 0
     })
 
     setIsLoading(true)
@@ -156,10 +150,7 @@ export function useDocxEditor() {
     setError(null)
     setWordCount({
       characters: 0,
-      charactersNoSpaces: 0,
-      words: 0,
-      paragraphs: 0,
-      lines: 0
+      words: 0
     })
     return true
   }, [openFile])

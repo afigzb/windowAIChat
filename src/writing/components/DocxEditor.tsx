@@ -51,11 +51,10 @@ export function DocxEditor({
     }
   }, [content, onWordCountChange])
 
-  // 处理粘贴事件，保持纯文本
+  // 处理粘贴事件
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
-    e.preventDefault()
-    const text = e.clipboardData.getData('text/plain')
-    document.execCommand('insertText', false, text)
+    // 允许正常的粘贴行为，包括富文本
+    // 不做特殊处理
   }, [])
 
   return (

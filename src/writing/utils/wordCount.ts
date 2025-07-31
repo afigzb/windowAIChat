@@ -7,20 +7,14 @@
  */
 export interface WordCountResult {
   characters: number // 总字符数（包括空格）
-  charactersNoSpaces: number // 不包括空格的字符数
   words: number // 单词数
-  paragraphs: number // 段落数
-  lines: number // 行数
 }
 
 export function countWords(htmlContent: string): WordCountResult {
   if (!htmlContent.trim()) {
     return {
       characters: 0,
-      charactersNoSpaces: 0,
-      words: 0,
-      paragraphs: 0,
-      lines: 0
+      words: 0
     }
   }
 
@@ -31,10 +25,8 @@ export function countWords(htmlContent: string): WordCountResult {
 
   // 计算字符数
   const characters = textContent.length
-  const charactersNoSpaces = textContent.replace(/\s/g, '').length
 
   // 计算单词数（中文按字符计算，英文按单词计算）
-  let words = 0
   const chineseRegex = /[\u4e00-\u9fa5]/g
   const chineseMatches = textContent.match(chineseRegex)
   const chineseCount = chineseMatches ? chineseMatches.length : 0
@@ -45,21 +37,11 @@ export function countWords(htmlContent: string): WordCountResult {
     .split(/\s+/)
     .filter(word => word.trim().length > 0 && /[a-zA-Z]/.test(word))
   
-  words = chineseCount + englishWords.length
-
-  // 计算段落数（以p标签或换行符分割）
-  const paragraphMatches = htmlContent.match(/<p[^>]*>.*?<\/p>/gi)
-  const paragraphs = paragraphMatches ? paragraphMatches.length : Math.max(1, textContent.split(/\n\s*\n/).filter(p => p.trim()).length)
-
-  // 计算行数
-  const lines = Math.max(1, textContent.split('\n').filter(line => line.trim()).length)
+  const words = chineseCount + englishWords.length
 
   return {
     characters,
-    charactersNoSpaces,
-    words,
-    paragraphs,
-    lines
+    words
   }
 }
 
