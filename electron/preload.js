@@ -44,9 +44,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 获取文件信息
   getFileStats: (path) => ipcRenderer.invoke('get-file-stats', path),
   
-  // DOCX文件支持
-  readDocxFile: (filePath) => ipcRenderer.invoke('read-docx-file', filePath),
-  writeDocxFile: (filePath, content) => ipcRenderer.invoke('write-docx-file', filePath, content)
+
 })
 
 // DOM加载完成后的处理

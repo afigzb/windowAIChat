@@ -6,11 +6,8 @@ import { useConversationManager } from '../chat/conversation-manager'
 import { useBranchManager } from '../chat/branch-manager'
 import { ChaptersPanel, CharactersPanel, OutlinePanel, SettingsDataPanel } from './components/Panels'
 import { FileTreePanel } from './components/FileTreePanel'
-import { WritingArea } from './components/WritingArea'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import storage from '../storage'
-import { useFileEditor } from './hooks/useFileEditor'
-import { useDebounce } from './hooks/useDebounce'
 
 // 页面头部组件
 function Header({ 
@@ -87,19 +84,7 @@ export default function WritingPage() {
   const [showSettings, setShowSettings] = useState(false)
   const [activeModule, setActiveModule] = useState<string>('chapters')
   
-  // 文件编辑器状态
-  const {
-    openFile,
-    isLoading: isFileLoading,
-    error: fileError,
-    openFileForEdit,
-    updateContent,
-    saveFile,
-    closeFile
-  } = useFileEditor()
-  
-  // 字数统计防抖处理
-  const debouncedWordCount = useDebounce(openFile?.content?.length || 0, 300)
+  // TODO: 编辑区域将在此处重构
 
   // 配置变更处理
   const handleConfigChange = (newConfig: AIConfig) => {
@@ -139,31 +124,7 @@ export default function WritingPage() {
     conversationActions.sendMessage(content)
   }
   
-  // 设置文件选择回调
-  useEffect(() => {
-    ;(window as any).onFileSelect = (filePath: string, fileName: string) => {
-      openFileForEdit(filePath, fileName)
-    }
-    
-    return () => {
-      delete (window as any).onFileSelect
-    }
-  }, [openFileForEdit])
-  
-  // 快捷键保存
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault()
-        if (openFile?.isModified) {
-          saveFile()
-        }
-      }
-    }
-    
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [openFile, saveFile])
+  // TODO: 文件处理逻辑将在重构时重新实现
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -209,50 +170,22 @@ export default function WritingPage() {
 
             <PanelResizeHandle className="w-0.5 bg-slate-300" />
 
-            {/* 中间：写作区域 */}
+            {/* 中间：编辑区域占位符 */}
             <Panel defaultSize={50}>
               <div className="bg-white flex flex-col h-full">
                 <div className="p-4 border-b border-slate-200">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <h2 className="font-semibold text-slate-900">
-                        {openFile ? openFile.name : '写作区域'}
-                      </h2>
-                      {openFile?.isModified && (
-                        <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded">未保存</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {openFile && (
-                        <button
-                          onClick={saveFile}
-                          disabled={!openFile.isModified || isFileLoading}
-                          className="px-3 py-1.5 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                          </svg>
-                          保存 (Ctrl+S)
-                        </button>
-                      )}
-                      <div className="text-sm text-slate-600">
-                        字数: {debouncedWordCount}
-                      </div>
+                      <h2 className="font-semibold text-slate-900">编辑区域</h2>
                     </div>
                   </div>
-                  {fileError && (
-                    <div className="px-4 py-2 bg-red-50 text-red-600 text-sm">
-                      {fileError}
-                    </div>
-                  )}
                 </div>
-                <div className="flex-1 p-4 overflow-hidden">
-                  <WritingArea 
-                    content={openFile?.content || ''}
-                    onChange={updateContent}
-                    placeholder={openFile ? '在这里编辑文件内容...' : '请从左侧文件管理中选择一个文件开始编辑'}
-                    readOnly={!openFile}
-                  />
+                <div className="flex-1 p-4 flex items-center justify-center">
+                  <div className="text-center text-slate-500">
+                    <div className="text-6xl mb-4">✏️</div>
+                    <h3 className="text-lg font-medium mb-2">编辑区域正在重构中</h3>
+                    <p className="text-sm">此区域将被重新设计以提供更好的编辑体验</p>
+                  </div>
                 </div>
               </div>
             </Panel>
