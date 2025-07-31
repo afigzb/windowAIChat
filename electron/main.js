@@ -1,6 +1,7 @@
 const { app, BrowserWindow, Menu, shell, ipcMain, dialog } = require('electron')
 const fs = require('fs').promises
 const path = require('path')
+const mammoth = require('mammoth')
 // 使用 app.isPackaged 更可靠地判断是否为开发环境
 const isDev = !app.isPackaged
 
@@ -321,6 +322,33 @@ ipcMain.handle('get-file-stats', async (event, filePath) => {
     }
   } catch (error) {
     console.error('获取文件信息失败:', error)
+    throw error
+  }
+})
+
+// 读取DOCX文件内容
+ipcMain.handle('read-docx-file', async (event, filePath) => {
+  try {
+    const result = await mammoth.extractRawText({ path: filePath })
+    return result.value
+  } catch (error) {
+    console.error('读取DOCX文件失败:', error)
+    throw error
+  }
+})
+
+// 写入DOCX文件内容（暂时保存为纯文本）
+ipcMain.handle('write-docx-file', async (event, filePath, content) => {
+  try {
+    // 由于docx格式复杂，暂时将内容保存为txt格式
+    // 后续可以使用docx库来保持格式
+    const txtPath = filePath.replace(/\.docx?$/i, '_temp.txt')
+    await fs.writeFile(txtPath, content, 'utf-8')
+    
+    console.warn('注意：DOCX文件暂时保存为TXT格式，路径:', txtPath)
+    return true
+  } catch (error) {
+    console.error('写入DOCX文件失败:', error)
     throw error
   }
 })

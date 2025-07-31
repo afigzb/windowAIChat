@@ -75,7 +75,10 @@ export function useFileTree() {
   }
 
   const handleFileClick = (node: FileSystemNode) => {
-    console.log('选中文件:', node.path)
+    // 通过回调通知父组件
+    if ((window as any).onFileSelect) {
+      (window as any).onFileSelect(node.path, node.name)
+    }
   }
 
   const startInlineEdit = useCallback((mode: 'create' | 'rename', type: 'file' | 'directory', parentPath: string, defaultValue?: string) => {

@@ -9,6 +9,32 @@
   word-break: break-word;
 }
 
+/* 自定义滚动条样式 */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thumb-slate-300::-webkit-scrollbar-thumb {
+  background-color: rgb(203 213 225);
+  border-radius: 3px;
+}
+
+.scrollbar-thumb-slate-300::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(148 163 184);
+}
+
+.scrollbar-track-slate-100::-webkit-scrollbar-track {
+  background-color: rgb(241 245 249);
+  border-radius: 3px;
+}
+
+/* 优化文本区域性能 - 移除可能导致卡顿的CSS */
+
 /* 美化滚动条 */
 ::-webkit-scrollbar {
   width: 6px;
