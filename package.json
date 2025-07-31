@@ -16,7 +16,9 @@
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.10",
-
+    "docx": "^9.5.1",
+    "html-to-docx": "^1.8.0",
+    "mammoth": "^1.9.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-filetree-electron": "^1.2.2",

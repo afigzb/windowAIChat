@@ -54,6 +54,10 @@ declare global {
         isDirectory: boolean
         isFile: boolean
       }>
+      
+      // DOCX文件处理
+      readDocxAsHtml: (filePath: string) => Promise<string>
+      saveHtmlAsDocx: (filePath: string, htmlContent: string) => Promise<boolean>
     }
   }
 }

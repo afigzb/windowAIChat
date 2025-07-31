@@ -4,10 +4,12 @@ import { DEFAULT_CONFIG } from '../chat/api'
 import { MessageBubble, AISettings, ChatInputArea } from '../chat/components'
 import { useConversationManager } from '../chat/conversation-manager'
 import { useBranchManager } from '../chat/branch-manager'
-import { ChaptersPanel, CharactersPanel, OutlinePanel, SettingsDataPanel } from './components/Panels'
+import { CharactersPanel, OutlinePanel, SettingsDataPanel } from './components/Panels'
 import { FileTreePanel } from './components/FileTreePanel'
+import { DocxEditor } from './components/DocxEditor'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import storage from '../storage'
+import { useDocxEditor } from './hooks/useDocxEditor'
 
 // 页面头部组件
 function Header({ 
@@ -84,7 +86,16 @@ export default function WritingPage() {
   const [showSettings, setShowSettings] = useState(false)
   const [activeModule, setActiveModule] = useState<string>('chapters')
   
-  // TODO: 编辑区域将在此处重构
+  // DOCX编辑器状态管理
+  const {
+    openFile,
+    isLoading: isFileLoading,
+    error: fileError,
+    openFileForEdit,
+    updateContent,
+    saveFile,
+    closeFile
+  } = useDocxEditor()
 
   // 配置变更处理
   const handleConfigChange = (newConfig: AIConfig) => {
@@ -124,7 +135,31 @@ export default function WritingPage() {
     conversationActions.sendMessage(content)
   }
   
-  // TODO: 文件处理逻辑将在重构时重新实现
+  // 设置文件选择回调
+  useEffect(() => {
+    ;(window as any).onFileSelect = (filePath: string, fileName: string) => {
+      openFileForEdit(filePath, fileName)
+    }
+    
+    return () => {
+      delete (window as any).onFileSelect
+    }
+  }, [openFileForEdit])
+  
+  // 快捷键保存
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        if (openFile?.isModified) {
+          saveFile()
+        }
+      }
+    }
+    
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [openFile, saveFile])
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -170,22 +205,83 @@ export default function WritingPage() {
 
             <PanelResizeHandle className="w-0.5 bg-slate-300" />
 
-            {/* 中间：编辑区域占位符 */}
+            {/* 中间：DOCX编辑区域 */}
             <Panel defaultSize={50}>
               <div className="bg-white flex flex-col h-full">
                 <div className="p-4 border-b border-slate-200">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <h2 className="font-semibold text-slate-900">编辑区域</h2>
+                      <h2 className="font-semibold text-slate-900">
+                        {openFile ? openFile.name : 'DOCX编辑器'}
+                      </h2>
+                      {openFile?.isModified && (
+                        <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded">未保存</span>
+                      )}
+                      {openFile && (
+                        <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                          {openFile.path.toLowerCase().endsWith('.docx') ? 'DOCX' : 
+                           openFile.path.toLowerCase().endsWith('.doc') ? 'DOC' : 
+                           openFile.path.toLowerCase().endsWith('.md') ? 'Markdown' : 'Text'}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {openFile && (
+                        <button
+                          onClick={saveFile}
+                          disabled={!openFile.isModified || isFileLoading}
+                          className="px-3 py-1.5 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                          </svg>
+                          保存 (Ctrl+S)
+                        </button>
+                      )}
+                      {openFile && (
+                        <button
+                          onClick={closeFile}
+                          className="px-3 py-1.5 bg-gray-500 text-white text-sm rounded-md hover:bg-gray-600 transition-colors flex items-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                          关闭
+                        </button>
+                      )}
                     </div>
                   </div>
+                  {fileError && (
+                    <div className="mt-2 px-4 py-2 bg-red-50 text-red-600 text-sm rounded">
+                      {fileError}
+                    </div>
+                  )}
+                  {isFileLoading && (
+                    <div className="mt-2 px-4 py-2 bg-blue-50 text-blue-600 text-sm rounded">
+                      正在处理文件...
+                    </div>
+                  )}
                 </div>
-                <div className="flex-1 p-4 flex items-center justify-center">
-                  <div className="text-center text-slate-500">
-                    <div className="text-6xl mb-4">✏️</div>
-                    <h3 className="text-lg font-medium mb-2">编辑区域正在重构中</h3>
-                    <p className="text-sm">此区域将被重新设计以提供更好的编辑体验</p>
-                  </div>
+                <div className="flex-1 p-4 overflow-hidden">
+                  {openFile ? (
+                    <DocxEditor 
+                      content={openFile.htmlContent}
+                      onChange={updateContent}
+                      placeholder="开始编辑您的文档..."
+                      readOnly={isFileLoading}
+                    />
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-slate-500">
+                      <div className="text-center">
+                        <div className="text-6xl mb-4">📝</div>
+                        <h3 className="text-lg font-medium mb-2">DOCX文档编辑器</h3>
+                        <p className="text-sm mb-4">从左侧文件管理中选择一个DOCX文件开始编辑</p>
+                        <div className="text-xs text-slate-400">
+                          支持格式：.docx, .doc, .txt, .md
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </Panel>

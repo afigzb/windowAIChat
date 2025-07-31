@@ -44,6 +44,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 获取文件信息
   getFileStats: (path) => ipcRenderer.invoke('get-file-stats', path),
   
+  // DOCX文件处理
+  readDocxAsHtml: (filePath) => ipcRenderer.invoke('read-docx-as-html', filePath),
+  saveHtmlAsDocx: (filePath, htmlContent) => ipcRenderer.invoke('save-html-as-docx', filePath, htmlContent),
+  
 
 })
 

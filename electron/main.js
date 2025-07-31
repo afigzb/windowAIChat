@@ -1,6 +1,8 @@
 const { app, BrowserWindow, Menu, shell, ipcMain, dialog } = require('electron')
 const fs = require('fs').promises
 const path = require('path')
+const mammoth = require('mammoth')
+const HTMLtoDOCX = require('html-to-docx')
 // 使用 app.isPackaged 更可靠地判断是否为开发环境
 const isDev = !app.isPackaged
 
@@ -321,6 +323,49 @@ ipcMain.handle('get-file-stats', async (event, filePath) => {
     }
   } catch (error) {
     console.error('获取文件信息失败:', error)
+    throw error
+  }
+})
+
+// 读取DOCX文件并转换为HTML
+ipcMain.handle('read-docx-as-html', async (event, filePath) => {
+  try {
+    const result = await mammoth.convertToHtml({ path: filePath })
+    return result.value
+  } catch (error) {
+    console.error('读取DOCX文件失败:', error)
+    throw error
+  }
+})
+
+// 将HTML内容保存为DOCX文件
+ipcMain.handle('save-html-as-docx', async (event, filePath, htmlContent) => {
+  try {
+    // 创建基本的HTML文档结构
+    const fullHtml = `
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Document</title>
+        </head>
+        <body>
+          ${htmlContent}
+        </body>
+      </html>
+    `
+    
+    // 转换HTML为DOCX
+    const docxBuffer = await HTMLtoDOCX(fullHtml, null, {
+      table: { row: { cantSplit: true } },
+      footer: true,
+      pageNumber: true,
+    })
+    
+    // 保存文件
+    await fs.writeFile(filePath, docxBuffer)
+    return true
+  } catch (error) {
+    console.error('保存DOCX文件失败:', error)
     throw error
   }
 })
