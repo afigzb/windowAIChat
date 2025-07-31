@@ -82,7 +82,6 @@ export function useFileTree() {
   }
 
   const startInlineEdit = useCallback((mode: 'create' | 'rename', type: 'file' | 'directory', parentPath: string, defaultValue?: string) => {
-    setContextMenu(prev => ({ ...prev, isOpen: false }))
     setInlineEdit({
       isActive: true,
       mode,
@@ -128,13 +127,11 @@ export function useFileTree() {
   }, [startInlineEdit])
 
   const handleRename = useCallback((node: FileSystemNode) => {
-    setContextMenu(prev => ({ ...prev, isOpen: false }))
     startInlineEdit('rename', node.isDirectory ? 'directory' : 'file', node.path, node.name)
   }, [startInlineEdit])
 
   const handleDelete = useCallback(async (node: FileSystemNode) => {
     const itemType = node.isDirectory ? '文件夹' : '文件'
-    setContextMenu(prev => ({ ...prev, isOpen: false }))
     
     if (confirm(`确定要删除${itemType} "${node.name}" 吗？${node.isDirectory ? '这将删除文件夹及其所有内容。' : ''}`)) {
       try {

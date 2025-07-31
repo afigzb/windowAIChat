@@ -22,23 +22,32 @@ export function ContextMenu({ isOpen, x, y, items, onClose }: ContextMenuProps) 
   useEffect(() => {
     if (isOpen) {
       const handleClick = (e: MouseEvent) => {
-        // 如果点击的是右键，不关闭菜单（让新的右键菜单处理）
+        // 如果点击的是右键，不关闭菜单
         if (e.button === 2) return
+        
+        // 检查点击是否在菜单内部
+        const target = e.target as Element
+        const menuElement = document.querySelector('.context-menu')
+        if (menuElement && menuElement.contains(target)) {
+          return
+        }
+        
         onClose()
       }
       
-      const handleContextMenu = (e: MouseEvent) => {
-        // 右键点击时关闭当前菜单，让新菜单打开
-        onClose()
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          onClose()
+        }
       }
       
       // 使用捕获阶段，确保在其他处理器之前执行
       document.addEventListener('click', handleClick, true)
-      document.addEventListener('contextmenu', handleContextMenu, true)
+      document.addEventListener('keydown', handleEscape)
       
       return () => {
         document.removeEventListener('click', handleClick, true)
-        document.removeEventListener('contextmenu', handleContextMenu, true)
+        document.removeEventListener('keydown', handleEscape)
       }
     }
   }, [isOpen, onClose])
@@ -53,7 +62,7 @@ export function ContextMenu({ isOpen, x, y, items, onClose }: ContextMenuProps) 
         onContextMenu={(e) => e.preventDefault()} 
       />
       <div 
-        className="fixed bg-white rounded border border-gray-300 py-1 z-50 min-w-28 shadow"
+        className="context-menu fixed bg-white rounded border border-gray-300 py-1 z-50 min-w-28 shadow"
         style={{ left: x, top: y }}
         onClick={(e) => e.stopPropagation()}
         onContextMenu={(e) => {
@@ -67,7 +76,17 @@ export function ContextMenu({ isOpen, x, y, items, onClose }: ContextMenuProps) 
           ) : (
             <button
               key={item.label}
-              onClick={item.onClick}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                try {
+                  item.onClick()
+                  onClose()
+                } catch (error) {
+                  console.error('菜单项执行失败:', item.label, error)
+                  onClose()
+                }
+              }}
               className={`w-full text-left px-3 py-1 text-sm flex items-center gap-2 ${
                 item.variant === 'danger' 
                   ? 'text-red-600 hover:bg-red-50' 

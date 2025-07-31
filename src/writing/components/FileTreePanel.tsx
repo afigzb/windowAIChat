@@ -25,8 +25,6 @@ export function FileTreePanel() {
     handleInlineEditCancel
   } = useFileTree()
 
-
-
   // 生成右键菜单项
   const getMenuItems = (node: FileSystemNode): MenuItem[] => {
     const items: MenuItem[] = []
