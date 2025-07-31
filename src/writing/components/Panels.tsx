@@ -99,3 +99,6 @@ export function SettingsDataPanel() {
     </div>
   )
 }
+
+// 重新导出文件树面板
+export { FileTreePanel } from './FileTreePanel'

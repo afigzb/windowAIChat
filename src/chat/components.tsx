@@ -9,7 +9,7 @@ import { MarkdownRenderer } from './MarkdownRenderer'
 const AnimatedDots = ({ size = 'sm', color = 'slate' }: { size?: 'sm' | 'md'; color?: 'teal' | 'slate' }) => {
   const dotSize = size === 'sm' ? 'w-1.5 h-1.5' : 'w-2 h-2'
   const colorClasses = {
-    teal: 'bg-teal-500',
+    teal: 'bg-indigo-600',
     slate: 'bg-slate-400'
   }
   
@@ -120,7 +120,7 @@ export function ModelToggle({ currentMode, onModeChange, disabled }: {
           : 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700'
       }`}
     >
-      <div className={`w-2 h-2 rounded-full ${currentMode === 'r1' ? 'bg-slate-600' : 'bg-teal-500'}`} />
+              <div className={`w-2 h-2 rounded-full ${currentMode === 'r1' ? 'bg-slate-600' : 'bg-indigo-600'}`} />
       <span>{currentMode.toUpperCase()}</span>
     </button>
   )
@@ -138,7 +138,7 @@ function ThinkingContent({ content, isExpanded, onToggle }: {
         onClick={onToggle}
         className="flex items-center gap-3 mb-4 w-full text-left"
       >
-        <div className="w-2 h-2 bg-teal-500 rounded-full" />
+        <div className="w-2 h-2 bg-indigo-600 rounded-full" />
         <span className="text-sm font-medium text-slate-700">💭 思考过程</span>
         <div className="ml-auto flex items-center gap-2 text-xs text-slate-500">
           <span>{isExpanded ? '收起' : '展开'}</span>
@@ -201,7 +201,7 @@ export function MessageBubble({
         {/* AI头像 */}
         {!isUser && (
           <div className="flex-shrink-0 mt-1">
-            <div className="w-9 h-9 bg-teal-500 rounded-2xl flex items-center justify-center">
+            <div className="w-9 h-9 bg-indigo-600 rounded-2xl flex items-center justify-center">
               <span className="text-white text-sm font-medium">AI</span>
             </div>
           </div>
@@ -211,12 +211,12 @@ export function MessageBubble({
           {/* 用户标识和状态 */}
           <div className={`flex items-center mb-3 gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
             <div className="flex items-center gap-2">
-              <span className={`text-sm font-medium ${isUser ? 'text-teal-600' : 'text-slate-700'}`}>
+              <span className={`text-sm font-medium ${isUser ? 'text-indigo-700' : 'text-slate-700'}`}>
                 {isUser ? 'You' : 'DeepSeek'}
               </span>
               {!isUser && isGenerating && (
-                <div className="flex items-center gap-2 px-3 py-1 bg-teal-50 text-teal-700 text-xs rounded-full border border-teal-200">
-                  <div className="w-1.5 h-1.5 bg-teal-500 rounded-full animate-pulse" />
+                <div className="flex items-center gap-2 px-3 py-1 bg-indigo-50 text-indigo-800 text-xs rounded-full border border-indigo-200">
+                  <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-pulse" />
                   <span>正在回复</span>
                 </div>
               )}
@@ -344,7 +344,7 @@ export function MessageBubble({
             {!isUser && !isGenerating && onRegenerate && (
               <button
                 onClick={() => onRegenerate(node.id)}
-                className="flex items-center gap-2 px-3 py-1.5 text-xs text-slate-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 text-xs text-slate-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
                 title="重新生成回答"
               >
                 <Icon name="regenerate" className="w-3 h-3" />
@@ -358,7 +358,7 @@ export function MessageBubble({
                   setEditContent(node.content)
                   setIsEditing(true)
                 }}
-                className="flex items-center gap-2 px-3 py-1.5 text-xs text-slate-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 text-xs text-slate-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
                 title="修改消息并重新生成"
               >
                 <Icon name="edit" className="w-3 h-3" />
@@ -371,7 +371,7 @@ export function MessageBubble({
         {/* 用户头像 */}
         {isUser && (
           <div className="flex-shrink-0 mt-1">
-            <div className="w-9 h-9 bg-teal-500 rounded-2xl flex items-center justify-center">
+            <div className="w-9 h-9 bg-indigo-600 rounded-2xl flex items-center justify-center">
               <span className="text-white text-sm font-medium">U</span>
             </div>
           </div>
@@ -414,7 +414,7 @@ function Slider({
           step={step}
           value={value}
           onChange={(e) => onChange(parseFloat(e.target.value))}
-          className="w-full accent-teal-500"
+                      className="w-full accent-indigo-600"
         />
         {marks && (
           <div className="flex justify-between text-xs text-slate-500 mt-2">
@@ -440,7 +440,7 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
       <div className="flex flex-col h-full">
         <div className="flex items-center justify-between p-4 border-b border-slate-200">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-2xl bg-teal-500 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-2xl bg-indigo-600 flex items-center justify-center">
               <Icon name="settings" className="w-5 h-5 text-white" />
             </div>
             <h2 className="text-lg font-semibold text-slate-900">模型设置</h2>
@@ -457,7 +457,7 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
           {/* V3配置 */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-teal-500" />
+              <div className="w-2 h-2 rounded-full bg-indigo-600" />
               <h3 className="text-sm font-semibold text-slate-900">DeepSeek-V3 配置</h3>
             </div>
             
@@ -521,7 +521,7 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
                 value={config.apiKey}
                 onChange={(e) => onConfigChange({ ...config, apiKey: e.target.value })}
                 placeholder="输入你的 DeepSeek API Key"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
               />
             </div>
           </div>
@@ -538,7 +538,7 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
                 type="checkbox"
                 checked={config.showThinking}
                 onChange={(e) => onConfigChange({ ...config, showThinking: e.target.checked })}
-                className="w-4 h-4 text-teal-600 border-2 border-slate-300 rounded"
+                className="w-4 h-4 text-indigo-700 border-2 border-slate-300 rounded"
               />
             </label>
           </div>

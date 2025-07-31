@@ -18,7 +18,31 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveFile: (data) => ipcRenderer.invoke('save-file', data),
   
   // 通知
-  showNotification: (title, body) => ipcRenderer.invoke('show-notification', title, body)
+  showNotification: (title, body) => ipcRenderer.invoke('show-notification', title, body),
+
+  // === 文件系统管理API ===
+  
+  // 选择工作目录
+  selectDirectory: () => ipcRenderer.invoke('select-directory'),
+  
+  // 验证目录是否有效
+  isValidDirectory: (path) => ipcRenderer.invoke('is-valid-directory', path),
+  
+  // 获取目录树结构
+  getDirectoryTree: (path) => ipcRenderer.invoke('get-directory-tree', path),
+  
+  // 文件读取与写入
+  readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
+  writeFile: (filePath, content) => ipcRenderer.invoke('write-file', filePath, content),
+  
+  // 文件与目录操作
+  createFile: (dirPath, fileName) => ipcRenderer.invoke('create-file', dirPath, fileName),
+  createDirectory: (parentPath, dirName) => ipcRenderer.invoke('create-directory', parentPath, dirName),
+  deleteFileOrDirectory: (path) => ipcRenderer.invoke('delete-file-or-directory', path),
+  rename: (oldPath, newName) => ipcRenderer.invoke('rename', oldPath, newName),
+  
+  // 获取文件信息
+  getFileStats: (path) => ipcRenderer.invoke('get-file-stats', path)
 })
 
 // DOM加载完成后的处理

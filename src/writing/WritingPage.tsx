@@ -5,8 +5,10 @@ import { MessageBubble, AISettings, ChatInputArea } from '../chat/components'
 import { useConversationManager } from '../chat/conversation-manager'
 import { useBranchManager } from '../chat/branch-manager'
 import { ChaptersPanel, CharactersPanel, OutlinePanel, SettingsDataPanel } from './components/Panels'
+import { FileTreePanel } from './components/FileTreePanel'
 import { WritingArea } from './components/WritingArea'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
+import { configStorage } from '../storage/config-storage'
 
 // 页面头部组件
 function Header({ 
@@ -21,10 +23,10 @@ function Header({
   onModuleChange: (module: string) => void
 }) {
   const modules = [
-    { id: 'chapters', name: '章节', icon: '📚' },
-    { id: 'characters', name: '人物', icon: '👤' },
-    { id: 'outline', name: '大纲', icon: '📝' },
-    { id: 'settings-data', name: '设定', icon: '🌍' },
+    { id: 'chapters', name: '章节'},
+    { id: 'characters', name: '人物'},
+    { id: 'outline', name: '大纲' },
+    { id: 'settings-data', name: '设定' },
   ]
 
   return (
@@ -47,7 +49,6 @@ function Header({
                   : 'text-slate-700 hover:text-indigo-600 hover:bg-white hover:shadow-sm'
               }`}
             >
-              <span className="text-sm">{module.icon}</span>
               <span>{module.name}</span>
             </button>
           ))}
@@ -76,10 +77,20 @@ function Header({
 
 export default function WritingPage() {
   // UI状态
-  const [config, setConfig] = useState<AIConfig>(DEFAULT_CONFIG)
+  const [config, setConfig] = useState<AIConfig>(() => {
+    // 初始化时从存储加载配置
+    return configStorage.initConfig()
+  })
   const [currentMode, setCurrentMode] = useState<ChatMode>('r1')
   const [showSettings, setShowSettings] = useState(false)
   const [activeModule, setActiveModule] = useState<string>('chapters')
+
+  // 配置变更处理
+  const handleConfigChange = (newConfig: AIConfig) => {
+    setConfig(newConfig)
+    // 自动保存配置到本地存储
+    configStorage.saveConfig(newConfig)
+  }
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -119,7 +130,7 @@ export default function WritingPage() {
       {/* 设置侧边栏 - 绝对定位 */}
       <AISettings
         config={config}
-        onConfigChange={setConfig}
+        onConfigChange={handleConfigChange}
         onClose={() => setShowSettings(false)}
         isOpen={showSettings}
       />
@@ -141,18 +152,18 @@ export default function WritingPage() {
               <div className="bg-white border-r border-slate-300 flex flex-col h-full">
                 <div className="p-4 border-b border-slate-200">
                   <h2 className="font-semibold text-slate-900">
-                    {activeModule === 'chapters' && '章节管理'}
+                    {activeModule === 'chapters' && '文件管理'}
                     {activeModule === 'characters' && '人物设定'}
                     {activeModule === 'outline' && '大纲规划'}
                     {activeModule === 'settings-data' && '世界设定'}
                   </h2>
                 </div>
-                <div className="flex-1 overflow-y-auto p-4">
-                  {activeModule === 'chapters' && <ChaptersPanel />}
-                  {activeModule === 'characters' && <CharactersPanel />}
-                  {activeModule === 'outline' && <OutlinePanel />}
-                  {activeModule === 'settings-data' && <SettingsDataPanel />}
-                </div>
+                            <div className="flex-1 overflow-y-auto p-4">
+              {activeModule === 'chapters' && <FileTreePanel />}
+              {activeModule === 'characters' && <CharactersPanel />}
+              {activeModule === 'outline' && <OutlinePanel />}
+              {activeModule === 'settings-data' && <SettingsDataPanel />}
+            </div>
               </div>
             </Panel>
 

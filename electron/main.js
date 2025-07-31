@@ -1,4 +1,5 @@
-const { app, BrowserWindow, Menu, shell } = require('electron')
+const { app, BrowserWindow, Menu, shell, ipcMain, dialog } = require('electron')
+const fs = require('fs').promises
 const path = require('path')
 // 使用 app.isPackaged 更可靠地判断是否为开发环境
 const isDev = !app.isPackaged
@@ -164,6 +165,175 @@ function createMenu() {
   const menu = Menu.buildFromTemplate(template)
   Menu.setApplicationMenu(menu)
 }
+
+// === 文件系统API处理程序 ===
+
+// 选择工作目录
+ipcMain.handle('select-directory', async () => {
+  try {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory'],
+      title: '选择项目工作目录'
+    })
+    return result
+  } catch (error) {
+    console.error('选择目录失败:', error)
+    throw error
+  }
+})
+
+// 验证目录是否有效
+ipcMain.handle('is-valid-directory', async (event, dirPath) => {
+  try {
+    const stats = await fs.stat(dirPath)
+    return stats.isDirectory()
+  } catch {
+    return false
+  }
+})
+
+// 获取目录树结构
+ipcMain.handle('get-directory-tree', async (event, rootPath) => {
+  try {
+    const buildTree = async (dirPath, parentId = null) => {
+      const items = await fs.readdir(dirPath, { withFileTypes: true })
+      const nodes = []
+      
+      for (const item of items) {
+        const fullPath = path.join(dirPath, item.name)
+        const node = {
+          id: Buffer.from(fullPath).toString('base64'), // 使用路径的base64作为ID
+          name: item.name,
+          path: fullPath,
+          isDirectory: item.isDirectory(),
+          parentId
+        }
+        
+        if (!item.isDirectory()) {
+          // 文件：添加扩展名和大小信息
+          const stats = await fs.stat(fullPath)
+          node.size = stats.size
+          node.modified = stats.mtime
+          node.extension = path.extname(item.name)
+        } else {
+          // 目录：递归获取子项
+          try {
+            node.children = await buildTree(fullPath, node.id)
+          } catch (error) {
+            // 如果无法访问子目录，设置为空数组
+            node.children = []
+          }
+        }
+        
+        nodes.push(node)
+      }
+      
+      return nodes.sort((a, b) => {
+        // 目录在前，文件在后，按名称排序
+        if (a.isDirectory && !b.isDirectory) return -1
+        if (!a.isDirectory && b.isDirectory) return 1
+        return a.name.localeCompare(b.name)
+      })
+    }
+    
+    return await buildTree(rootPath)
+  } catch (error) {
+    console.error('获取目录树失败:', error)
+    throw error
+  }
+})
+
+// 读取文件内容
+ipcMain.handle('read-file', async (event, filePath) => {
+  try {
+    const content = await fs.readFile(filePath, 'utf-8')
+    return content
+  } catch (error) {
+    console.error('读取文件失败:', error)
+    throw error
+  }
+})
+
+// 写入文件内容
+ipcMain.handle('write-file', async (event, filePath, content) => {
+  try {
+    await fs.writeFile(filePath, content, 'utf-8')
+    return true
+  } catch (error) {
+    console.error('写入文件失败:', error)
+    throw error
+  }
+})
+
+// 创建文件
+ipcMain.handle('create-file', async (event, dirPath, fileName) => {
+  try {
+    const filePath = path.join(dirPath, fileName)
+    await fs.writeFile(filePath, '', 'utf-8')
+    return filePath
+  } catch (error) {
+    console.error('创建文件失败:', error)
+    throw error
+  }
+})
+
+// 创建目录
+ipcMain.handle('create-directory', async (event, parentPath, dirName) => {
+  try {
+    const dirPath = path.join(parentPath, dirName)
+    await fs.mkdir(dirPath, { recursive: true })
+    return dirPath
+  } catch (error) {
+    console.error('创建目录失败:', error)
+    throw error
+  }
+})
+
+// 删除文件或目录
+ipcMain.handle('delete-file-or-directory', async (event, targetPath) => {
+  try {
+    const stats = await fs.stat(targetPath)
+    if (stats.isDirectory()) {
+      await fs.rmdir(targetPath, { recursive: true })
+    } else {
+      await fs.unlink(targetPath)
+    }
+    return true
+  } catch (error) {
+    console.error('删除失败:', error)
+    throw error
+  }
+})
+
+// 重命名文件或目录
+ipcMain.handle('rename', async (event, oldPath, newName) => {
+  try {
+    const dir = path.dirname(oldPath)
+    const newPath = path.join(dir, newName)
+    await fs.rename(oldPath, newPath)
+    return newPath
+  } catch (error) {
+    console.error('重命名失败:', error)
+    throw error
+  }
+})
+
+// 获取文件统计信息
+ipcMain.handle('get-file-stats', async (event, filePath) => {
+  try {
+    const stats = await fs.stat(filePath)
+    return {
+      size: stats.size,
+      modified: stats.mtime,
+      created: stats.birthtime,
+      isDirectory: stats.isDirectory(),
+      isFile: stats.isFile()
+    }
+  } catch (error) {
+    console.error('获取文件信息失败:', error)
+    throw error
+  }
+})
 
 // 当Electron完成初始化并准备创建浏览器窗口时调用此方法
 app.whenReady().then(() => {

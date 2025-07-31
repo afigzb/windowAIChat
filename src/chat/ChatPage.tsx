@@ -8,6 +8,7 @@ import { DEFAULT_CONFIG } from './api'
 import { MessageBubble, AISettings, ChatInputArea } from './components'
 import { useConversationManager } from './conversation-manager'
 import { useBranchManager } from './branch-manager'
+import { configStorage } from '../storage/config-storage'
 
 // 页面头部组件
 function Header({ 
@@ -31,8 +32,8 @@ function Header({
             onClick={onSettingsClick}
             className={`p-2 rounded-xl transition-colors ${
               showSettings 
-                ? 'bg-teal-500 text-white' 
-                : 'text-slate-600 hover:text-teal-600 hover:bg-teal-50'
+                            ? 'bg-indigo-600 text-white'
+            : 'text-slate-600 hover:text-indigo-700 hover:bg-indigo-50'
             }`}
             title="设置"
           >
@@ -48,9 +49,19 @@ function Header({
 
 export default function ChatPage() {
   // UI状态
-  const [config, setConfig] = useState<AIConfig>(DEFAULT_CONFIG)
+  const [config, setConfig] = useState<AIConfig>(() => {
+    // 初始化时从存储加载配置
+    return configStorage.initConfig()
+  })
   const [currentMode, setCurrentMode] = useState<ChatMode>('r1')
   const [showSettings, setShowSettings] = useState(false)
+
+  // 配置变更处理
+  const handleConfigChange = (newConfig: AIConfig) => {
+    setConfig(newConfig)
+    // 自动保存配置到本地存储
+    configStorage.saveConfig(newConfig)
+  }
 
   
   // Refs
@@ -89,7 +100,7 @@ export default function ChatPage() {
       {/* 设置侧边栏 - 绝对定位 */}
       <AISettings
         config={config}
-        onConfigChange={setConfig}
+        onConfigChange={handleConfigChange}
         onClose={() => setShowSettings(false)}
         isOpen={showSettings}
       />
