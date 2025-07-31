@@ -148,8 +148,10 @@ export function useFileTree() {
     e.preventDefault()
     e.stopPropagation()
     
+    // 右键时关闭内联编辑
     setInlineEdit({ isActive: false, mode: 'create', type: 'file', parentPath: '' })
     
+    // 如果没有传入节点，使用根目录
     const targetNode = node || {
       id: 'root',
       name: workspace?.name || '',

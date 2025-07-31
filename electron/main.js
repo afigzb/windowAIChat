@@ -70,40 +70,30 @@ function createWindow() {
     }
   })
 
-  // 添加右键菜单功能
+  // 添加文本编辑右键菜单
   mainWindow.webContents.on('context-menu', (event, params) => {
     const { selectionText, isEditable } = params
     
-    // 创建右键菜单
-    const contextMenu = Menu.buildFromTemplate([
-      {
-        label: '剪切',
-        accelerator: 'CmdOrCtrl+X',
-        enabled: selectionText.length > 0 && isEditable,
-        click: () => {
-          mainWindow.webContents.cut()
-        }
-      },
-      {
-        label: '复制',
-        accelerator: 'CmdOrCtrl+C',
-        enabled: selectionText.length > 0,
-        click: () => {
-          mainWindow.webContents.copy()
-        }
-      },
-      {
-        label: '粘贴',
-        accelerator: 'CmdOrCtrl+V',
-        enabled: isEditable,
-        click: () => {
-          mainWindow.webContents.paste()
-        }
-      }
-    ])
+    // 只在可编辑区域或有选中文本时显示菜单
+    if (!isEditable && !selectionText) return
     
-    // 显示右键菜单
-    contextMenu.popup({ window: mainWindow })
+    const menuItems = []
+    
+    // 根据状态添加菜单项
+    if (selectionText && isEditable) {
+      menuItems.push({ label: '剪切', role: 'cut' })
+    }
+    if (selectionText) {
+      menuItems.push({ label: '复制', role: 'copy' })
+    }
+    if (isEditable) {
+      menuItems.push({ label: '粘贴', role: 'paste' })
+    }
+    
+    if (menuItems.length > 0) {
+      const contextMenu = Menu.buildFromTemplate(menuItems)
+      contextMenu.popup({ window: mainWindow })
+    }
   })
 }
 

@@ -1,18 +1,10 @@
 // 文件树面板组件
 
-import { useEffect } from 'react'
 import { FileTreeNode } from './FileTreeNode'
 import { InlineEdit } from './InlineEdit'
+import { ContextMenu, type MenuItem } from './ContextMenu'
 import { useFileTree } from './useFileTree'
 import type { FileSystemNode } from '../../storage/file-system'
-
-// 右键菜单项类型
-interface MenuAction {
-  label: string
-  icon: string
-  onClick: () => void
-  variant?: 'normal' | 'danger'
-}
 
 export function FileTreePanel() {
   const {
@@ -33,56 +25,28 @@ export function FileTreePanel() {
     handleInlineEditCancel
   } = useFileTree()
 
-  // 监听全局点击事件，关闭右键菜单
-  useEffect(() => {
-    const handleGlobalClick = () => {
-      if (contextMenu.isOpen) {
-        handleCloseContextMenu()
-      }
-    }
 
-    if (contextMenu.isOpen) {
-      document.addEventListener('click', handleGlobalClick)
-      return () => document.removeEventListener('click', handleGlobalClick)
-    }
-  }, [contextMenu.isOpen, handleCloseContextMenu])
 
   // 生成右键菜单项
-  const getMenuActions = (node: FileSystemNode): MenuAction[] => {
-    const actions: MenuAction[] = []
+  const getMenuItems = (node: FileSystemNode): MenuItem[] => {
+    const items: MenuItem[] = []
     
     if (node.isDirectory) {
-      actions.push(
-        {
-          label: '新建文件',
-          icon: '📝',
-          onClick: () => handleCreateFile(node.path)
-        },
-        {
-          label: '新建文件夹',
-          icon: '📁',
-          onClick: () => handleCreateDirectory(node.path)
-        }
+      items.push(
+        { label: '新建文件', icon: '📝', onClick: () => handleCreateFile(node.path) },
+        { label: '新建文件夹', icon: '📁', onClick: () => handleCreateDirectory(node.path) }
       )
     }
     
     if (node.id !== 'root') {
-      actions.push(
-        {
-          label: '重命名',
-          icon: '✏️',
-          onClick: () => handleRename(node)
-        },
-        {
-          label: '删除',
-          icon: '🗑️',
-          onClick: () => handleDelete(node),
-          variant: 'danger'
-        }
+      if (items.length > 0) items.push({ divider: true } as MenuItem)
+      items.push(
+        { label: '重命名', icon: '✏️', onClick: () => handleRename(node) },
+        { label: '删除', icon: '🗑️', onClick: () => handleDelete(node), variant: 'danger' }
       )
     }
     
-    return actions
+    return items
   }
 
   if (!workspace) {
@@ -127,6 +91,7 @@ export function FileTreePanel() {
         style={{ minHeight: '400px' }}
         onContextMenu={(e) => {
           const target = e.target as HTMLElement
+          // 如果点击的不是文件节点，则在空白区域显示根目录菜单
           if (!target.closest('[data-file-node]')) {
             handleContextMenu(e)
           }
@@ -164,41 +129,13 @@ export function FileTreePanel() {
       </div>
 
       {/* 右键菜单 */}
-      {contextMenu.isOpen && (
-        <>
-          <div 
-            className="fixed inset-0 z-40" 
-            onClick={handleCloseContextMenu}
-          />
-          <div 
-            className="fixed bg-white rounded border border-gray-300 py-1 z-50 min-w-28 shadow"
-            style={{ 
-              left: contextMenu.x, 
-              top: contextMenu.y,
-              transform: 'translate(-50%, 0)'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {contextMenu.node && getMenuActions(contextMenu.node).map((action, index, array) => (
-              <div key={action.label}>
-                {index === 2 && array.length > 2 && (
-                  <div className="border-t border-gray-200 my-1" />
-                )}
-                <button
-                  onClick={action.onClick}
-                  className={`w-full text-left px-2 py-1 text-sm ${
-                    action.variant === 'danger' 
-                      ? 'text-red-600 hover:bg-red-50' 
-                      : 'hover:bg-gray-100'
-                  }`}
-                >
-                  {action.icon} {action.label}
-                </button>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
+      <ContextMenu
+        isOpen={contextMenu.isOpen}
+        x={contextMenu.x}
+        y={contextMenu.y}
+        items={contextMenu.node ? getMenuItems(contextMenu.node) : []}
+        onClose={handleCloseContextMenu}
+      />
     </div>
   )
 }
