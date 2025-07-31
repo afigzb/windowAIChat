@@ -1,7 +1,7 @@
-import { ChatPage } from './chat'
+import { WritingPage } from './writing'
 
 function App() {
-  return <ChatPage />
+  return <WritingPage />
 }
 
 export default App

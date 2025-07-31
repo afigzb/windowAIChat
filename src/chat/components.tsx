@@ -265,8 +265,8 @@ export function MessageBubble({
             <div className={`${isEditing ? 'w-full' : ''}`}>
               <div className={`${
                 isEditing 
-                  ? 'bg-teal-50 border border-teal-200 rounded-2xl p-4' 
-                  : 'bg-teal-500 text-white rounded-2xl px-5 py-3'
+                  ? 'bg-indigo-50 border border-indigo-200 rounded-2xl p-4' 
+                  : 'bg-indigo-600 text-white rounded-2xl px-5 py-3'
               }`}>
                 {isEditing ? (
                   <div className="space-y-4">
@@ -281,7 +281,7 @@ export function MessageBubble({
                           handleEditCancel()
                         }
                       }}
-                      className="w-full bg-white text-slate-900 placeholder-slate-500 border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
+                      className="w-full bg-white text-slate-900 placeholder-slate-500 border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
                       placeholder="修改消息内容..."
                       rows={Math.max(2, editContent.split('\n').length)}
                       autoFocus
@@ -295,7 +295,7 @@ export function MessageBubble({
                       </button>
                       <button 
                         onClick={handleEditSave} 
-                        className="px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white text-sm rounded-lg transition-colors"
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-colors"
                       >
                         保存并重新生成
                       </button>
@@ -604,7 +604,7 @@ export function ChatInputArea({
   return (
     <div className="sticky bottom-0">
       <div className="max-w-4xl mx-auto p-6 pt-0 bg-slate-50">
-        <div className="border border-slate-200 rounded-2xl bg-white focus-within:border-teal-300 transition-colors">
+        <div className="border border-slate-200 rounded-2xl bg-white focus-within:border-indigo-300 transition-colors">
           <div className="p-4">
             <textarea
               ref={textareaRef}
@@ -639,7 +639,7 @@ export function ChatInputArea({
                 isLoading 
                   ? 'bg-slate-600 text-white hover:bg-slate-700'
                   : canSend
-                    ? 'bg-teal-500 text-white hover:bg-teal-600'
+                    ? 'bg-indigo-600 text-white hover:bg-indigo-700'
                     : 'bg-slate-200 text-slate-400 cursor-not-allowed'
               }`}
             >

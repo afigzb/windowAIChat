@@ -21,6 +21,7 @@ function createWindow() {
     },
     // icon: path.join(__dirname, '../public/chat-icon.svg'), // 应用图标（暂时禁用）
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    autoHideMenuBar: true, // 自动隐藏菜单栏
     show: false // 先隐藏窗口，加载完成后再显示
   })
 
@@ -109,7 +110,7 @@ function createWindow() {
 function createMenu() {
   const template = [
     {
-      label: 'AI助手',
+      label: 'AI写作助手',
       submenu: [
         {
           label: '关于',
@@ -167,7 +168,8 @@ function createMenu() {
 // 当Electron完成初始化并准备创建浏览器窗口时调用此方法
 app.whenReady().then(() => {
   createWindow()
-  createMenu()
+  // 移除顶部菜单栏
+  Menu.setApplicationMenu(null)
 
   app.on('activate', () => {
     // 在macOS上，当单击dock图标并且没有其他窗口打开时，通常在应用程序中重新创建一个窗口
