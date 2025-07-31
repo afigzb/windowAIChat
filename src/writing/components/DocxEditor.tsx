@@ -1,10 +1,12 @@
 // DOCX格式的富文本编辑器组件
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { countWords, type WordCountResult } from '../utils/wordCount'
 
 interface DocxEditorProps {
   content: string // HTML内容
   onChange: (content: string) => void
+  onWordCountChange?: (wordCount: WordCountResult) => void
   placeholder?: string
   readOnly?: boolean
 }
@@ -12,6 +14,7 @@ interface DocxEditorProps {
 export function DocxEditor({ 
   content, 
   onChange, 
+  onWordCountChange,
   placeholder = "在这里开始编辑DOCX文档...",
   readOnly = false 
 }: DocxEditorProps) {
@@ -31,81 +34,32 @@ export function DocxEditor({
     if (editorRef.current) {
       const newContent = editorRef.current.innerHTML
       onChange(newContent)
+      
+      // 计算字数统计
+      if (onWordCountChange) {
+        const wordCount = countWords(newContent)
+        onWordCountChange(wordCount)
+      }
     }
-  }, [onChange])
+  }, [onChange, onWordCountChange])
 
-  // 处理粘贴事件，清理格式
+  // 当内容从外部更新时也要计算字数
+  useEffect(() => {
+    if (onWordCountChange && content) {
+      const wordCount = countWords(content)
+      onWordCountChange(wordCount)
+    }
+  }, [content, onWordCountChange])
+
+  // 处理粘贴事件，保持纯文本
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
     e.preventDefault()
     const text = e.clipboardData.getData('text/plain')
     document.execCommand('insertText', false, text)
   }, [])
 
-  // 工具栏按钮处理
-  const formatText = useCallback((command: string, value?: string) => {
-    document.execCommand(command, false, value)
-    if (editorRef.current) {
-      editorRef.current.focus()
-      handleInput()
-    }
-  }, [handleInput])
-
   return (
     <div className="h-full w-full flex flex-col border border-slate-200 rounded-lg">
-      {/* 工具栏 */}
-      {!readOnly && (
-        <div className="flex items-center gap-2 p-3 border-b border-slate-200 bg-slate-50">
-          <button
-            onClick={() => formatText('bold')}
-            className="px-3 py-1 text-sm border border-slate-300 rounded hover:bg-slate-100 font-bold"
-            title="粗体"
-          >
-            B
-          </button>
-          <button
-            onClick={() => formatText('italic')}
-            className="px-3 py-1 text-sm border border-slate-300 rounded hover:bg-slate-100 italic"
-            title="斜体"
-          >
-            I
-          </button>
-          <button
-            onClick={() => formatText('underline')}
-            className="px-3 py-1 text-sm border border-slate-300 rounded hover:bg-slate-100 underline"
-            title="下划线"
-          >
-            U
-          </button>
-          <div className="w-px h-4 bg-slate-300 mx-2"></div>
-          <button
-            onClick={() => formatText('insertUnorderedList')}
-            className="px-3 py-1 text-sm border border-slate-300 rounded hover:bg-slate-100"
-            title="无序列表"
-          >
-            • 列表
-          </button>
-          <button
-            onClick={() => formatText('insertOrderedList')}
-            className="px-3 py-1 text-sm border border-slate-300 rounded hover:bg-slate-100"
-            title="有序列表"
-          >
-            1. 列表
-          </button>
-          <div className="w-px h-4 bg-slate-300 mx-2"></div>
-          <select
-            onChange={(e) => formatText('formatBlock', e.target.value)}
-            className="px-2 py-1 text-sm border border-slate-300 rounded"
-            defaultValue=""
-          >
-            <option value="">格式</option>
-            <option value="p">正文</option>
-            <option value="h1">标题 1</option>
-            <option value="h2">标题 2</option>
-            <option value="h3">标题 3</option>
-          </select>
-        </div>
-      )}
-      
       {/* 编辑区域 */}
       <div 
         ref={editorRef}

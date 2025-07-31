@@ -6,7 +6,11 @@ import { ContextMenu, type MenuItem } from './ContextMenu'
 import { useFileTree } from './useFileTree'
 import type { FileSystemNode } from '../../storage/file-system'
 
-export function FileTreePanel() {
+interface FileTreePanelProps {
+  selectedFile?: string | null
+}
+
+export function FileTreePanel({ selectedFile }: FileTreePanelProps) {
   const {
     workspace,
     fileTree,
@@ -100,6 +104,7 @@ export function FileTreePanel() {
             <FileTreeNode
               key={node.id}
               node={node}
+              selectedFile={selectedFile}
               onFileClick={handleFileClick}
               onCreateFile={handleCreateFile}
               onCreateDirectory={handleCreateDirectory}

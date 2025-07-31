@@ -15,6 +15,7 @@ interface InlineEditState {
 interface FileTreeNodeProps {
   node: FileSystemNode
   level?: number
+  selectedFile?: string | null
   onFileClick?: (node: FileSystemNode) => void
   onCreateFile?: (dirPath: string) => void
   onCreateDirectory?: (dirPath: string) => void
@@ -31,6 +32,7 @@ function FileIcon({ node }: { node: FileSystemNode }) {
 export function FileTreeNode({ 
   node, 
   level = 0, 
+  selectedFile,
   onFileClick,
   onCreateFile,
   onCreateDirectory,
@@ -58,6 +60,8 @@ export function FileTreeNode({
   const isRenaming = inlineEdit?.isActive && 
                     inlineEdit.mode === 'rename' && 
                     inlineEdit.parentPath === node.path
+  
+  const isSelected = selectedFile === node.path
 
   if (isRenaming) {
     return (
@@ -75,7 +79,11 @@ export function FileTreeNode({
     <div>
       <div 
         data-file-node
-        className="flex items-center gap-1 py-1 px-1 hover:bg-gray-100 cursor-pointer"
+        className={`flex items-center gap-1 py-1 px-1 cursor-pointer ${
+          isSelected 
+            ? 'bg-indigo-100 text-indigo-900 border-l-2 border-indigo-500' 
+            : 'hover:bg-gray-100'
+        }`}
         style={{ marginLeft: level * 16 }}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
@@ -120,6 +128,7 @@ export function FileTreeNode({
               key={child.id}
               node={child}
               level={level + 1}
+              selectedFile={selectedFile}
               onFileClick={onFileClick}
               onCreateFile={onCreateFile}
               onCreateDirectory={onCreateDirectory}

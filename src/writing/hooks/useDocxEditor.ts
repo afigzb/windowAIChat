@@ -1,6 +1,7 @@
 // DOCX文件编辑器状态管理 Hook
 
 import { useState, useCallback } from 'react'
+import type { WordCountResult } from '../utils/wordCount'
 
 export interface DocxFile {
   path: string
@@ -14,12 +15,55 @@ export function useDocxEditor() {
   const [openFile, setOpenFile] = useState<DocxFile | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [wordCount, setWordCount] = useState<WordCountResult>({
+    characters: 0,
+    charactersNoSpaces: 0,
+    words: 0,
+    paragraphs: 0,
+    lines: 0
+  })
 
   // 判断文件是否为支持的格式
   const isSupportedFile = (filePath: string): boolean => {
     const ext = filePath.toLowerCase().split('.').pop()
     return ext === 'docx' || ext === 'doc' || ext === 'txt' || ext === 'md'
   }
+
+  // 内部保存函数，避免依赖循环
+  const saveCurrentFile = useCallback(async (): Promise<boolean> => {
+    if (!openFile || !openFile.isModified) {
+      return true
+    }
+
+    setIsLoading(true)
+    setError(null)
+    
+    try {
+      const ext = openFile.path.toLowerCase().split('.').pop()
+      
+      if (ext === 'docx' || ext === 'doc') {
+        await (window as any).electronAPI.saveHtmlAsDocx(openFile.path, openFile.htmlContent)
+      } else {
+        const textContent = htmlToText(openFile.htmlContent)
+        await (window as any).electronAPI.writeFile(openFile.path, textContent)
+      }
+      
+      setOpenFile(prev => prev ? {
+        ...prev,
+        originalHtmlContent: prev.htmlContent,
+        isModified: false
+      } : null)
+      
+      return true
+    } catch (err) {
+      const errorMessage = `保存文件失败: ${err}`
+      setError(errorMessage)
+      console.error(errorMessage, err)
+      return false
+    } finally {
+      setIsLoading(false)
+    }
+  }, [openFile])
 
   // 打开文件进行编辑
   const openFileForEdit = useCallback(async (filePath: string, fileName: string) => {
@@ -28,20 +72,43 @@ export function useDocxEditor() {
       return
     }
 
-    setIsLoading(true)
+    // 如果要打开的文件已经是当前打开的文件，直接返回
+    if (openFile && openFile.path === filePath) {
+      return
+    }
+
+    // 如果有未保存的文件，先询问是否保存
+    if (openFile && openFile.isModified) {
+      const shouldSave = confirm(`文件 "${openFile.name}" 已修改但未保存，是否要先保存？`)
+      if (shouldSave) {
+        const saved = await saveCurrentFile()
+        if (!saved) {
+          return
+        }
+      }
+    }
+
+    // 立即清理状态，确保界面及时响应
+    setOpenFile(null)
     setError(null)
+    setWordCount({
+      characters: 0,
+      charactersNoSpaces: 0,
+      words: 0,
+      paragraphs: 0,
+      lines: 0
+    })
+
+    setIsLoading(true)
     
     try {
       let htmlContent = ''
       const ext = filePath.toLowerCase().split('.').pop()
       
       if (ext === 'docx' || ext === 'doc') {
-        // 读取DOCX文件并转换为HTML
         htmlContent = await (window as any).electronAPI.readDocxAsHtml(filePath)
       } else {
-        // 读取纯文本文件
         const textContent = await (window as any).electronAPI.readFile(filePath)
-        // 将纯文本转换为简单的HTML
         htmlContent = textContent
           .split('\n')
           .map((line: string) => line.trim() ? `<p>${line}</p>` : '<p><br></p>')
@@ -61,7 +128,7 @@ export function useDocxEditor() {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [openFile, saveCurrentFile])
 
   // 更新文件内容
   const updateContent = useCallback((newHtmlContent: string) => {
@@ -74,44 +141,8 @@ export function useDocxEditor() {
     })
   }, [openFile])
 
-  // 保存文件
-  const saveFile = useCallback(async () => {
-    if (!openFile || !openFile.isModified) {
-      return false
-    }
-    
-    setIsLoading(true)
-    setError(null)
-    
-    try {
-      const ext = openFile.path.toLowerCase().split('.').pop()
-      
-      if (ext === 'docx' || ext === 'doc') {
-        // 将HTML内容保存为DOCX格式
-        await (window as any).electronAPI.saveHtmlAsDocx(openFile.path, openFile.htmlContent)
-      } else {
-        // 将HTML转换为纯文本并保存
-        const textContent = htmlToText(openFile.htmlContent)
-        await (window as any).electronAPI.writeFile(openFile.path, textContent)
-      }
-      
-      // 更新状态，标记为未修改
-      setOpenFile(prev => prev ? {
-        ...prev,
-        originalHtmlContent: prev.htmlContent,
-        isModified: false
-      } : null)
-      
-      return true
-    } catch (err) {
-      const errorMessage = `保存文件失败: ${err}`
-      setError(errorMessage)
-      console.error(errorMessage, err)
-      return false
-    } finally {
-      setIsLoading(false)
-    }
-  }, [openFile])
+  // 对外暴露的保存文件函数
+  const saveFile = saveCurrentFile
 
   // 关闭文件
   const closeFile = useCallback(() => {
@@ -123,8 +154,20 @@ export function useDocxEditor() {
     
     setOpenFile(null)
     setError(null)
+    setWordCount({
+      characters: 0,
+      charactersNoSpaces: 0,
+      words: 0,
+      paragraphs: 0,
+      lines: 0
+    })
     return true
   }, [openFile])
+
+  // 更新字数统计
+  const updateWordCount = useCallback((newWordCount: WordCountResult) => {
+    setWordCount(newWordCount)
+  }, [])
 
   // 简单的HTML转文本函数
   const htmlToText = (html: string): string => {
@@ -138,8 +181,10 @@ export function useDocxEditor() {
     openFile,
     isLoading,
     error,
+    wordCount,
     openFileForEdit,
     updateContent,
+    updateWordCount,
     saveFile,
     closeFile,
     isSupportedFile

@@ -85,14 +85,17 @@ export default function WritingPage() {
   const [currentMode, setCurrentMode] = useState<ChatMode>('r1')
   const [showSettings, setShowSettings] = useState(false)
   const [activeModule, setActiveModule] = useState<string>('chapters')
+  const [selectedFile, setSelectedFile] = useState<string | null>(null)
   
   // DOCX编辑器状态管理
   const {
     openFile,
     isLoading: isFileLoading,
     error: fileError,
+    wordCount,
     openFileForEdit,
     updateContent,
+    updateWordCount,
     saveFile,
     closeFile
   } = useDocxEditor()
@@ -138,6 +141,7 @@ export default function WritingPage() {
   // 设置文件选择回调
   useEffect(() => {
     ;(window as any).onFileSelect = (filePath: string, fileName: string) => {
+      setSelectedFile(filePath) // 设置选中状态
       openFileForEdit(filePath, fileName)
     }
     
@@ -160,6 +164,15 @@ export default function WritingPage() {
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [openFile, saveFile])
+
+  // 处理文件关闭
+  const handleCloseFile = () => {
+    const result = closeFile()
+    if (result) {
+      setSelectedFile(null) // 清除选中状态
+    }
+    return result
+  }
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -195,7 +208,7 @@ export default function WritingPage() {
                   </h2>
                 </div>
                             <div className="flex-1 overflow-y-auto p-4">
-              {activeModule === 'chapters' && <FileTreePanel />}
+              {activeModule === 'chapters' && <FileTreePanel selectedFile={selectedFile} />}
               {activeModule === 'characters' && <CharactersPanel />}
               {activeModule === 'outline' && <OutlinePanel />}
               {activeModule === 'settings-data' && <SettingsDataPanel />}
@@ -227,6 +240,11 @@ export default function WritingPage() {
                     </div>
                     <div className="flex items-center gap-3">
                       {openFile && (
+                        <div className="text-sm text-slate-600 px-3 py-1.5 bg-slate-100 rounded-md">
+                          📊 {wordCount.words}字
+                        </div>
+                      )}
+                      {openFile && (
                         <button
                           onClick={saveFile}
                           disabled={!openFile.isModified || isFileLoading}
@@ -240,7 +258,7 @@ export default function WritingPage() {
                       )}
                       {openFile && (
                         <button
-                          onClick={closeFile}
+                          onClick={handleCloseFile}
                           className="px-3 py-1.5 bg-gray-500 text-white text-sm rounded-md hover:bg-gray-600 transition-colors flex items-center gap-2"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -267,6 +285,7 @@ export default function WritingPage() {
                     <DocxEditor 
                       content={openFile.htmlContent}
                       onChange={updateContent}
+                      onWordCountChange={updateWordCount}
                       placeholder="开始编辑您的文档..."
                       readOnly={isFileLoading}
                     />
