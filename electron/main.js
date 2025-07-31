@@ -261,28 +261,7 @@ ipcMain.handle('write-file', async (event, filePath, content) => {
 ipcMain.handle('create-file', async (event, dirPath, fileName) => {
   try {
     const filePath = path.join(dirPath, fileName)
-    const ext = fileName.toLowerCase().split('.').pop()
-    
-    if (ext === 'docx' || ext === 'doc') {
-      // 为DOCX文件创建最小的有效文档
-      const emptyHtml = `
-        <html>
-          <head>
-            <meta charset="UTF-8">
-            <title>Document</title>
-          </head>
-          <body>
-          </body>
-        </html>
-      `
-      
-      const docxBuffer = await HTMLtoDOCX(emptyHtml)
-      await fs.writeFile(filePath, docxBuffer)
-    } else {
-      // 其他文件类型创建空文件
-      await fs.writeFile(filePath, '', 'utf-8')
-    }
-    
+    await fs.writeFile(filePath, '', 'utf-8')
     return filePath
   } catch (error) {
     console.error('创建文件失败:', error)
@@ -351,37 +330,19 @@ ipcMain.handle('get-file-stats', async (event, filePath) => {
 // 读取DOCX文件并转换为HTML
 ipcMain.handle('read-docx-as-html', async (event, filePath) => {
   try {
-    // 首先检查文件是否存在和大小
+    // 检查文件是否为空
     const stats = await fs.stat(filePath)
     if (stats.size === 0) {
-      console.log('文件为空，返回默认内容')
       return '<p></p>'
     }
 
     const result = await mammoth.convertToHtml({ path: filePath })
-    let htmlContent = result.value
+    const htmlContent = result.value
     
-    // 如果内容为空或只包含空白字符，返回一个空段落
-    if (!htmlContent || htmlContent.trim() === '') {
-      htmlContent = '<p></p>'
-    }
-    
-    // 确保至少有一个段落标签
-    const hasContent = htmlContent.includes('<p>') || htmlContent.includes('<div>') || htmlContent.includes('<h')
-    if (!hasContent) {
-      // 如果没有块级元素，包装在段落中
-      htmlContent = `<p>${htmlContent.trim() || ''}</p>`
-    }
-    
-    return htmlContent
+    // 如果内容为空，返回空段落
+    return htmlContent || '<p></p>'
   } catch (error) {
     console.error('读取DOCX文件失败:', error)
-    
-    // 如果是ZIP相关错误（通常表示文件格式问题），提供更友好的错误信息
-    if (error.message && error.message.includes('zip')) {
-      throw new Error('文件格式不正确或文件已损坏。请确保这是一个有效的Word文档文件(.docx)。')
-    }
-    
     throw error
   }
 })
