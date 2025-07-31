@@ -261,7 +261,28 @@ ipcMain.handle('write-file', async (event, filePath, content) => {
 ipcMain.handle('create-file', async (event, dirPath, fileName) => {
   try {
     const filePath = path.join(dirPath, fileName)
-    await fs.writeFile(filePath, '', 'utf-8')
+    const ext = fileName.toLowerCase().split('.').pop()
+    
+    if (ext === 'docx' || ext === 'doc') {
+      // 为DOCX文件创建最小的有效文档
+      const emptyHtml = `
+        <html>
+          <head>
+            <meta charset="UTF-8">
+            <title>Document</title>
+          </head>
+          <body>
+          </body>
+        </html>
+      `
+      
+      const docxBuffer = await HTMLtoDOCX(emptyHtml)
+      await fs.writeFile(filePath, docxBuffer)
+    } else {
+      // 其他文件类型创建空文件
+      await fs.writeFile(filePath, '', 'utf-8')
+    }
+    
     return filePath
   } catch (error) {
     console.error('创建文件失败:', error)
