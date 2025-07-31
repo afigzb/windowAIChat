@@ -8,7 +8,7 @@ import { ChaptersPanel, CharactersPanel, OutlinePanel, SettingsDataPanel } from 
 import { FileTreePanel } from './components/FileTreePanel'
 import { WritingArea } from './components/WritingArea'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
-import { configStorage } from '../storage/config-storage'
+import storage from '../storage'
 
 // 页面头部组件
 function Header({ 
@@ -79,7 +79,7 @@ export default function WritingPage() {
   // UI状态
   const [config, setConfig] = useState<AIConfig>(() => {
     // 初始化时从存储加载配置
-    return configStorage.initConfig()
+    return storage.initAIConfig(DEFAULT_CONFIG)
   })
   const [currentMode, setCurrentMode] = useState<ChatMode>('r1')
   const [showSettings, setShowSettings] = useState(false)
@@ -89,7 +89,7 @@ export default function WritingPage() {
   const handleConfigChange = (newConfig: AIConfig) => {
     setConfig(newConfig)
     // 自动保存配置到本地存储
-    configStorage.saveConfig(newConfig)
+    storage.saveAIConfig(newConfig)
   }
 
   // Refs

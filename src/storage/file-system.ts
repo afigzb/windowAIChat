@@ -25,20 +25,10 @@ export interface Workspace {
   lastAccessed: Date
 }
 
-// 文件系统管理器
+// 文件系统管理器  
 export class FileSystemManager {
-  private static instance: FileSystemManager
   private currentWorkspace: Workspace | null = null
   private fileTree: FileSystemNode[] = []
-
-  private constructor() {}
-
-  static getInstance(): FileSystemManager {
-    if (!FileSystemManager.instance) {
-      FileSystemManager.instance = new FileSystemManager()
-    }
-    return FileSystemManager.instance
-  }
 
   /**
    * 初始化文件系统管理器
@@ -269,6 +259,6 @@ export class FileSystemManager {
   }
 }
 
-// 导出单例实例
-export const fileSystemManager = FileSystemManager.getInstance()
+// 导出实例
+export const fileSystemManager = new FileSystemManager()
 export default fileSystemManager

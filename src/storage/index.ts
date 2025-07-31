@@ -1,5 +1,5 @@
-// 用户数据存储模块
-// 提供统一的本地数据存储接口
+// 统一数据存储模块
+// 提供本地数据存储和AI配置管理
 
 import type { AIConfig } from '../chat/types'
 
@@ -9,54 +9,13 @@ const STORAGE_KEYS = {
   CONVERSATION_HISTORY: 'conversation_history'
 } as const
 
-// 存储接口
-interface StorageAdapter {
-  getItem(key: string): string | null
-  setItem(key: string, value: string): void
-  removeItem(key: string): void
-}
-
-// 本地存储适配器 - 使用localStorage
-class LocalStorageAdapter implements StorageAdapter {
-  getItem(key: string): string | null {
-    try {
-      return localStorage.getItem(key)
-    } catch (error) {
-      console.warn('读取本地存储失败:', error)
-      return null
-    }
-  }
-
-  setItem(key: string, value: string): void {
-    try {
-      localStorage.setItem(key, value)
-    } catch (error) {
-      console.error('写入本地存储失败:', error)
-    }
-  }
-
-  removeItem(key: string): void {
-    try {
-      localStorage.removeItem(key)
-    } catch (error) {
-      console.warn('删除本地存储失败:', error)
-    }
-  }
-}
-
-// 存储管理器
+// 简化的存储管理器
 class StorageManager {
-  private adapter: StorageAdapter
-
-  constructor(adapter: StorageAdapter) {
-    this.adapter = adapter
-  }
-
   // 通用的存储方法
   private saveData<T>(key: string, data: T): void {
     try {
       const serialized = JSON.stringify(data)
-      this.adapter.setItem(key, serialized)
+      localStorage.setItem(key, serialized)
     } catch (error) {
       console.error(`保存数据失败 [${key}]:`, error)
     }
@@ -65,7 +24,7 @@ class StorageManager {
   // 通用的读取方法
   private loadData<T>(key: string, defaultValue: T): T {
     try {
-      const stored = this.adapter.getItem(key)
+      const stored = localStorage.getItem(key)
       if (stored === null) {
         return defaultValue
       }
@@ -77,12 +36,35 @@ class StorageManager {
   }
 
   // ===== AI配置相关 =====
+  
+  private currentConfig: AIConfig | null = null
+
+  /**
+   * 初始化AI配置
+   */
+  initAIConfig(defaultConfig: AIConfig): AIConfig {
+    if (this.currentConfig) {
+      return this.currentConfig
+    }
+
+    try {
+      this.currentConfig = this.loadAIConfig(defaultConfig)
+      console.log('已加载AI配置:', this.currentConfig)
+      return this.currentConfig
+    } catch (error) {
+      console.warn('加载AI配置失败，使用默认配置:', error)
+      this.currentConfig = { ...defaultConfig }
+      return this.currentConfig
+    }
+  }
 
   /**
    * 保存AI配置
    */
   saveAIConfig(config: AIConfig): void {
+    this.currentConfig = { ...config }
     this.saveData(STORAGE_KEYS.AI_CONFIG, config)
+    console.log('AI配置已保存:', config)
   }
 
   /**
@@ -93,14 +75,36 @@ class StorageManager {
   }
 
   /**
+   * 获取当前AI配置
+   */
+  getCurrentAIConfig(defaultConfig: AIConfig): AIConfig {
+    return this.currentConfig || this.initAIConfig(defaultConfig)
+  }
+
+  /**
+   * 更新AI配置
+   */
+  updateAIConfig(updates: Partial<AIConfig>, currentConfig: AIConfig): AIConfig {
+    const newConfig = { ...currentConfig, ...updates }
+    this.saveAIConfig(newConfig)
+    return newConfig
+  }
+
+  /**
+   * 重置AI配置
+   */
+  resetAIConfig(defaultConfig: AIConfig): AIConfig {
+    this.saveAIConfig({ ...defaultConfig })
+    return this.getCurrentAIConfig(defaultConfig)
+  }
+
+  /**
    * 清除AI配置
    */
   clearAIConfig(): void {
-    this.adapter.removeItem(STORAGE_KEYS.AI_CONFIG)
+    localStorage.removeItem(STORAGE_KEYS.AI_CONFIG)
+    this.currentConfig = null
   }
-
-  // ===== 对话历史相关 =====
-  // TODO: 后续实现对话树的存储
 
   // ===== 通用数据存储 =====
 
@@ -124,8 +128,8 @@ class StorageManager {
   isAvailable(): boolean {
     try {
       const testKey = '__storage_test__'
-      this.adapter.setItem(testKey, 'test')
-      this.adapter.removeItem(testKey)
+      localStorage.setItem(testKey, 'test')
+      localStorage.removeItem(testKey)
       return true
     } catch {
       return false
@@ -133,8 +137,7 @@ class StorageManager {
   }
 }
 
-// 创建默认存储实例
-const storage = new StorageManager(new LocalStorageAdapter())
+// 创建单例实例
+const storage = new StorageManager()
 
-export { storage, StorageManager, type StorageAdapter }
 export default storage
