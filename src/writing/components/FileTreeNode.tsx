@@ -17,8 +17,6 @@ interface FileTreeNodeProps {
   level?: number
   selectedFile?: string | null
   onFileClick?: (node: FileSystemNode) => void
-  onCreateFile?: (dirPath: string) => void
-  onCreateDirectory?: (dirPath: string) => void
   onContextMenu?: (e: React.MouseEvent, node: FileSystemNode) => void
   inlineEdit?: InlineEditState
   onInlineEditConfirm?: (name: string) => void
@@ -34,8 +32,6 @@ export function FileTreeNode({
   level = 0, 
   selectedFile,
   onFileClick,
-  onCreateFile,
-  onCreateDirectory,
   onContextMenu,
   inlineEdit,
   onInlineEditConfirm,
@@ -95,30 +91,7 @@ export function FileTreeNode({
         )}
         <FileIcon node={node} />
         <span className="text-sm truncate flex-1">{node.name}</span>
-        {node.isDirectory && (
-          <div className="opacity-0 group-hover:opacity-100 flex gap-1">
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onCreateFile?.(node.path)
-              }}
-              className="text-sm hover:bg-gray-200 p-1 rounded"
-              title="新建文件"
-            >
-              📝
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onCreateDirectory?.(node.path)
-              }}
-              className="text-sm hover:bg-gray-200 p-1 rounded"
-              title="新建文件夹"
-            >
-              📁
-            </button>
-          </div>
-        )}
+
       </div>
       
       {node.isDirectory && isExpanded && (
@@ -130,8 +103,6 @@ export function FileTreeNode({
               level={level + 1}
               selectedFile={selectedFile}
               onFileClick={onFileClick}
-              onCreateFile={onCreateFile}
-              onCreateDirectory={onCreateDirectory}
               onContextMenu={onContextMenu}
               inlineEdit={inlineEdit}
               onInlineEditConfirm={onInlineEditConfirm}

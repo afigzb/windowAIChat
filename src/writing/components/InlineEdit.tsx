@@ -20,34 +20,32 @@ export function InlineEdit({
   const [value, setValue] = useState(defaultValue)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // 组件挂载时聚焦
   useEffect(() => {
-    setValue(defaultValue)
     if (inputRef.current) {
       inputRef.current.focus()
       inputRef.current.select()
     }
-  }, [defaultValue])
-
-  const handleSubmit = () => {
-    if (value.trim()) {
-      onConfirm(value.trim())
-    } else {
-      onCancel()
-    }
-  }
+  }, [])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      e.preventDefault()
-      handleSubmit()
+      if (value.trim()) {
+        onConfirm(value.trim())
+      } else {
+        onCancel()
+      }
     } else if (e.key === 'Escape') {
-      e.preventDefault()
       onCancel()
     }
   }
 
   const handleBlur = () => {
-    setTimeout(() => handleSubmit(), 150)
+    if (value.trim()) {
+      onConfirm(value.trim())
+    } else {
+      onCancel()
+    }
   }
 
   return (

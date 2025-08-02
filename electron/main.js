@@ -3,11 +3,13 @@ const fs = require('fs').promises
 const path = require('path')
 const mammoth = require('mammoth')
 const HTMLtoDOCX = require('html-to-docx')
+const GlobalContextMenuManager = require('./GlobalContextMenu')
 // 使用 app.isPackaged 更可靠地判断是否为开发环境
 const isDev = !app.isPackaged
 
 // 保持窗口对象的全局引用
 let mainWindow
+let contextMenuManager
 
 function createWindow() {
   // 创建浏览器窗口
@@ -72,34 +74,20 @@ function createWindow() {
     }
   })
 
-  // 添加文本编辑右键菜单
+  // 初始化全局右键菜单管理器
+  contextMenuManager = new GlobalContextMenuManager(mainWindow)
+
+  // 处理右键菜单
   mainWindow.webContents.on('context-menu', (event, params) => {
-    const { selectionText, isEditable } = params
+    const { selectionText, isEditable, mediaType } = params
     
-    // 只在可编辑区域或有选中文本时显示菜单
-    if (!isEditable && !selectionText) return
-    
-    const menuItems = []
-    
-    // 根据状态添加菜单项
-    if (selectionText && isEditable) {
-      menuItems.push({ label: '剪切', role: 'cut' })
+    // 如果是文本区域，显示文本编辑菜单
+    if (mediaType === 'none' && (isEditable || selectionText)) {
+      contextMenuManager.showTextEditMenu(params)
     }
-    if (selectionText) {
-      menuItems.push({ label: '复制', role: 'copy' })
-    }
-    if (isEditable) {
-      menuItems.push({ label: '粘贴', role: 'paste' })
-    }
-    
-    if (menuItems.length > 0) {
-      const contextMenu = Menu.buildFromTemplate(menuItems)
-      contextMenu.popup({ window: mainWindow })
-    }
+    // 其他情况由前端通过IPC触发文件菜单
   })
 }
-
-
 
 // === 文件系统API处理程序 ===
 
@@ -322,7 +310,28 @@ ipcMain.handle('save-html-as-docx', async (event, filePath, htmlContent) => {
   }
 })
 
+// === 右键菜单API处理程序 ===
 
+// 设置工作区路径
+ipcMain.handle('set-workspace-path', async (event, workspacePath) => {
+  if (contextMenuManager) {
+    contextMenuManager.setWorkspacePath(workspacePath)
+  }
+})
+
+// 显示文件右键菜单
+ipcMain.handle('show-file-context-menu', async (event, fileInfo) => {
+  if (contextMenuManager) {
+    contextMenuManager.showFileMenu(fileInfo)
+  }
+})
+
+// 显示目录右键菜单
+ipcMain.handle('show-directory-context-menu', async (event, dirPath) => {
+  if (contextMenuManager) {
+    contextMenuManager.showDirectoryMenu(dirPath)
+  }
+})
 
 // 当Electron完成初始化并准备创建浏览器窗口时调用此方法
 app.whenReady().then(() => {

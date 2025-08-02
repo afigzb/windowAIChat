@@ -1,8 +1,8 @@
 // 文件树面板组件
 
+import React from 'react'
 import { FileTreeNode } from './FileTreeNode'
 import { InlineEdit } from './InlineEdit'
-import { ContextMenu, type MenuItem } from './ContextMenu'
 import { useFileTree } from './useFileTree'
 import type { FileSystemNode } from '../../storage/file-system'
 
@@ -15,41 +15,20 @@ export function FileTreePanel({ selectedFile }: FileTreePanelProps) {
     workspace,
     fileTree,
     isLoading,
-    contextMenu,
     inlineEdit,
     handleSelectWorkspace,
     handleFileClick,
-    handleCreateFile,
-    handleCreateDirectory,
-    handleRename,
-    handleDelete,
-    handleContextMenu,
-    handleCloseContextMenu,
+    handleContextMenuOpen,
     handleInlineEditConfirm,
     handleInlineEditCancel
   } = useFileTree()
 
-  // 生成右键菜单项
-  const getMenuItems = (node: FileSystemNode): MenuItem[] => {
-    const items: MenuItem[] = []
-    
-    if (node.isDirectory) {
-      items.push(
-        { label: '新建文件', icon: '📝', onClick: () => handleCreateFile(node.path) },
-        { label: '新建文件夹', icon: '📁', onClick: () => handleCreateDirectory(node.path) }
-      )
+  // 通知Electron设置工作区路径
+  React.useEffect(() => {
+    if (workspace && typeof window !== 'undefined' && (window as any).electronAPI) {
+      ;(window as any).electronAPI.setWorkspacePath(workspace.rootPath)
     }
-    
-    if (node.id !== 'root') {
-      if (items.length > 0) items.push({ divider: true } as MenuItem)
-      items.push(
-        { label: '重命名', icon: '✏️', onClick: () => handleRename(node) },
-        { label: '删除', icon: '🗑️', onClick: () => handleDelete(node), variant: 'danger' }
-      )
-    }
-    
-    return items
-  }
+  }, [workspace])
 
   if (!workspace) {
     return (
@@ -95,7 +74,11 @@ export function FileTreePanel({ selectedFile }: FileTreePanelProps) {
           const target = e.target as HTMLElement
           // 如果点击的不是文件节点，则在空白区域显示根目录菜单
           if (!target.closest('[data-file-node]')) {
-            handleContextMenu(e)
+            e.preventDefault()
+            handleContextMenuOpen()
+            if (typeof window !== 'undefined' && (window as any).electronAPI) {
+              ;(window as any).electronAPI.showDirectoryContextMenu(workspace?.rootPath || '')
+            }
           }
         }}
       >
@@ -106,9 +89,17 @@ export function FileTreePanel({ selectedFile }: FileTreePanelProps) {
               node={node}
               selectedFile={selectedFile}
               onFileClick={handleFileClick}
-              onCreateFile={handleCreateFile}
-              onCreateDirectory={handleCreateDirectory}
-              onContextMenu={handleContextMenu}
+              onContextMenu={(e, node) => {
+                e.preventDefault()
+                handleContextMenuOpen()
+                if (typeof window !== 'undefined' && (window as any).electronAPI) {
+                  ;(window as any).electronAPI.showFileContextMenu({
+                    filePath: node.path,
+                    fileName: node.name,
+                    isDirectory: node.isDirectory
+                  })
+                }
+              }}
               inlineEdit={inlineEdit}
               onInlineEditConfirm={handleInlineEditConfirm}
               onInlineEditCancel={handleInlineEditCancel}
@@ -131,14 +122,7 @@ export function FileTreePanel({ selectedFile }: FileTreePanelProps) {
         </div>
       </div>
 
-      {/* 右键菜单 */}
-      <ContextMenu
-        isOpen={contextMenu.isOpen}
-        x={contextMenu.x}
-        y={contextMenu.y}
-        items={contextMenu.node ? getMenuItems(contextMenu.node) : []}
-        onClose={handleCloseContextMenu}
-      />
+
     </div>
   )
 }

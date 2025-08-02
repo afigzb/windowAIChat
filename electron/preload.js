@@ -20,7 +20,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
   writeFile: (filePath, content) => ipcRenderer.invoke('write-file', filePath, content),
   
-  // 文件与目录操作
+  // 文件与目录操作（保留用于实际文件操作，不是右键菜单）
   createFile: (dirPath, fileName) => ipcRenderer.invoke('create-file', dirPath, fileName),
   createDirectory: (parentPath, dirName) => ipcRenderer.invoke('create-directory', parentPath, dirName),
   deleteFileOrDirectory: (path) => ipcRenderer.invoke('delete-file-or-directory', path),
@@ -33,6 +33,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readDocxAsHtml: (filePath) => ipcRenderer.invoke('read-docx-as-html', filePath),
   saveHtmlAsDocx: (filePath, htmlContent) => ipcRenderer.invoke('save-html-as-docx', filePath, htmlContent),
   
+  // === 右键菜单API ===
+  
+  // 设置工作区路径
+  setWorkspacePath: (workspacePath) => ipcRenderer.invoke('set-workspace-path', workspacePath),
+  
+  // 显示文件右键菜单
+  showFileContextMenu: (fileInfo) => ipcRenderer.invoke('show-file-context-menu', fileInfo),
+  
+  // 显示目录右键菜单  
+  showDirectoryContextMenu: (dirPath) => ipcRenderer.invoke('show-directory-context-menu', dirPath),
+  
+  // 监听文件系统变化事件
+  onFileSystemChanged: (callback) => ipcRenderer.on('file-system-changed', (event, data) => callback(data)),
+  
+  // 监听内联编辑触发事件
+  onTriggerInlineEdit: (callback) => ipcRenderer.on('trigger-inline-edit', (event, data) => callback(data)),
 
 })
 

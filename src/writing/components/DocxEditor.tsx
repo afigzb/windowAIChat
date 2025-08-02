@@ -57,6 +57,8 @@ export function DocxEditor({
     // 不做特殊处理
   }, [])
 
+  // 右键菜单由Electron层自动处理，无需额外处理
+
   return (
     <div className="h-full w-full flex flex-col border border-slate-200 rounded-lg">
       {/* 编辑区域 */}
@@ -65,6 +67,7 @@ export function DocxEditor({
         contentEditable={!readOnly}
         onInput={handleInput}
         onPaste={handlePaste}
+
         className="flex-1 p-4 overflow-y-auto focus:outline-none"
         style={{ 
           fontFamily: 'system-ui, -apple-system, sans-serif', 

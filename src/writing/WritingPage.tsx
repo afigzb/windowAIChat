@@ -108,15 +108,32 @@ export default function WritingPage() {
     conversationActions.sendMessage(content)
   }
   
-  // 设置文件选择回调
+  // 设置文件选择回调和Electron事件监听
   useEffect(() => {
-    ;(window as any).onFileSelect = (filePath: string, fileName: string) => {
-      setSelectedFile(filePath) // 设置选中状态
-      openFileForEdit(filePath, fileName)
-    }
-    
-    return () => {
-      delete (window as any).onFileSelect
+    if (typeof window !== 'undefined' && (window as any).electronAPI) {
+      // 文件选择回调
+      ;(window as any).onFileSelect = (filePath: string, fileName: string) => {
+        setSelectedFile(filePath)
+        openFileForEdit(filePath, fileName)
+      }
+
+      // 监听文件系统变化
+      const handleFileSystemChanged = (data: any) => {
+        // 这里可以根据需要刷新文件树或显示通知
+        console.log('文件系统变化:', data)
+        // 可以触发文件树刷新
+        window.location.reload() // 简单粗暴的刷新方式
+      }
+
+      // 监听内联编辑触发事件
+      const handleTriggerInlineEdit = (data: any) => {
+        // 将事件传递给文件树组件
+        const event = new CustomEvent('trigger-inline-edit', { detail: data })
+        window.dispatchEvent(event)
+      }
+
+      ;(window as any).electronAPI.onFileSystemChanged(handleFileSystemChanged)
+      ;(window as any).electronAPI.onTriggerInlineEdit(handleTriggerInlineEdit)
     }
   }, [openFileForEdit])
   
@@ -153,6 +170,8 @@ export default function WritingPage() {
         onClose={() => setShowSettings(false)}
         isOpen={showSettings}
       />
+
+
 
       {/* 主内容区 */}
       <div className="flex flex-col min-h-screen">

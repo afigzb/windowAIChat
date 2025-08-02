@@ -11,23 +11,13 @@ interface InlineEditState {
   defaultValue?: string
 }
 
-interface ContextMenuState {
-  isOpen: boolean
-  x: number
-  y: number
-  node: FileSystemNode | null
-}
+
 
 export function useFileTree() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [fileTree, setFileTree] = useState<FileSystemNode[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
-    isOpen: false,
-    x: 0,
-    y: 0,
-    node: null
-  })
+
   const [inlineEdit, setInlineEdit] = useState<InlineEditState>({
     isActive: false,
     mode: 'create',
@@ -81,15 +71,7 @@ export function useFileTree() {
     }
   }
 
-  const startInlineEdit = useCallback((mode: 'create' | 'rename', type: 'file' | 'directory', parentPath: string, defaultValue?: string) => {
-    setInlineEdit({
-      isActive: true,
-      mode,
-      type,
-      parentPath,
-      defaultValue
-    })
-  }, [])
+  // startInlineEdit现在通过Electron IPC触发，不再需要直接调用
 
   const handleInlineEditConfirm = useCallback(async (name: string) => {
     const { mode, type, parentPath } = inlineEdit
@@ -118,73 +100,73 @@ export function useFileTree() {
     setInlineEdit({ isActive: false, mode: 'create', type: 'file', parentPath: '' })
   }, [])
 
-  const handleCreateFile = useCallback((dirPath: string) => {
-    startInlineEdit('create', 'file', dirPath)
-  }, [startInlineEdit])
+  // 这些操作现在通过Electron右键菜单和内联编辑处理
 
-  const handleCreateDirectory = useCallback((dirPath: string) => {
-    startInlineEdit('create', 'directory', dirPath)
-  }, [startInlineEdit])
-
-  const handleRename = useCallback((node: FileSystemNode) => {
-    startInlineEdit('rename', node.isDirectory ? 'directory' : 'file', node.path, node.name)
-  }, [startInlineEdit])
-
-  const handleDelete = useCallback(async (node: FileSystemNode) => {
-    const itemType = node.isDirectory ? '文件夹' : '文件'
-    
-    if (confirm(`确定要删除${itemType} "${node.name}" 吗？${node.isDirectory ? '这将删除文件夹及其所有内容。' : ''}`)) {
-      try {
-        await fileSystemManager.delete(node.path)
-        await refreshFileTree()
-      } catch (error) {
-        console.error(`删除${itemType}失败:`, error)
-        alert(`删除${itemType}失败: ${error}`)
-      }
-    }
-  }, [])
-
-  const handleContextMenu = useCallback((e: React.MouseEvent, node?: FileSystemNode) => {
-    e.preventDefault()
-    e.stopPropagation()
-    
+  const handleContextMenuOpen = useCallback(() => {
     // 右键时关闭内联编辑
     setInlineEdit({ isActive: false, mode: 'create', type: 'file', parentPath: '' })
-    
-    // 如果没有传入节点，使用根目录
-    const targetNode = node || {
-      id: 'root',
-      name: workspace?.name || '',
-      path: workspace?.rootPath || '',
-      isDirectory: true
+  }, [])
+
+  // 查找节点的辅助函数
+  const findNodeByPath = useCallback((path: string): FileSystemNode | null => {
+    const findInNodes = (nodes: FileSystemNode[]): FileSystemNode | null => {
+      for (const node of nodes) {
+        if (node.path === path) {
+          return node
+        }
+        if (node.children) {
+          const found = findInNodes(node.children)
+          if (found) return found
+        }
+      }
+      return null
     }
     
-    setContextMenu({
-      isOpen: true,
-      x: e.clientX,
-      y: e.clientY,
-      node: targetNode
-    })
-  }, [workspace])
+    return findInNodes(fileTree)
+  }, [fileTree])
 
-  const handleCloseContextMenu = useCallback(() => {
-    setContextMenu(prev => ({ ...prev, isOpen: false }))
-  }, [])
+  // 监听来自Electron的内联编辑触发事件
+  useEffect(() => {
+    const handleTriggerInlineEdit = (event: CustomEvent) => {
+      const { action, type, parentPath, filePath, defaultValue } = event.detail
+      
+      if (action === 'create') {
+        // 新建文件或文件夹
+        setInlineEdit({
+          isActive: true,
+          mode: 'create',
+          type: type as 'file' | 'directory',
+          parentPath,
+          defaultValue: ''
+        })
+      } else if (action === 'rename') {
+        // 重命名
+        const node = findNodeByPath(filePath)
+        setInlineEdit({
+          isActive: true,
+          mode: 'rename',
+          type: node?.isDirectory ? 'directory' : 'file',
+          parentPath: filePath,
+          defaultValue: defaultValue || ''
+        })
+      }
+    }
+
+    window.addEventListener('trigger-inline-edit', handleTriggerInlineEdit as EventListener)
+    
+    return () => {
+      window.removeEventListener('trigger-inline-edit', handleTriggerInlineEdit as EventListener)
+    }
+  }, [findNodeByPath])
 
   return {
     workspace,
     fileTree,
     isLoading,
-    contextMenu,
     inlineEdit,
     handleSelectWorkspace,
     handleFileClick,
-    handleCreateFile,
-    handleCreateDirectory,
-    handleRename,
-    handleDelete,
-    handleContextMenu,
-    handleCloseContextMenu,
+    handleContextMenuOpen,
     handleInlineEditConfirm,
     handleInlineEditCancel
   }
