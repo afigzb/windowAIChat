@@ -401,22 +401,24 @@ export default function WritingPage() {
                               return (
                                 <div 
                                   key={conv.id}
-                                  onClick={() => {
-                                    if (conv.id !== currentConversationId) {
-                                      setCurrentConversationId(conv.id)
-                                      const tree = conversationHistory.loadConversation(conv.id)
-                                      if (tree) {
-                                        conversationActions.updateConversationTree(tree.flatMessages, tree.activePath)
-                                      }
-                                    }
-                                  }}
-                                  className={`group p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                                  className={`group rounded-lg border transition-all duration-200 ${
                                     isActive 
                                       ? 'bg-indigo-50 border-indigo-300 shadow-sm' 
                                       : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-sm'
                                   }`}
                                 >
-                                  <div className="flex items-start justify-between">
+                                  <div 
+                                    onClick={() => {
+                                      if (conv.id !== currentConversationId) {
+                                        setCurrentConversationId(conv.id)
+                                        const tree = conversationHistory.loadConversation(conv.id)
+                                        if (tree) {
+                                          conversationActions.updateConversationTree(tree.flatMessages, tree.activePath)
+                                        }
+                                      }
+                                    }}
+                                    className="p-3 cursor-pointer flex items-start justify-between"
+                                  >
                                     <div className="flex-1 min-w-0">
                                       <div className={`text-sm font-medium truncate ${
                                         isActive ? 'text-indigo-700' : 'text-slate-900 group-hover:text-indigo-700'
@@ -428,11 +430,52 @@ export default function WritingPage() {
                                         {conv.preview}
                                       </div>
                                     </div>
-                                    {isActive && (
-                                      <div className="ml-2 mt-0.5">
+                                    <div className="flex items-center gap-2 ml-2">
+                                      {isActive && (
                                         <div className="w-2 h-2 bg-indigo-600 rounded-full"></div>
-                                      </div>
-                                    )}
+                                      )}
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation() // 防止触发对话切换
+                                          if (confirm(`确定要删除对话"${conv.title}"吗？`)) {
+                                            // 如果删除的是当前对话，需要先处理切换逻辑
+                                            if (conv.id === currentConversationId) {
+                                              const allConversations = conversationHistory.conversations
+                                              const remaining = allConversations.filter(c => c.id !== conv.id)
+                                              
+                                              if (remaining.length > 0) {
+                                                // 切换到第一个剩余对话
+                                                const nextConv = remaining[0]
+                                                setCurrentConversationId(nextConv.id)
+                                                const tree = conversationHistory.loadConversation(nextConv.id)
+                                                if (tree) {
+                                                  conversationActions.updateConversationTree(tree.flatMessages, tree.activePath)
+                                                }
+                                              } else {
+                                                // 没有剩余对话，准备创建新的
+                                                setCurrentConversationId(null)
+                                                conversationActions.updateConversationTree(new Map(), [])
+                                              }
+                                            }
+                                            
+                                            // 执行删除
+                                            conversationHistory.deleteConversation(conv.id)
+                                            
+                                            // 如果删除后没有任何对话，创建新的
+                                            if (conversationHistory.conversations.length === 1) { // 删除前只有1个，删除后为0
+                                              const newId = conversationHistory.createNewConversation(currentMode)
+                                              setCurrentConversationId(newId)
+                                            }
+                                          }
+                                        }}
+                                        className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-600 transition-all duration-200 rounded"
+                                        title="删除对话"
+                                      >
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                      </button>
+                                    </div>
                                   </div>
                                 </div>
                               )
