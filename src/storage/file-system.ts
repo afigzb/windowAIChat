@@ -131,72 +131,70 @@ export class FileSystemManager {
   }
 
   /**
+   * 执行文件系统操作并自动刷新文件树
+   */
+  private async executeWithRefresh<T>(
+    operation: () => Promise<T>,
+    errorMessage: string
+  ): Promise<T> {
+    try {
+      const result = await operation()
+      await this.loadFileTree()
+      return result
+    } catch (error) {
+      console.error(errorMessage, error)
+      throw error
+    }
+  }
+
+  /**
    * 写入文件内容
    */
   async writeFile(filePath: string, content: string): Promise<void> {
-    try {
-      await (window as any).electronAPI.writeFile(filePath, content)
-      // 重新加载文件树以反映变化
-      await this.loadFileTree()
-    } catch (error) {
-      console.error('写入文件失败:', error, filePath)
-      throw error
-    }
+    return this.executeWithRefresh(
+      () => (window as any).electronAPI.writeFile(filePath, content),
+      `写入文件失败: ${filePath}`
+    )
   }
 
   /**
    * 创建新文件
    */
   async createFile(dirPath: string, fileName: string): Promise<string> {
-    try {
-      const filePath = await (window as any).electronAPI.createFile(dirPath, fileName)
-      await this.loadFileTree()
-      return filePath
-    } catch (error) {
-      console.error('创建文件失败:', error)
-      throw error
-    }
+    return this.executeWithRefresh(
+      () => (window as any).electronAPI.createFile(dirPath, fileName),
+      '创建文件失败:'
+    )
   }
 
   /**
    * 创建新文件夹
    */
   async createDirectory(parentPath: string, dirName: string): Promise<string> {
-    try {
-      const dirPath = await (window as any).electronAPI.createDirectory(parentPath, dirName)
-      await this.loadFileTree()
-      return dirPath
-    } catch (error) {
-      console.error('创建文件夹失败:', error)
-      throw error
-    }
+    return this.executeWithRefresh(
+      () => (window as any).electronAPI.createDirectory(parentPath, dirName),
+      '创建文件夹失败:'
+    )
   }
 
   /**
    * 删除文件或文件夹
    */
   async delete(path: string): Promise<void> {
-    try {
-      await (window as any).electronAPI.deleteFileOrDirectory(path)
-      await this.loadFileTree()
-    } catch (error) {
-      console.error('删除失败:', error)
-      throw error
-    }
+    return this.executeWithRefresh(
+      () => (window as any).electronAPI.deleteFileOrDirectory(path),
+      '删除失败:'
+    )
   }
 
   /**
    * 重命名文件或文件夹
    */
   async rename(oldPath: string, newName: string): Promise<string> {
-    try {
-      const newPath = await (window as any).electronAPI.rename(oldPath, newName)
-      await this.loadFileTree()
-      return newPath
-    } catch (error) {
-      console.error('重命名失败:', error)
-      throw error
-    }
+    return this.executeWithRefresh(
+      () => (window as any).electronAPI.rename(oldPath, newName),
+      '重命名失败:'
+    )
   }
 
   /**

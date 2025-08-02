@@ -48,7 +48,7 @@ class StorageManager {
     }
 
     try {
-      this.currentConfig = this.loadAIConfig(defaultConfig)
+      this.currentConfig = this.loadData(STORAGE_KEYS.AI_CONFIG, defaultConfig)
       console.log('已加载AI配置:', this.currentConfig)
       return this.currentConfig
     } catch (error) {
@@ -68,14 +68,7 @@ class StorageManager {
   }
 
   /**
-   * 读取AI配置
-   */
-  loadAIConfig(defaultConfig: AIConfig): AIConfig {
-    return this.loadData(STORAGE_KEYS.AI_CONFIG, defaultConfig)
-  }
-
-  /**
-   * 获取当前AI配置
+   * 获取当前AI配置（如果未初始化则先初始化）
    */
   getCurrentAIConfig(defaultConfig: AIConfig): AIConfig {
     return this.currentConfig || this.initAIConfig(defaultConfig)

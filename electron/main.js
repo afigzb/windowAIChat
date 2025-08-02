@@ -99,64 +99,7 @@ function createWindow() {
   })
 }
 
-// 创建应用菜单
-function createMenu() {
-  const template = [
-    {
-      label: 'AI写作助手',
-      submenu: [
-        {
-          label: '关于',
-          role: 'about'
-        },
-        { type: 'separator' },
-        {
-          label: '退出',
-          accelerator: process.platform === 'darwin' ? 'Cmd+Q' : 'Ctrl+Q',
-          click: () => {
-            app.quit()
-          }
-        }
-      ]
-    },
-    {
-      label: '编辑',
-      submenu: [
-        { label: '撤销', accelerator: 'CmdOrCtrl+Z', role: 'undo' },
-        { label: '重做', accelerator: 'Shift+CmdOrCtrl+Z', role: 'redo' },
-        { type: 'separator' },
-        { label: '剪切', accelerator: 'CmdOrCtrl+X', role: 'cut' },
-        { label: '复制', accelerator: 'CmdOrCtrl+C', role: 'copy' },
-        { label: '粘贴', accelerator: 'CmdOrCtrl+V', role: 'paste' },
-        { label: '全选', accelerator: 'CmdOrCtrl+A', role: 'selectAll' }
-      ]
-    },
-    {
-      label: '视图',
-      submenu: [
-        { label: '重新加载', accelerator: 'CmdOrCtrl+R', role: 'reload' },
-        { label: '强制重新加载', accelerator: 'CmdOrCtrl+Shift+R', role: 'forceReload' },
-        { label: '开发者工具', accelerator: 'F12', role: 'toggleDevTools' },
-        { type: 'separator' },
-        { label: '实际大小', accelerator: 'CmdOrCtrl+0', role: 'resetZoom' },
-        { label: '放大', accelerator: 'CmdOrCtrl+Plus', role: 'zoomIn' },
-        { label: '缩小', accelerator: 'CmdOrCtrl+-', role: 'zoomOut' },
-        { type: 'separator' },
-        { label: '切换全屏', accelerator: 'F11', role: 'togglefullscreen' }
-      ]
-    },
-    {
-      label: '窗口',
-      submenu: [
-        { label: '最小化', accelerator: 'CmdOrCtrl+M', role: 'minimize' },
-        { label: '关闭', accelerator: 'CmdOrCtrl+W', role: 'close' }
-      ]
-    }
-  ]
 
-  const menu = Menu.buildFromTemplate(template)
-  Menu.setApplicationMenu(menu)
-}
 
 // === 文件系统API处理程序 ===
 

@@ -4,7 +4,6 @@ import { DEFAULT_CONFIG } from '../chat/api'
 import { MessageBubble, AISettings, ChatInputArea } from '../chat/components'
 import { useConversationManager } from '../chat/conversation-manager'
 import { useBranchManager } from '../chat/branch-manager'
-import { CharactersPanel, OutlinePanel, SettingsDataPanel } from './components/Panels'
 import { FileTreePanel } from './components/FileTreePanel'
 import { DocxEditor } from './components/DocxEditor'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
@@ -14,21 +13,11 @@ import { useDocxEditor } from './hooks/useDocxEditor'
 // 页面头部组件
 function Header({ 
   onSettingsClick, 
-  showSettings,
-  activeModule,
-  onModuleChange
+  showSettings
 }: { 
   onSettingsClick: () => void
   showSettings: boolean
-  activeModule: string
-  onModuleChange: (module: string) => void
 }) {
-  const modules = [
-    { id: 'chapters', name: '章节'},
-    { id: 'characters', name: '人物'},
-    { id: 'outline', name: '大纲' },
-    { id: 'settings-data', name: '设定' },
-  ]
 
   return (
     <header className="bg-slate-50 border-b border-slate-300 px-6 py-4 sticky top-0 z-40">
@@ -37,24 +26,6 @@ function Header({
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-semibold text-slate-900">AI写作助手</h1>
         </div>
-        
-        {/* 中间：功能模块导航 */}
-        <nav className="flex items-center gap-1">
-          {modules.map((module) => (
-            <button
-              key={module.id}
-              onClick={() => onModuleChange(module.id)}
-              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
-                activeModule === module.id
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-slate-700 hover:text-indigo-600 hover:bg-white hover:shadow-sm'
-              }`}
-            >
-              <span>{module.name}</span>
-            </button>
-          ))}
-        </nav>
-        
         {/* 右侧：设置按钮 */}
         <div className="flex items-center gap-2">
           <button
@@ -84,7 +55,6 @@ export default function WritingPage() {
   })
   const [currentMode, setCurrentMode] = useState<ChatMode>('r1')
   const [showSettings, setShowSettings] = useState(false)
-  const [activeModule, setActiveModule] = useState<string>('chapters')
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   
   // DOCX编辑器状态管理
@@ -189,8 +159,6 @@ export default function WritingPage() {
         <Header 
           onSettingsClick={() => setShowSettings(!showSettings)} 
           showSettings={showSettings}
-          activeModule={activeModule}
-          onModuleChange={setActiveModule}
         />
 
         {/* 主工作区域 - 使用react-resizable-panels */}
@@ -201,17 +169,11 @@ export default function WritingPage() {
               <div className="bg-white border-r border-slate-300 flex flex-col h-full">
                 <div className="p-4 border-b border-slate-200">
                   <h2 className="font-semibold text-slate-900">
-                    {activeModule === 'chapters' && '文件管理'}
-                    {activeModule === 'characters' && '人物设定'}
-                    {activeModule === 'outline' && '大纲规划'}
-                    {activeModule === 'settings-data' && '世界设定'}
+                    文件管理
                   </h2>
                 </div>
                             <div className="flex-1 overflow-y-auto p-4">
-              {activeModule === 'chapters' && <FileTreePanel selectedFile={selectedFile} />}
-              {activeModule === 'characters' && <CharactersPanel />}
-              {activeModule === 'outline' && <OutlinePanel />}
-              {activeModule === 'settings-data' && <SettingsDataPanel />}
+              <FileTreePanel selectedFile={selectedFile} />
             </div>
               </div>
             </Panel>

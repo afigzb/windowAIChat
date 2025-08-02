@@ -4,21 +4,6 @@ const { contextBridge, ipcRenderer } = require('electron')
 contextBridge.exposeInMainWorld('electronAPI', {
   // 系统信息
   platform: process.platform,
-  
-  // 应用版本信息
-  getVersion: () => ipcRenderer.invoke('app-version'),
-  
-  // 窗口控制
-  minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
-  maximizeWindow: () => ipcRenderer.invoke('maximize-window'),
-  closeWindow: () => ipcRenderer.invoke('close-window'),
-  
-  // 文件操作（可选）
-  openFile: () => ipcRenderer.invoke('open-file'),
-  saveFile: (data) => ipcRenderer.invoke('save-file', data),
-  
-  // 通知
-  showNotification: (title, body) => ipcRenderer.invoke('show-notification', title, body),
 
   // === 文件系统管理API ===
   
