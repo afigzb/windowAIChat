@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import type { WordCountResult } from '../utils/wordCount'
+import { detectFileType, getSupportedFormats } from '../utils/fileTypeDetector'
 
 export interface DocxFile {
   path: string
@@ -21,9 +22,12 @@ export function useDocxEditor() {
   })
 
   // 判断文件是否为支持的格式
-  const isSupportedFile = (filePath: string): boolean => {
-    const ext = filePath.toLowerCase().split('.').pop()
-    return ext === 'docx' || ext === 'doc' || ext === 'txt' || ext === 'md'
+  const isSupportedFile = (filePath: string): { isSupported: boolean; reason?: string } => {
+    const fileTypeInfo = detectFileType(filePath)
+    return {
+      isSupported: fileTypeInfo.isSupported,
+      reason: fileTypeInfo.reason
+    }
   }
 
   // 内部保存函数，避免依赖循环
@@ -36,13 +40,17 @@ export function useDocxEditor() {
     setError(null)
     
     try {
-      const ext = openFile.path.toLowerCase().split('.').pop()
+      const fileTypeInfo = detectFileType(openFile.path)
       
-      if (ext === 'docx' || ext === 'doc') {
+      if (fileTypeInfo.readMethod === 'html') {
+        // DOCX/DOC 文件保存为对应格式
         await (window as any).electronAPI.saveHtmlAsDocx(openFile.path, openFile.htmlContent)
-      } else {
+      } else if (fileTypeInfo.readMethod === 'text') {
+        // 文本文件保存为纯文本
         const textContent = htmlToText(openFile.htmlContent)
         await (window as any).electronAPI.writeFile(openFile.path, textContent)
+      } else {
+        throw new Error('不支持保存此文件格式')
       }
       
       setOpenFile(prev => prev ? {
@@ -64,8 +72,10 @@ export function useDocxEditor() {
 
   // 打开文件进行编辑
   const openFileForEdit = useCallback(async (filePath: string, fileName: string) => {
-    if (!isSupportedFile(filePath)) {
-      setError('不支持的文件格式。支持的格式：.docx, .doc, .txt, .md')
+    const fileSupport = isSupportedFile(filePath)
+    if (!fileSupport.isSupported) {
+      const supportedFormats = getSupportedFormats()
+      setError(fileSupport.reason || `不支持的文件格式。支持的格式：${supportedFormats.slice(0, 10).join(', ')}${supportedFormats.length > 10 ? ' 等' : ''}`)
       return
     }
 
@@ -97,16 +107,32 @@ export function useDocxEditor() {
     
     try {
       let htmlContent = ''
-      const ext = filePath.toLowerCase().split('.').pop()
+      const fileTypeInfo = detectFileType(filePath)
       
-      if (ext === 'docx' || ext === 'doc') {
+      if (fileTypeInfo.readMethod === 'html') {
+        // DOCX/DOC 文件使用特殊的HTML读取方式
         htmlContent = await (window as any).electronAPI.readDocxAsHtml(filePath)
-      } else {
+      } else if (fileTypeInfo.readMethod === 'text') {
+        // 文本文件直接读取并转换为HTML格式
         const textContent = await (window as any).electronAPI.readFile(filePath)
-        htmlContent = textContent
-          .split('\n')
-          .map((line: string) => line.trim() ? `<p>${line}</p>` : '<p><br></p>')
-          .join('')
+        
+        // 处理不同类型的文本内容
+        if (textContent.trim()) {
+          // 检测是否已经是HTML格式
+          if (textContent.trim().startsWith('<') && textContent.includes('>')) {
+            htmlContent = textContent
+          } else {
+            // 普通文本转换为HTML段落
+            htmlContent = textContent
+              .split('\n')
+              .map((line: string) => line.trim() ? `<p>${line}</p>` : '<p><br></p>')
+              .join('')
+          }
+        } else {
+          htmlContent = '<p><br></p>'
+        }
+      } else {
+        throw new Error('不支持的文件格式')
       }
       
       setOpenFile({
