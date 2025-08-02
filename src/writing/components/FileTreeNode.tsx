@@ -10,6 +10,8 @@ interface InlineEditState {
   type: 'file' | 'directory'
   parentPath: string
   defaultValue?: string
+  selectStart?: number
+  selectEnd?: number
 }
 
 interface FileTreeNodeProps {
@@ -65,6 +67,8 @@ export function FileTreeNode({
         type={inlineEdit.type}
         level={level}
         defaultValue={inlineEdit.defaultValue}
+        selectStart={inlineEdit.selectStart}
+        selectEnd={inlineEdit.selectEnd}
         onConfirm={onInlineEditConfirm!}
         onCancel={onInlineEditCancel!}
       />
@@ -116,6 +120,8 @@ export function FileTreeNode({
               type={inlineEdit.type}
               level={level + 1}
               defaultValue={inlineEdit.defaultValue}
+              selectStart={inlineEdit.selectStart}
+              selectEnd={inlineEdit.selectEnd}
               onConfirm={onInlineEditConfirm!}
               onCancel={onInlineEditCancel!}
             />

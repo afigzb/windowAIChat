@@ -110,6 +110,8 @@ export function FileTreePanel({ selectedFile }: FileTreePanelProps) {
               type={inlineEdit.type}
               level={0}
               defaultValue={inlineEdit.defaultValue}
+              selectStart={inlineEdit.selectStart}
+              selectEnd={inlineEdit.selectEnd}
               onConfirm={handleInlineEditConfirm}
               onCancel={handleInlineEditCancel}
             />

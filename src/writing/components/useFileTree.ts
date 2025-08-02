@@ -9,6 +9,8 @@ interface InlineEditState {
   type: 'file' | 'directory'
   parentPath: string
   defaultValue?: string
+  selectStart?: number // 选择开始位置
+  selectEnd?: number   // 选择结束位置
 }
 
 
@@ -22,7 +24,9 @@ export function useFileTree() {
     isActive: false,
     mode: 'create',
     type: 'file',
-    parentPath: ''
+    parentPath: '',
+    selectStart: 0,
+    selectEnd: 0
   })
 
   useEffect(() => {
@@ -75,7 +79,14 @@ export function useFileTree() {
 
   const handleInlineEditConfirm = useCallback(async (name: string) => {
     const { mode, type, parentPath } = inlineEdit
-    setInlineEdit({ isActive: false, mode: 'create', type: 'file', parentPath: '' })
+    setInlineEdit({ 
+      isActive: false, 
+      mode: 'create', 
+      type: 'file', 
+      parentPath: '',
+      selectStart: 0,
+      selectEnd: 0
+    })
     
     try {
       if (mode === 'create') {
@@ -97,14 +108,28 @@ export function useFileTree() {
   }, [inlineEdit])
 
   const handleInlineEditCancel = useCallback(() => {
-    setInlineEdit({ isActive: false, mode: 'create', type: 'file', parentPath: '' })
+    setInlineEdit({ 
+      isActive: false, 
+      mode: 'create', 
+      type: 'file', 
+      parentPath: '',
+      selectStart: 0,
+      selectEnd: 0
+    })
   }, [])
 
   // 这些操作现在通过Electron右键菜单和内联编辑处理
 
   const handleContextMenuOpen = useCallback(() => {
     // 右键时关闭内联编辑
-    setInlineEdit({ isActive: false, mode: 'create', type: 'file', parentPath: '' })
+    setInlineEdit({ 
+      isActive: false, 
+      mode: 'create', 
+      type: 'file', 
+      parentPath: '',
+      selectStart: 0,
+      selectEnd: 0
+    })
   }, [])
 
   // 查找节点的辅助函数
@@ -125,6 +150,24 @@ export function useFileTree() {
     return findInNodes(fileTree)
   }, [fileTree])
 
+  // 生成默认文件名和选择范围
+  const getDefaultFileName = useCallback((type: 'file' | 'directory') => {
+    if (type === 'directory') {
+      return {
+        name: '新建文件夹',
+        selectStart: 0,
+        selectEnd: 5 // 选中 "新建文件夹"
+      }
+    }
+
+    const defaultName = '新建文档.docx'
+    return {
+      name: defaultName,
+      selectStart: 0,
+      selectEnd: 4 // 选中 "新建文档" 部分，不包括 ".docx"
+    }
+  }, [])
+
   // 监听来自Electron的内联编辑触发事件
   useEffect(() => {
     const handleTriggerInlineEdit = (event: CustomEvent) => {
@@ -132,22 +175,41 @@ export function useFileTree() {
       
       if (action === 'create') {
         // 新建文件或文件夹
+        const fileType = type as 'file' | 'directory'
+        const defaultFileInfo = getDefaultFileName(fileType)
+        
         setInlineEdit({
           isActive: true,
           mode: 'create',
-          type: type as 'file' | 'directory',
+          type: fileType,
           parentPath,
-          defaultValue: ''
+          defaultValue: defaultFileInfo.name,
+          selectStart: defaultFileInfo.selectStart,
+          selectEnd: defaultFileInfo.selectEnd
         })
       } else if (action === 'rename') {
         // 重命名
         const node = findNodeByPath(filePath)
+        const nodeType = node?.isDirectory ? 'directory' : 'file'
+        const fileName = defaultValue || ''
+        
+        // 对于重命名，智能选择文件名（不包括扩展名）
+        let selectStart = 0
+        let selectEnd = fileName.length
+        
+        if (nodeType === 'file' && fileName.includes('.')) {
+          const lastDotIndex = fileName.lastIndexOf('.')
+          selectEnd = lastDotIndex
+        }
+        
         setInlineEdit({
           isActive: true,
           mode: 'rename',
-          type: node?.isDirectory ? 'directory' : 'file',
+          type: nodeType,
           parentPath: filePath,
-          defaultValue: defaultValue || ''
+          defaultValue: fileName,
+          selectStart,
+          selectEnd
         })
       }
     }
@@ -157,7 +219,7 @@ export function useFileTree() {
     return () => {
       window.removeEventListener('trigger-inline-edit', handleTriggerInlineEdit as EventListener)
     }
-  }, [findNodeByPath])
+  }, [findNodeByPath, getDefaultFileName])
 
   return {
     workspace,

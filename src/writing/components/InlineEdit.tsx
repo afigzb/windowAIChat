@@ -6,6 +6,8 @@ interface InlineEditProps {
   type: 'file' | 'directory'
   level: number
   defaultValue?: string
+  selectStart?: number
+  selectEnd?: number
   onConfirm: (name: string) => void
   onCancel: () => void
 }
@@ -14,19 +16,27 @@ export function InlineEdit({
   type, 
   level, 
   defaultValue = '',
+  selectStart,
+  selectEnd,
   onConfirm, 
   onCancel 
 }: InlineEditProps) {
   const [value, setValue] = useState(defaultValue)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // 组件挂载时聚焦
+  // 组件挂载时聚焦并选择指定范围
   useEffect(() => {
     if (inputRef.current) {
       inputRef.current.focus()
-      inputRef.current.select()
+      
+      // 如果指定了选择范围，使用setSelectionRange；否则全选
+      if (selectStart !== undefined && selectEnd !== undefined) {
+        inputRef.current.setSelectionRange(selectStart, selectEnd)
+      } else {
+        inputRef.current.select()
+      }
     }
-  }, [])
+  }, [selectStart, selectEnd])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
