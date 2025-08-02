@@ -17,3 +17,6 @@ export * from './branch-manager'
 // 导出UI组件
 export * from './components'
 export { MarkdownRenderer } from './MarkdownRenderer'
+
+// 导出对话历史管理
+export * from './conversation-history'

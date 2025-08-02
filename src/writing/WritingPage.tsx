@@ -4,6 +4,7 @@ import { DEFAULT_CONFIG } from '../chat/api'
 import { MessageBubble, AISettings, ChatInputArea } from '../chat/components'
 import { useConversationManager } from '../chat/conversation-manager'
 import { useBranchManager } from '../chat/branch-manager'
+import { useConversationHistory } from '../chat/conversation-history'
 import { FileTreePanel } from './components/FileTreePanel'
 import { DocxEditor } from './components/DocxEditor'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
@@ -57,6 +58,9 @@ export default function WritingPage() {
   const [showSettings, setShowSettings] = useState(false)
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   
+  // 对话历史管理
+  const conversationHistory = useConversationHistory()
+  
   // DOCX编辑器状态管理
   const {
     openFile,
@@ -93,6 +97,42 @@ export default function WritingPage() {
     conversationTree: conversationState.conversationTree,
     updateActivePath: conversationActions.updateActivePath
   })
+
+  // 当前选中的对话 ID
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(
+    conversationHistory.currentConversationId
+  )
+
+  // 初始化第一次加载
+  useEffect(() => {
+    if (!currentConversationId) {
+      if (conversationHistory.conversations.length === 0) {
+        // 没有任何对话，创建一个新的
+        const newId = conversationHistory.createNewConversation(currentMode)
+        setCurrentConversationId(newId)
+      } else {
+        // 有对话历史，选择第一个
+        setCurrentConversationId(conversationHistory.conversations[0].id)
+      }
+    }
+  }, [])
+
+  // 加载对话内容
+  useEffect(() => {
+    if (currentConversationId) {
+      const loadedTree = conversationHistory.loadConversation(currentConversationId)
+      if (loadedTree) {
+        conversationActions.updateConversationTree(loadedTree.flatMessages, loadedTree.activePath)
+      }
+    }
+  }, [currentConversationId])
+
+  // 当对话树更新时，同步到历史记录
+  useEffect(() => {
+    if (currentConversationId && conversationState.conversationTree.flatMessages.size > 0) {
+      conversationHistory.updateConversation(currentConversationId, conversationState.conversationTree)
+    }
+  }, [conversationState.conversationTree])
 
   // 自动滚动到底部
   useEffect(() => {
@@ -311,46 +351,93 @@ export default function WritingPage() {
                             <h3 className="text-sm font-semibold text-slate-900">对话历史</h3>
                           </div>
                           <div className="flex items-center gap-2">
-                            <button className="p-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors shadow-sm" title="新建对话">
+                            <button 
+                              onClick={() => {
+                                const newId = conversationHistory.createNewConversation(currentMode)
+                                setCurrentConversationId(newId)
+                                // 清空当前对话树，准备新对话
+                                conversationActions.updateConversationTree(new Map(), [])
+                              }}
+                              className="p-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors shadow-sm" 
+                              title="新建对话"
+                            >
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                               </svg>
                             </button>
-                            <button className="text-xs text-slate-600 hover:text-slate-900 px-2 py-1 rounded hover:bg-white transition-colors">清空</button>
+                            <button 
+                              onClick={() => {
+                                if (confirm('确定要清空所有对话历史吗？')) {
+                                  conversationHistory.clearAllConversations()
+                                  // 创建新对话
+                                  const newId = conversationHistory.createNewConversation(currentMode)
+                                  setCurrentConversationId(newId)
+                                  conversationActions.updateConversationTree(new Map(), [])
+                                }
+                              }}
+                              className="text-xs text-slate-600 hover:text-slate-900 px-2 py-1 rounded hover:bg-white transition-colors"
+                            >
+                              清空
+                            </button>
                           </div>
                         </div>
                         
                         {/* 历史对话列表 */}
                         <div className="space-y-2">
-                          <div className="group p-3 bg-white rounded-lg border border-slate-200 cursor-pointer hover:border-indigo-300 hover:shadow-sm transition-all duration-200">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-slate-900 group-hover:text-indigo-700">人物性格讨论</div>
-                                <div className="text-xs text-slate-500 mt-1">今天 14:30</div>
-                                <div className="text-xs text-slate-600 mt-1.5 leading-relaxed">主角的成长弧线和性格发展轨迹...</div>
-                              </div>
+                          {conversationHistory.conversations.length === 0 ? (
+                            <div className="text-center py-8 text-slate-500 text-sm">
+                              暂无对话历史
                             </div>
-                          </div>
-                          
-                          <div className="group p-3 bg-white rounded-lg border border-slate-200 cursor-pointer hover:border-indigo-300 hover:shadow-sm transition-all duration-200">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-slate-900 group-hover:text-indigo-700">情节发展建议</div>
-                                <div className="text-xs text-slate-500 mt-1">今天 13:15</div>
-                                <div className="text-xs text-slate-600 mt-1.5 leading-relaxed">关于第三章情节转折点的讨论...</div>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="group p-3 bg-white rounded-lg border border-slate-200 cursor-pointer hover:border-indigo-300 hover:shadow-sm transition-all duration-200">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-slate-900 group-hover:text-indigo-700">世界观设定</div>
-                                <div className="text-xs text-slate-500 mt-1">今天 11:45</div>
-                                <div className="text-xs text-slate-600 mt-1.5 leading-relaxed">故事背景和世界观的细节完善...</div>
-                              </div>
-                            </div>
-                          </div>
+                          ) : (
+                            conversationHistory.conversations.map((conv) => {
+                              const isActive = conv.id === currentConversationId
+                              const timeStr = new Date(conv.timestamp).toLocaleString('zh-CN', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                month: 'numeric',
+                                day: 'numeric'
+                              })
+                              
+                              return (
+                                <div 
+                                  key={conv.id}
+                                  onClick={() => {
+                                    if (conv.id !== currentConversationId) {
+                                      setCurrentConversationId(conv.id)
+                                      const tree = conversationHistory.loadConversation(conv.id)
+                                      if (tree) {
+                                        conversationActions.updateConversationTree(tree.flatMessages, tree.activePath)
+                                      }
+                                    }
+                                  }}
+                                  className={`group p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                                    isActive 
+                                      ? 'bg-indigo-50 border-indigo-300 shadow-sm' 
+                                      : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-sm'
+                                  }`}
+                                >
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1 min-w-0">
+                                      <div className={`text-sm font-medium truncate ${
+                                        isActive ? 'text-indigo-700' : 'text-slate-900 group-hover:text-indigo-700'
+                                      }`}>
+                                        {conv.title}
+                                      </div>
+                                      <div className="text-xs text-slate-500 mt-1">{timeStr}</div>
+                                      <div className="text-xs text-slate-600 mt-1.5 leading-relaxed truncate">
+                                        {conv.preview}
+                                      </div>
+                                    </div>
+                                    {isActive && (
+                                      <div className="ml-2 mt-0.5">
+                                        <div className="w-2 h-2 bg-indigo-600 rounded-full"></div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )
+                            })
+                          )}
                         </div>
                       </div>
                     </div>
