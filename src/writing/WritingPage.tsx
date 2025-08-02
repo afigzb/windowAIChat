@@ -157,14 +157,6 @@ export default function WritingPage() {
         openFileForEdit(filePath, fileName)
       }
 
-      // 监听文件系统变化
-      const handleFileSystemChanged = (data: any) => {
-        // 这里可以根据需要刷新文件树或显示通知
-        console.log('文件系统变化:', data)
-        // 可以触发文件树刷新
-        window.location.reload() // 简单粗暴的刷新方式
-      }
-
       // 监听内联编辑触发事件
       const handleTriggerInlineEdit = (data: any) => {
         // 将事件传递给文件树组件
@@ -172,7 +164,7 @@ export default function WritingPage() {
         window.dispatchEvent(event)
       }
 
-      ;(window as any).electronAPI.onFileSystemChanged(handleFileSystemChanged)
+      // 文件系统变化事件现在由useFileTree hook处理，这里只需要监听内联编辑事件
       ;(window as any).electronAPI.onTriggerInlineEdit(handleTriggerInlineEdit)
     }
   }, [openFileForEdit])

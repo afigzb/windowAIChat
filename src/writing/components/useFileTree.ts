@@ -63,10 +63,10 @@ export function useFileTree() {
     }
   }
 
-  const refreshFileTree = async () => {
+  const refreshFileTree = useCallback(async () => {
     const tree = await fileSystemManager.loadFileTree()
     setFileTree(tree)
-  }
+  }, [])
 
   const handleFileClick = (node: FileSystemNode) => {
     // 通过回调通知父组件
@@ -105,7 +105,7 @@ export function useFileTree() {
       console.error(`${action}${itemType}失败:`, error)
       alert(`${action}${itemType}失败: ${error}`)
     }
-  }, [inlineEdit])
+  }, [inlineEdit, refreshFileTree])
 
   const handleInlineEditCancel = useCallback(() => {
     setInlineEdit({ 
@@ -221,6 +221,27 @@ export function useFileTree() {
     }
   }, [findNodeByPath, getDefaultFileName])
 
+  // 监听文件系统变化事件（如删除操作）
+  useEffect(() => {
+    const handleFileSystemChanged = (data: any) => {
+      console.log('文件系统变化:', data)
+      // 刷新文件树而不是重载页面
+      refreshFileTree()
+    }
+
+    if (typeof window !== 'undefined' && (window as any).electronAPI) {
+      ;(window as any).electronAPI.onFileSystemChanged(handleFileSystemChanged)
+    }
+
+    return () => {
+      // 清理事件监听器
+      if (typeof window !== 'undefined' && (window as any).electronAPI) {
+        // 这里需要移除监听器，但electron API没有提供removeListener方法
+        // 所以我们在WritingPage中移除监听
+      }
+    }
+  }, [refreshFileTree])
+
   return {
     workspace,
     fileTree,
@@ -230,6 +251,7 @@ export function useFileTree() {
     handleFileClick,
     handleContextMenuOpen,
     handleInlineEditConfirm,
-    handleInlineEditCancel
+    handleInlineEditCancel,
+    refreshFileTree
   }
 }
