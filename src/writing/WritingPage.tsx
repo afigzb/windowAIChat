@@ -175,12 +175,12 @@ export default function WritingPage() {
             {/* 左侧：功能模块面板 */}
             <Panel defaultSize={25}>
               <div className="bg-white border-r border-slate-300 flex flex-col h-full">
-                <div className="p-4 h-16 border-b border-slate-200">
-                  <h2 className="font-semibold text-slate-900">
+                <div className="p-4 h-16 border-b border-slate-200 flex items-center">
+                  <h2 className="font-semibold text-slate-900 whitespace-nowrap overflow-hidden text-ellipsis">
                     文件管理
                   </h2>
                 </div>
-                            <div className="flex-1 overflow-y-auto p-4">
+                <div className="flex-1 overflow-hidden">
               <FileTreePanel 
                 selectedFile={selectedFile} 
                 selectedFiles={selectedFiles}

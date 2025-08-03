@@ -108,20 +108,24 @@ export function FileTreeNode({
           </span>
         )}
         {!node.isDirectory && (
-          <div className="relative">
+          <div className="relative group/checkbox">
             <input
               type="checkbox"
               checked={isFileSelected}
               onChange={handleCheckboxChange}
               onClick={(e) => e.stopPropagation()} // 防止触发父元素的点击事件
               disabled={isLoading}
-              className={`w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 focus:ring-2 ${isLoading ? 'opacity-50' : ''}`}
+              className={`w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 focus:ring-2 transition-all duration-150 ${isLoading ? 'opacity-50' : 'hover:border-indigo-400'} ${isFileSelected ? 'scale-105' : ''}`}
               title={isLoading ? '文件内容加载中...' : '选择此文件用于AI对话'}
             />
             {isLoading && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
               </div>
+            )}
+            {/* 选中状态指示器 */}
+            {isFileSelected && !isLoading && (
+              <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             )}
           </div>
         )}

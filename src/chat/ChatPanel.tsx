@@ -101,7 +101,7 @@ export function ChatPanel({
   }
 
   return (
-    <div className="bg-slate-50 border-l border-slate-300 flex flex-col h-full">
+    <div className="bg-slate-50 border-l border-slate-300 flex flex-col h-full min-w-0">
       {/* 设置侧边栏 */}
       <AISettings
         config={config}
@@ -110,16 +110,18 @@ export function ChatPanel({
         isOpen={showSettings}
       />
 
-      {/* AI区域标题 */}
-      <div className="p-4 h-16 border-b border-slate-200 bg-white">
-        <div className="flex items-center justify-between min-w-0">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
+      {/* AI区域标题 - 固定高度，不换行 */}
+      <header className="flex-shrink-0 px-3 py-2 h-14 border-b border-slate-200 bg-white">
+        <div className="flex items-center justify-between h-full min-w-0 gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             <div className="w-2 h-2 bg-indigo-600 rounded-full flex-shrink-0"></div>
-            <h2 className="font-semibold text-slate-900 truncate" title="AI写作助手">AI写作助手</h2>
+            <h2 className="font-semibold text-slate-900 text-sm whitespace-nowrap overflow-hidden text-ellipsis" title="AI写作助手">
+              AI写作助手
+            </h2>
           </div>
           <button
             onClick={() => setShowSettings(!showSettings)}
-            className={`p-2 rounded-lg transition-all duration-200 flex-shrink-0 ${
+            className={`p-1.5 rounded-md transition-all duration-200 flex-shrink-0 ${
               showSettings 
                 ? 'bg-indigo-600 text-white shadow-sm' 
                 : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
@@ -131,27 +133,30 @@ export function ChatPanel({
             </svg>
           </button>
         </div>
-      </div>
+      </header>
       
       {/* AI区域内容 - 垂直分割 */}
-      <PanelGroup direction="vertical" className="flex-1">
+      <PanelGroup direction="vertical" className="flex-1 min-h-0">
         {/* 对话历史区域 */}
         <Panel defaultSize={35}>
-          <div className="bg-slate-50 border-b border-slate-200 overflow-y-auto h-full">
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-slate-600 rounded-full"></div>
-                  <h3 className="text-sm font-semibold text-slate-900">对话历史</h3>
+          <div className="bg-slate-50 border-b border-slate-200 h-full flex flex-col min-w-0">
+            {/* 对话历史标题栏 - 固定高度 */}
+            <header className="flex-shrink-0 p-3 border-b border-slate-200">
+              <div className="flex items-center justify-between min-w-0">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <div className="w-2 h-2 bg-slate-600 rounded-full flex-shrink-0"></div>
+                  <h3 className="text-sm font-semibold text-slate-900 whitespace-nowrap overflow-hidden text-ellipsis">
+                    对话历史
+                  </h3>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 flex-shrink-0 ml-2">
                   <button 
                     onClick={() => {
                       const newId = conversationHistory.createNewConversation(currentMode)
                       setCurrentConversationId(newId)
                       conversationActions.updateConversationTree(new Map(), [])
                     }}
-                    className="p-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors shadow-sm" 
+                    className="p-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors" 
                     title="新建对话"
                   >
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -167,14 +172,17 @@ export function ChatPanel({
                         conversationActions.updateConversationTree(new Map(), [])
                       }
                     }}
-                    className="text-xs text-slate-600 hover:text-slate-900 px-2 py-1 rounded hover:bg-white transition-colors"
+                    className="text-xs text-slate-600 hover:text-slate-900 px-1.5 py-1 rounded hover:bg-white transition-colors whitespace-nowrap"
+                    title="清空所有对话"
                   >
                     清空
                   </button>
                 </div>
               </div>
-              
-              {/* 历史对话列表 */}
+            </header>
+            
+            {/* 对话列表区域 - 可滚动 */}
+            <div className="flex-1 overflow-y-auto p-3">
               <div className="space-y-2">
                 {conversationHistory.conversations.length === 0 ? (
                   <div className="text-center py-8 text-slate-500 text-sm">
@@ -191,9 +199,9 @@ export function ChatPanel({
                     })
                     
                     return (
-                      <div 
+                      <article 
                         key={conv.id}
-                        className={`group rounded-lg border transition-all duration-200 ${
+                        className={`group rounded-lg border transition-all duration-200 min-w-0 ${
                           isActive 
                             ? 'bg-indigo-50 border-indigo-300 shadow-sm' 
                             : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-sm'
@@ -209,27 +217,29 @@ export function ChatPanel({
                               }
                             }
                           }}
-                          className="p-3 cursor-pointer flex items-start justify-between"
+                          className="p-2.5 cursor-pointer flex items-start min-w-0"
                         >
-                          <div className="flex-1 min-w-0">
-                            <div className={`text-sm font-medium truncate ${
+                          <div className="flex-1 min-w-0 mr-2">
+                            <h4 className={`text-sm font-medium truncate mb-1 ${
                               isActive ? 'text-indigo-700' : 'text-slate-900 group-hover:text-indigo-700'
-                            }`}>
+                            }`} title={conv.title}>
                               {conv.title}
-                            </div>
-                            <div className="text-xs text-slate-500 mt-1">{timeStr}</div>
-                            <div className="text-xs text-slate-600 mt-1.5 leading-relaxed truncate">
+                            </h4>
+                            <time className="text-xs text-slate-500 mb-1 whitespace-nowrap block" dateTime={new Date(conv.timestamp).toISOString()}>
+                              {timeStr}
+                            </time>
+                            <p className="text-xs text-slate-600 leading-relaxed line-clamp-2" title={conv.preview}>
                               {conv.preview}
-                            </div>
+                            </p>
                           </div>
-                          <div className="flex items-center gap-2 ml-2">
+                          <div className="flex items-start gap-1 flex-shrink-0">
                             {isActive && (
-                              <div className="w-2 h-2 bg-indigo-600 rounded-full"></div>
+                              <div className="w-2 h-2 bg-indigo-600 rounded-full mt-1"></div>
                             )}
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                if (confirm(`确定要删除对话"${conv.title}"吗？`)) {
+                                if (confirm(`确定要删除对话“${conv.title}”吗？`)) {
                                   if (conv.id === currentConversationId) {
                                     const allConversations = conversationHistory.conversations
                                     const remaining = allConversations.filter(c => c.id !== conv.id)
@@ -264,7 +274,7 @@ export function ChatPanel({
                             </button>
                           </div>
                         </div>
-                      </div>
+                      </article>
                     )
                   })
                 )}
@@ -277,8 +287,8 @@ export function ChatPanel({
         
         {/* 当前对话区域 */}
         <Panel defaultSize={65}>
-          <div className="flex flex-col h-full">
-            <div className="flex-1 overflow-y-auto bg-white">
+          <div className="flex flex-col h-full min-w-0">
+            <div className="flex-1 overflow-y-auto bg-white min-h-0">
               <div className="space-y-0">
                 {activeNodes.map((node) => {
                   const branchNavigation = branchManager.getBranchNavigationForNode(node.id)
@@ -333,7 +343,7 @@ export function ChatPanel({
             </div>
 
             {/* AI输入区域 */}
-            <div className="bg-white">
+            <div className="bg-white border-t border-slate-200 flex-shrink-0">
               <ChatInputArea
                 value={conversationState.inputValue}
                 onChange={conversationActions.updateInputValue}
