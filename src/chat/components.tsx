@@ -614,9 +614,8 @@ export function ChatInputArea({
                 adjustHeight(e.target)
               }}
               onKeyPress={handleKeyPress}
-              placeholder="发送消息给 DeepSeek Assistant..."
+              placeholder={isLoading ? "AI正在回复中，可以预输入下一条消息..." : "发送消息给 DeepSeek Assistant..."}
               className="w-full bg-transparent border-none focus:outline-none resize-none placeholder-slate-500 text-slate-900 leading-relaxed min-h-[60px] max-h-[150px]"
-              disabled={isLoading}
             />
           </div>
 

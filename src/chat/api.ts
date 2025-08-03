@@ -19,6 +19,7 @@ export const DEFAULT_CONFIG: AIConfig = {
 /**
  * 构建API请求消息列表
  * 过滤掉系统不需要的消息类型，添加系统提示
+ * 为了节约tokens，只保留最近10条对话作为历史
  * @param messages 原始消息列表
  */
 function buildMessages(messages: FlatMessage[]): Array<{ role: string; content: string }> {
@@ -31,14 +32,19 @@ function buildMessages(messages: FlatMessage[]): Array<{ role: string; content: 
   const systemPrompt = `该助手为DeepSeek Chat，由深度求索公司创造。\n今天是${currentDate}。`
   
   // 处理消息，仅保留用户和助手消息
-  const processedMessages = messages
+  const allProcessedMessages = messages
     .filter(m => m.role === 'user' || m.role === 'assistant')
     .map(m => ({ role: m.role, content: m.content }))
   
-  return [
+  // 只保留最近10次对话（20条消息：10个用户+10个助手，为了节约tokens）
+  const recentMessages = allProcessedMessages.slice(-20)
+  
+  const finalMessages = [
     { role: 'system', content: systemPrompt },
-    ...processedMessages
+    ...recentMessages
   ]
+  
+  return finalMessages
 }
 
 /**
@@ -91,14 +97,6 @@ function parseStreamChunk(chunk: string): Array<{ reasoning_content?: string; co
 /**
  * 调用DeepSeek API的主函数
  * 支持流式响应和中断控制
- * @param messages 对话历史
- * @param currentMode 当前聊天模式  
- * @param config AI配置
- * @param abortSignal 中断信号
- * @param onThinkingUpdate 思考过程更新回调
- * @param onAnswerUpdate 答案更新回调
- * @param isFirstConversation 是否是首次对话
- * @returns 完整的AI响应
  */
 export async function callDeepSeekAPI(
   messages: FlatMessage[],
@@ -109,13 +107,18 @@ export async function callDeepSeekAPI(
   onAnswerUpdate: (answer: string) => void
 ): Promise<{ reasoning_content?: string; content: string }> {
   
+  const requestBody = buildRequestBody(messages, currentMode, config)
+  
+  // 直接输出发送的消息内容
+  console.log('📤 发送给API的消息:', JSON.stringify(requestBody.messages, null, 2))
+  
   const response = await fetch(API_BASE_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${config.apiKey}`
     },
-    body: JSON.stringify(buildRequestBody(messages, currentMode, config)),
+    body: JSON.stringify(requestBody),
     signal: abortSignal
   })
 

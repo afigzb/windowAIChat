@@ -106,7 +106,7 @@ export default function WritingPage() {
 
   // 处理发送
   const handleSendMessage = () => {
-    if (!conversationState.inputValue.trim()) return
+    if (!conversationState.inputValue.trim() || conversationState.isLoading) return
     
     const content = conversationState.inputValue
     conversationActions.updateInputValue('')
