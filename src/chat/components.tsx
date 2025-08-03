@@ -462,7 +462,7 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
             </div>
             
             <Slider
-              label="🌡️ 创意度"
+              label="创意度"
               value={config.v3Config.temperature}
               onChange={(temperature) => onConfigChange({
                 ...config,
@@ -475,7 +475,7 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
             />
 
             <Slider
-              label="📝 回复长度"
+              label="回复长度"
               value={config.v3Config.maxTokens}
               onChange={(maxTokens) => onConfigChange({
                 ...config,
@@ -497,7 +497,7 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
             </div>
             
             <Slider
-              label="📝 回复长度"
+              label="回复长度"
               value={config.r1Config.maxTokens}
               onChange={(maxTokens) => onConfigChange({
                 ...config,
@@ -513,7 +513,7 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
 
           {/* API Key设置 */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-slate-900">🔑 API 设置</h3>
+            <h3 className="text-sm font-semibold text-slate-900">API 设置</h3>
             <div className="space-y-2">
               <label className="block text-sm font-medium text-slate-700">API Key</label>
               <input
@@ -526,9 +526,29 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
             </div>
           </div>
 
+          {/* 对话设置 */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-slate-900">对话设置</h3>
+            
+            <Slider
+              label="历史消息保留数量"
+              value={config.historyLimit}
+              onChange={(historyLimit) => onConfigChange({
+                ...config,
+                historyLimit
+              })}
+              min={4}
+              max={40}
+              step={2}
+              marks={['4条', '20条 推荐', '40条']}
+              formatValue={(v) => `${v}条消息 (${Math.floor(v/2)}次对话)`}
+            />
+            <p className="text-xs text-slate-500">为节约tokens，只保留最近的消息发送给AI</p>
+          </div>
+
           {/* 显示设置 */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-slate-900">💭 显示设置</h3>
+            <h3 className="text-sm font-semibold text-slate-900">显示设置</h3>
             <label className="flex items-center justify-between p-4 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
               <div>
                 <span className="font-medium text-slate-900">显示思考过程</span>

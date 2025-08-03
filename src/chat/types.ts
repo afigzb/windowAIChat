@@ -77,6 +77,7 @@ export interface AIConfig {
   }
   showThinking: boolean
   apiKey: string           // API密钥
+  historyLimit: number     // 保留的对话历史数量（消息条数）
 }
 
 // ===== 组件Props =====

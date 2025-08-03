@@ -13,16 +13,18 @@ export const DEFAULT_CONFIG: AIConfig = {
     maxTokens: 32000     // R1模式最大输出长度 - R1模式默认32K，最大64K
   },
   showThinking: true,    // 是否显示思考过程
-  apiKey: ''            // 用户自定义API密钥
+  apiKey: '',           // 用户自定义API密钥
+  historyLimit: 20      // 默认保留20条消息（10次对话）
 }
 
 /**
  * 构建API请求消息列表
  * 过滤掉系统不需要的消息类型，添加系统提示
- * 为了节约tokens，只保留最近10条对话作为历史
+ * 根据配置限制保留的对话历史数量
  * @param messages 原始消息列表
+ * @param historyLimit 保留的历史消息数量
  */
-function buildMessages(messages: FlatMessage[]): Array<{ role: string; content: string }> {
+function buildMessages(messages: FlatMessage[], historyLimit: number): Array<{ role: string; content: string }> {
   const currentDate = new Date().toLocaleDateString('zh-CN', {
     month: 'long',
     day: 'numeric',
@@ -36,8 +38,8 @@ function buildMessages(messages: FlatMessage[]): Array<{ role: string; content: 
     .filter(m => m.role === 'user' || m.role === 'assistant')
     .map(m => ({ role: m.role, content: m.content }))
   
-  // 只保留最近10次对话（20条消息：10个用户+10个助手，为了节约tokens）
-  const recentMessages = allProcessedMessages.slice(-20)
+  // 根据配置限制保留的历史消息数量
+  const recentMessages = allProcessedMessages.slice(-historyLimit)
   
   const finalMessages = [
     { role: 'system', content: systemPrompt },
@@ -61,7 +63,7 @@ function buildRequestBody(
   
   const requestBody = {
     model,
-    messages: buildMessages(messages),
+    messages: buildMessages(messages, config.historyLimit),
     max_tokens: modelConfig.maxTokens,
     stream: true    // 启用流式响应
   }
