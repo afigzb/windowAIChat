@@ -20,7 +20,7 @@ const UNSAFE_FORMATS = new Set([
   'mp3', 'wav', 'flac', 'aac', 'ogg', 'wma',
   'mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm',
   'pdf', 'xls', 'xlsx', 'ppt', 'pptx',
-  'bin', 'dat', 'db', 'sqlite', 'dll', 'so', 'dylib'
+  'bin', 'dat', 'db', 'sqlite', 'dll', 'so', 'dylib','TTF'
 ])
 
 /**
