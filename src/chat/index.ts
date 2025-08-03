@@ -1,6 +1,3 @@
-// 导出主要组件
-export { default as ChatPage } from './ChatPage'
-
 // 导出类型定义
 export type * from './types'
 
@@ -17,6 +14,7 @@ export * from './branch-manager'
 // 导出UI组件
 export * from './components'
 export { MarkdownRenderer } from './MarkdownRenderer'
+export { ChatPanel } from './ChatPanel'
 
 // 导出对话历史管理
 export * from './conversation-history'

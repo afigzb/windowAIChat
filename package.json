@@ -1,10 +1,10 @@
 {
-  "name": "ai-chat-desktop",
+  "name": "ai-writing-assistant",
   "private": true,
   "version": "1.0.0",
   "main": "electron/main.js",
   "homepage": "./",
-  "description": "基于DeepSeek的AI聊天桌面应用",
+  "description": "AI写作助手桌面应用 - 文档编辑与AI对话集成",
   "author": "Your Name",
   "scripts": {
     "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
@@ -21,7 +21,7 @@
     "mammoth": "^1.9.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-filetree-electron": "^1.2.2",
+
     "react-markdown": "^10.1.0",
     "react-resizable-panels": "^3.0.4",
     "react-syntax-highlighter": "^15.6.1",
@@ -49,8 +49,8 @@
     "wait-on": "^8.0.4"
   },
   "build": {
-    "appId": "com.example.ai-chat-desktop",
-    "productName": "AI聊天助手",
+    "appId": "com.example.ai-writing-assistant",
+    "productName": "AI写作助手",
     "directories": {
       "output": "build/desktop"
     },
