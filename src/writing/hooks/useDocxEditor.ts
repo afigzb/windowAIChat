@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import type { WordCountResult } from '../utils/wordCount'
 import { detectFileType, getSupportedFormats } from '../utils/fileTypeDetector'
+import { useConfirm } from './useConfirm'
 
 export interface DocxFile {
   path: string
@@ -20,6 +21,9 @@ export function useDocxEditor() {
     characters: 0,
     words: 0
   })
+  
+  // 使用自定义确认对话框
+  const { confirm, confirmProps } = useConfirm()
 
   // 判断文件是否为支持的格式
   const isSupportedFile = (filePath: string): { isSupported: boolean; reason?: string } => {
@@ -86,7 +90,13 @@ export function useDocxEditor() {
 
     // 如果有未保存的文件，先询问是否保存
     if (openFile && openFile.isModified) {
-      const shouldSave = confirm(`文件 "${openFile.name}" 已修改但未保存，是否要先保存？`)
+      const shouldSave = await confirm({
+        title: '文件未保存',
+        message: `文件 "${openFile.name}" 已修改但未保存，是否要先保存？`,
+        confirmText: '保存',
+        cancelText: '不保存',
+        type: 'warning'
+      })
       if (shouldSave) {
         const saved = await saveCurrentFile()
         if (!saved) {
@@ -165,9 +175,16 @@ export function useDocxEditor() {
   const saveFile = saveCurrentFile
 
   // 关闭文件
-  const closeFile = useCallback(() => {
+  const closeFile = useCallback(async () => {
     if (openFile?.isModified) {
-      if (!confirm('文件已修改但未保存，确定要关闭吗？')) {
+      const shouldClose = await confirm({
+        title: '关闭文件',
+        message: '文件已修改但未保存，确定要关闭吗？',
+        confirmText: '关闭',
+        cancelText: '取消',
+        type: 'warning'
+      })
+      if (!shouldClose) {
         return false
       }
     }
@@ -179,7 +196,7 @@ export function useDocxEditor() {
       words: 0
     })
     return true
-  }, [openFile])
+  }, [openFile, confirm])
 
   // 更新字数统计
   const updateWordCount = useCallback((newWordCount: WordCountResult) => {
@@ -204,6 +221,7 @@ export function useDocxEditor() {
     updateWordCount,
     saveFile,
     closeFile,
-    isSupportedFile
+    isSupportedFile,
+    confirmProps // 暴露确认对话框属性
   }
 }

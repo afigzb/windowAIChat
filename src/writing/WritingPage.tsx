@@ -4,6 +4,7 @@ import { DEFAULT_CONFIG } from '../chat/api'
 import { ChatPanel } from '../chat/ChatPanel'
 import { FileTreePanel } from './components/FileTreePanel'
 import { DocxEditor } from './components/DocxEditor'
+import { ConfirmDialog } from './components/ConfirmDialog'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import storage from '../storage'
 import { useDocxEditor } from './hooks/useDocxEditor'
@@ -36,7 +37,8 @@ export default function WritingPage() {
     updateContent,
     updateWordCount,
     saveFile,
-    closeFile
+    closeFile,
+    confirmProps
   } = useDocxEditor()
 
   // 配置变更处理
@@ -157,8 +159,8 @@ export default function WritingPage() {
   }, [openFile, saveFile])
 
   // 处理文件关闭
-  const handleCloseFile = () => {
-    const result = closeFile()
+  const handleCloseFile = async () => {
+    const result = await closeFile()
     if (result) {
       setSelectedFile(null) // 清除选中状态
     }
@@ -294,6 +296,9 @@ export default function WritingPage() {
           </PanelGroup>
         </main>
       </div>
+      
+      {/* 确认对话框 */}
+      <ConfirmDialog {...confirmProps} />
     </div>
   )
 }
