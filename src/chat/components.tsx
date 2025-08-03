@@ -438,7 +438,7 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
       isOpen ? 'translate-x-0' : '-translate-x-full'
     }`}>
       <div className="flex flex-col h-full">
-        <div className="flex items-center justify-between p-4 border-b border-slate-200">
+        <div className="flex h-16 items-center justify-between p-4 border-b border-slate-200">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-2xl bg-indigo-600 flex items-center justify-center">
               <Icon name="settings" className="w-5 h-5 text-white" />

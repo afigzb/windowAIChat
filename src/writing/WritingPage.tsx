@@ -11,42 +11,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import storage from '../storage'
 import { useDocxEditor } from './hooks/useDocxEditor'
 
-// 页面头部组件
-function Header({ 
-  onSettingsClick, 
-  showSettings
-}: { 
-  onSettingsClick: () => void
-  showSettings: boolean
-}) {
 
-  return (
-    <header className="bg-slate-50 border-b border-slate-300 px-6 py-4 sticky top-0 z-40">
-      <div className="w-full flex items-center justify-between">
-        {/* 左侧：标题 */}
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl font-semibold text-slate-900">AI写作助手</h1>
-        </div>
-        {/* 右侧：设置按钮 */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onSettingsClick}
-            className={`p-2 rounded-xl transition-all duration-200 ${
-              showSettings 
-                ? 'bg-indigo-600 text-white shadow-md' 
-                : 'text-slate-700 hover:text-indigo-600 hover:bg-white hover:shadow-sm'
-            }`}
-            title="AI设置"
-          >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-    </header>
-  )
-}
 
 export default function WritingPage() {
   // UI状态
@@ -207,18 +172,13 @@ export default function WritingPage() {
 
       {/* 主内容区 */}
       <div className="flex flex-col min-h-screen">
-        <Header 
-          onSettingsClick={() => setShowSettings(!showSettings)} 
-          showSettings={showSettings}
-        />
-
         {/* 主工作区域 - 使用react-resizable-panels */}
         <main className="flex-1">
-          <PanelGroup direction="horizontal" style={{ height: 'calc(100vh - 73px)' }}>
+          <PanelGroup direction="horizontal" style={{ height: '100vh' }}>
             {/* 左侧：功能模块面板 */}
             <Panel defaultSize={25}>
               <div className="bg-white border-r border-slate-300 flex flex-col h-full">
-                <div className="p-4 border-b border-slate-200">
+                <div className="p-4 h-16 border-b border-slate-200">
                   <h2 className="font-semibold text-slate-900">
                     文件管理
                   </h2>
@@ -234,7 +194,7 @@ export default function WritingPage() {
             {/* 中间：DOCX编辑区域 */}
             <Panel defaultSize={50}>
               <div className="bg-white flex flex-col h-full">
-                <div className="p-4 border-b border-slate-200">
+                <div className="p-4 h-16 border-b border-slate-200">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <h2 className="font-semibold text-slate-900">
@@ -243,18 +203,11 @@ export default function WritingPage() {
                       {openFile?.isModified && (
                         <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded">未保存</span>
                       )}
-                      {openFile && (
-                        <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
-                          {openFile.path.toLowerCase().endsWith('.docx') ? 'DOCX' : 
-                           openFile.path.toLowerCase().endsWith('.doc') ? 'DOC' : 
-                           openFile.path.toLowerCase().endsWith('.md') ? 'Markdown' : 'Text'}
-                        </span>
-                      )}
                     </div>
                     <div className="flex items-center gap-3">
                       {openFile && (
                         <div className="text-sm text-slate-600 px-3 py-1.5 bg-slate-100 rounded-md">
-                          📊 {wordCount.words}字
+                          {wordCount.words}字
                         </div>
                       )}
                       {openFile && (
@@ -324,10 +277,25 @@ export default function WritingPage() {
             <Panel defaultSize={25}>
               <div className="bg-slate-50 border-l border-slate-300 flex flex-col h-full">
                 {/* AI区域标题 */}
-                <div className="p-4 border-b border-slate-200 bg-white">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-indigo-600 rounded-full"></div>
-                    <h2 className="font-semibold text-slate-900">AI写作助手</h2>
+                <div className="p-4 h-16 border-b border-slate-200 bg-white">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 bg-indigo-600 rounded-full"></div>
+                      <h2 className="font-semibold text-slate-900">AI写作助手</h2>
+                    </div>
+                    <button
+                      onClick={() => setShowSettings(!showSettings)}
+                      className={`p-2 rounded-lg transition-all duration-200 ${
+                        showSettings 
+                          ? 'bg-indigo-600 text-white shadow-sm' 
+                          : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+                      }`}
+                      title="AI设置"
+                    >
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd"/>
+                      </svg>
+                    </button>
                   </div>
                 </div>
                 
