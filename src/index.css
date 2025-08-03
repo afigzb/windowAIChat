@@ -1,12 +1,21 @@
 @import "tailwindcss";
 
-/* 自定义样式可以添加在这里 */
-
 /* 修复长文本换行问题 */
 * {
   word-wrap: break-word;
   overflow-wrap: break-word;
   word-break: break-word;
+}
+
+/* 隐藏所有默认焦点样式 */
+*:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+*:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* 自定义滚动条样式 */
@@ -28,7 +37,6 @@
   background-color: rgb(148 163 184);
 }
 
-/* 蓝色主题滚动条 */
 .scrollbar-thumb-blue-300::-webkit-scrollbar-thumb {
   background-color: rgb(147 197 253);
   border-radius: 3px;
@@ -53,23 +61,7 @@
   line-height: 1.3;
 }
 
-.line-clamp-3 {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  word-break: break-word;
-  line-height: 1.3;
-}
-
-.scrollbar-track-slate-100::-webkit-scrollbar-track {
-  background-color: rgb(241 245 249);
-  border-radius: 3px;
-}
-
-/* 优化文本区域性能 - 移除可能导致卡顿的CSS */
-
-/* 美化滚动条 */
+/* 全局滚动条样式 */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -88,9 +80,4 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
-}
-
-/* 输入框自动高度调整 */
-textarea {
-  field-sizing: content;
 }
