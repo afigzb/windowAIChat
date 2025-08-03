@@ -454,6 +454,53 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
+          {/* API Key设置 */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-slate-900">API 设置</h3>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-700">API Key</label>
+              <input
+                type="password"
+                value={config.apiKey}
+                onChange={(e) => onConfigChange({ ...config, apiKey: e.target.value })}
+                placeholder="输入你的 DeepSeek API Key"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+              />
+            </div>
+          </div>
+
+          {/* 对话设置 */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-slate-900">对话设置</h3>
+            
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-700">系统提示</label>
+              <textarea
+                value={config.systemPrompt}
+                onChange={(e) => onConfigChange({ ...config, systemPrompt: e.target.value })}
+                placeholder="设置AI的角色和行为..."
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm min-h-[80px] resize-none"
+                rows={3}
+              />
+              <p className="text-xs text-slate-500">定义AI的角色定位和回答风格</p>
+            </div>
+            
+            <Slider
+              label="历史消息保留数量"
+              value={config.historyLimit}
+              onChange={(historyLimit) => onConfigChange({
+                ...config,
+                historyLimit
+              })}
+              min={4}
+              max={40}
+              step={2}
+              marks={['4条', '20条 推荐', '40条']}
+              formatValue={(v) => `${v}条消息 (${Math.floor(v/2)}次对话)`}
+            />
+            <p className="text-xs text-slate-500">为节约tokens，只保留最近的消息发送给AI</p>
+          </div>
+
           {/* V3配置 */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -509,41 +556,6 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
               marks={['100', '32K 推荐', '64K 最大']}
               formatValue={(v) => v.toLocaleString() + ' tokens'}
             />
-          </div>
-
-          {/* API Key设置 */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-slate-900">API 设置</h3>
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700">API Key</label>
-              <input
-                type="password"
-                value={config.apiKey}
-                onChange={(e) => onConfigChange({ ...config, apiKey: e.target.value })}
-                placeholder="输入你的 DeepSeek API Key"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-              />
-            </div>
-          </div>
-
-          {/* 对话设置 */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-slate-900">对话设置</h3>
-            
-            <Slider
-              label="历史消息保留数量"
-              value={config.historyLimit}
-              onChange={(historyLimit) => onConfigChange({
-                ...config,
-                historyLimit
-              })}
-              min={4}
-              max={40}
-              step={2}
-              marks={['4条', '20条 推荐', '40条']}
-              formatValue={(v) => `${v}条消息 (${Math.floor(v/2)}次对话)`}
-            />
-            <p className="text-xs text-slate-500">为节约tokens，只保留最近的消息发送给AI</p>
           </div>
 
           {/* 显示设置 */}

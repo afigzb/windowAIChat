@@ -167,9 +167,6 @@ export default function WritingPage() {
         onClose={() => setShowSettings(false)}
         isOpen={showSettings}
       />
-
-
-
       {/* 主内容区 */}
       <div className="flex border-t border-slate-300 flex-col min-h-screen">
         {/* 主工作区域 - 使用react-resizable-panels */}

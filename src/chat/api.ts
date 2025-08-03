@@ -14,7 +14,8 @@ export const DEFAULT_CONFIG: AIConfig = {
   },
   showThinking: true,    // 是否显示思考过程
   apiKey: '',           // 用户自定义API密钥
-  historyLimit: 20      // 默认保留20条消息（10次对话）
+  historyLimit: 20,     // 默认保留20条消息（10次对话）
+  systemPrompt: '你是DeepSeek，目的是帮助用户完成小说写作。'  // 默认系统提示
 }
 
 /**
@@ -22,16 +23,17 @@ export const DEFAULT_CONFIG: AIConfig = {
  * 过滤掉系统不需要的消息类型，添加系统提示
  * 根据配置限制保留的对话历史数量
  * @param messages 原始消息列表
- * @param historyLimit 保留的历史消息数量
+ * @param config AI配置对象
  */
-function buildMessages(messages: FlatMessage[], historyLimit: number): Array<{ role: string; content: string }> {
+function buildMessages(messages: FlatMessage[], config: AIConfig): Array<{ role: string; content: string }> {
   const currentDate = new Date().toLocaleDateString('zh-CN', {
     month: 'long',
     day: 'numeric',
     weekday: 'long'
   })
   
-  const systemPrompt = `该助手为DeepSeek Chat，由深度求索公司创造。\n今天是${currentDate}。`
+  // 使用配置中的系统提示
+  const systemPrompt = `${config.systemPrompt}\n今天是${currentDate}。`
   
   // 处理消息，仅保留用户和助手消息
   const allProcessedMessages = messages
@@ -39,7 +41,7 @@ function buildMessages(messages: FlatMessage[], historyLimit: number): Array<{ r
     .map(m => ({ role: m.role, content: m.content }))
   
   // 根据配置限制保留的历史消息数量
-  const recentMessages = allProcessedMessages.slice(-historyLimit)
+  const recentMessages = allProcessedMessages.slice(-config.historyLimit)
   
   const finalMessages = [
     { role: 'system', content: systemPrompt },
@@ -63,7 +65,7 @@ function buildRequestBody(
   
   const requestBody = {
     model,
-    messages: buildMessages(messages, config.historyLimit),
+    messages: buildMessages(messages, config),
     max_tokens: modelConfig.maxTokens,
     stream: true    // 启用流式响应
   }
