@@ -28,7 +28,7 @@ export interface ConversationState {
 // 对话管理器的操作接口
 export interface ConversationActions {
   sendMessage: (content: string, parentNodeId?: string | null, tempContent?: string) => Promise<void>
-  editUserMessage: (nodeId: string, newContent: string) => Promise<void>
+  editUserMessage: (nodeId: string, newContent: string, tempContent?: string) => Promise<void>
   updateInputValue: (value: string) => void
   abortRequest: () => void
   clearStreamState: () => void
@@ -254,7 +254,7 @@ export function useConversationManager(
    * @param nodeId 要编辑的消息ID
    * @param newContent 新的消息内容
    */
-  const handleEditUserMessage = useCallback(async (nodeId: string, newContent: string) => {
+  const handleEditUserMessage = useCallback(async (nodeId: string, newContent: string, tempContent?: string) => {
     if (isLoading) return
 
     const result = editUserMessage(
@@ -271,13 +271,13 @@ export function useConversationManager(
       const editedMessage = result.newFlatMessages.get(editedMessageId)
       
       if (editedMessage) {
-        await generateAIReply(editedMessage, result.newFlatMessages, result.newActivePath)
+        await generateAIReply(editedMessage, result.newFlatMessages, result.newActivePath, tempContent)
       }
     }
   }, [conversationTree, isLoading, updateConversationTree, generateAIReply])
 
   // 重新生成消息（合并regeneration功能）
-  const regenerateMessage = useCallback(async (nodeId: string) => {
+  const regenerateMessage = useCallback(async (nodeId: string, tempContent?: string) => {
     if (isLoading) return
 
     const targetMessage = conversationTree.flatMessages.get(nodeId)
@@ -324,7 +324,8 @@ export function useConversationManager(
         currentMode,
         abortControllerRef.current,
         setCurrentThinking,
-        setCurrentAnswer
+        setCurrentAnswer,
+        tempContent
       )
 
       const updatedFlatMessages = new Map(newFlatMessages)

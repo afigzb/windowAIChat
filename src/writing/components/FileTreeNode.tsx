@@ -109,6 +109,7 @@ export function FileTreeNode({
             type="checkbox"
             checked={isFileSelected}
             onChange={handleCheckboxChange}
+            onClick={(e) => e.stopPropagation()} // 防止触发父元素的点击事件
             className="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 focus:ring-2"
             title="选择此文件用于AI对话"
           />

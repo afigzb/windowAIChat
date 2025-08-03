@@ -285,12 +285,37 @@ export function ChatPanel({
                   const isInActivePath = conversationState.conversationTree.activePath.includes(node.id)
                   const isGeneratingNode = conversationState.isLoading && node.content === '正在生成...'
                   
+                  // 创建包装函数以传递临时内容
+                  const handleRegenerate = async (nodeId: string) => {
+                    let extraContent = ''
+                    if (additionalContent) {
+                      if (typeof additionalContent === 'function') {
+                        extraContent = await additionalContent()
+                      } else {
+                        extraContent = additionalContent
+                      }
+                    }
+                    return regenerateMessage(nodeId, extraContent)
+                  }
+
+                  const handleEditUserMessage = async (nodeId: string, newContent: string) => {
+                    let extraContent = ''
+                    if (additionalContent) {
+                      if (typeof additionalContent === 'function') {
+                        extraContent = await additionalContent()
+                      } else {
+                        extraContent = additionalContent
+                      }
+                    }
+                    return conversationActions.editUserMessage(nodeId, newContent, extraContent)
+                  }
+                  
                   return (
                     <MessageBubble 
                       key={node.id} 
                       node={node}
-                      onRegenerate={!conversationState.isLoading ? regenerateMessage : undefined}
-                      onEditUserMessage={!conversationState.isLoading ? conversationActions.editUserMessage : undefined}
+                      onRegenerate={!conversationState.isLoading ? handleRegenerate : undefined}
+                      onEditUserMessage={!conversationState.isLoading ? handleEditUserMessage : undefined}
                       branchNavigation={branchNavigation}
                       onBranchNavigate={(direction) => branchManager.navigateToSibling(node.id, direction)}
                       isInActivePath={isInActivePath}
