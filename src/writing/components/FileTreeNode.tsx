@@ -26,6 +26,7 @@ interface FileTreeNodeProps {
   // 新增：文件选择相关
   selectedFiles?: Set<string>
   onFileSelect?: (filePath: string, selected: boolean) => void
+  loadingFiles?: Set<string>
 }
 
 function FileIcon({ node }: { node: FileSystemNode }) {
@@ -42,7 +43,8 @@ export function FileTreeNode({
   onInlineEditConfirm,
   onInlineEditCancel,
   selectedFiles,
-  onFileSelect
+  onFileSelect,
+  loadingFiles
 }: FileTreeNodeProps) {
   const [isExpanded, setIsExpanded] = useState(level < 2)
 
@@ -66,6 +68,7 @@ export function FileTreeNode({
   
   const isSelected = selectedFile === node.path
   const isFileSelected = selectedFiles?.has(node.path) || false
+  const isLoading = loadingFiles?.has(node.path) || false
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation() // 防止触发文件点击
@@ -105,14 +108,22 @@ export function FileTreeNode({
           </span>
         )}
         {!node.isDirectory && (
-          <input
-            type="checkbox"
-            checked={isFileSelected}
-            onChange={handleCheckboxChange}
-            onClick={(e) => e.stopPropagation()} // 防止触发父元素的点击事件
-            className="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 focus:ring-2"
-            title="选择此文件用于AI对话"
-          />
+          <div className="relative">
+            <input
+              type="checkbox"
+              checked={isFileSelected}
+              onChange={handleCheckboxChange}
+              onClick={(e) => e.stopPropagation()} // 防止触发父元素的点击事件
+              disabled={isLoading}
+              className={`w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 focus:ring-2 ${isLoading ? 'opacity-50' : ''}`}
+              title={isLoading ? '文件内容加载中...' : '选择此文件用于AI对话'}
+            />
+            {isLoading && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            )}
+          </div>
         )}
         <FileIcon node={node} />
         <span className="text-sm truncate flex-1">{node.name}</span>
@@ -134,6 +145,7 @@ export function FileTreeNode({
               onInlineEditCancel={onInlineEditCancel}
               selectedFiles={selectedFiles}
               onFileSelect={onFileSelect}
+              loadingFiles={loadingFiles}
             />
           ))}
           {inlineEdit?.isActive && 

@@ -24,6 +24,7 @@ export default function WritingPage() {
   // 选中文件状态管理
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set())
   const [fileContents, setFileContents] = useState<Map<string, string>>(new Map())
+  const [loadingFiles, setLoadingFiles] = useState<Set<string>>(new Set())
   
   // DOCX编辑器状态管理
   const {
@@ -44,33 +45,15 @@ export default function WritingPage() {
     storage.saveAIConfig(newConfig)
   }
 
-  // 处理文件选择
-  const handleFileSelect = useCallback(async (filePath: string, selected: boolean) => {
+  // 处理文件选择 - 不再立即读取文件内容
+  const handleFileSelect = useCallback((filePath: string, selected: boolean) => {
     setSelectedFiles(prev => {
       const newSet = new Set(prev)
       if (selected) {
         newSet.add(filePath)
-        // 异步读取文件内容
-        readFileContent(filePath)
-          .then(content => {
-            setFileContents(prevContents => {
-              const newContents = new Map(prevContents)
-              newContents.set(filePath, content)
-              return newContents
-            })
-          })
-          .catch(error => {
-            console.error(`读取文件失败: ${filePath}`, error)
-            // 读取失败时从选中列表中移除
-            setSelectedFiles(currentFiles => {
-              const newSet = new Set(currentFiles)
-              newSet.delete(filePath)
-              return newSet
-            })
-          })
       } else {
         newSet.delete(filePath)
-        // 同时移除对应的文件内容缓存
+        // 移除对应的文件内容缓存
         setFileContents(prevContents => {
           const newContents = new Map(prevContents)
           newContents.delete(filePath)
@@ -92,7 +75,45 @@ export default function WritingPage() {
     if (selectedFiles.size === 0) return ''
     
     try {
-      return await readMultipleFiles(Array.from(selectedFiles))
+      // 显示加载状态
+      const filePaths = Array.from(selectedFiles)
+      const needsLoading = filePaths.filter(path => !fileContents.has(path))
+      
+      if (needsLoading.length > 0) {
+        setLoadingFiles(new Set(needsLoading))
+      }
+      
+      try {
+        // 仅在需要时才读取文件内容
+        const contents = await readMultipleFiles(filePaths)
+        
+        // 更新内容缓存（但不阻塞UI）
+        Promise.all(filePaths.map(async filePath => {
+          try {
+            const content = await readFileContent(filePath)
+            setFileContents(prev => {
+              const newContents = new Map(prev)
+              newContents.set(filePath, content)
+              return newContents
+            })
+          } catch (error) {
+            console.error(`缓存文件内容失败: ${filePath}`, error)
+          } finally {
+            setLoadingFiles(prev => {
+              const newSet = new Set(prev)
+              newSet.delete(filePath)
+              return newSet
+            })
+          }
+        }))
+        
+        return contents
+      } finally {
+        // 确保加载状态被清除
+        setTimeout(() => {
+          setLoadingFiles(new Set())
+        }, 500)
+      }
     } catch (error) {
       console.error('读取选中文件失败:', error)
       return ''
@@ -165,6 +186,7 @@ export default function WritingPage() {
                 selectedFiles={selectedFiles}
                 onFileSelect={handleFileSelect}
                 onClearSelectedFiles={handleClearSelectedFiles}
+                loadingFiles={loadingFiles}
               />
             </div>
               </div>

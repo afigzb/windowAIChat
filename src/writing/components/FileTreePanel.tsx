@@ -13,9 +13,10 @@ interface FileTreePanelProps {
   selectedFiles?: Set<string>
   onFileSelect?: (filePath: string, selected: boolean) => void
   onClearSelectedFiles?: () => void
+  loadingFiles?: Set<string>
 }
 
-export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onClearSelectedFiles }: FileTreePanelProps) {
+export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onClearSelectedFiles, loadingFiles }: FileTreePanelProps) {
   const {
     workspace,
     fileTree,
@@ -153,6 +154,7 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
               onInlineEditCancel={handleInlineEditCancel}
               selectedFiles={selectedFiles}
               onFileSelect={onFileSelect}
+              loadingFiles={loadingFiles}
             />
           ))}
           {inlineEdit.isActive && inlineEdit.mode === 'create' && inlineEdit.parentPath === (workspace?.rootPath || '') && (
