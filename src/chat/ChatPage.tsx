@@ -96,7 +96,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen">
       {/* 设置侧边栏 - 绝对定位 */}
       <AISettings
         config={config}

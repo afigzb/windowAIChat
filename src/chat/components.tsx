@@ -603,7 +603,7 @@ export function ChatInputArea({
 
   return (
     <div className="sticky bottom-0">
-      <div className="max-w-4xl mx-auto p-6 pt-0 bg-slate-50">
+      <div className="max-w-4xl mx-auto p-6 pt-0">
         <div className="border border-slate-200 rounded-2xl bg-white focus-within:border-indigo-300 transition-colors">
           <div className="p-4">
             <textarea

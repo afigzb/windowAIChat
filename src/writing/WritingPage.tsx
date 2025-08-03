@@ -171,7 +171,7 @@ export default function WritingPage() {
 
 
       {/* 主内容区 */}
-      <div className="flex flex-col min-h-screen">
+      <div className="flex border-t border-slate-300 flex-col min-h-screen">
         {/* 主工作区域 - 使用react-resizable-panels */}
         <main className="flex-1">
           <PanelGroup direction="horizontal" style={{ height: '100vh' }}>
@@ -195,18 +195,21 @@ export default function WritingPage() {
             <Panel defaultSize={50}>
               <div className="bg-white flex flex-col h-full">
                 <div className="p-4 h-16 border-b border-slate-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <h2 className="font-semibold text-slate-900">
+                  <div className="flex items-center justify-between min-w-0">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <h2 
+                        className="font-semibold text-slate-900 truncate" 
+                        title={openFile ? openFile.name : 'DOCX编辑器'}
+                      >
                         {openFile ? openFile.name : 'DOCX编辑器'}
                       </h2>
                       {openFile?.isModified && (
-                        <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded">未保存</span>
+                        <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded flex-shrink-0">未保存</span>
                       )}
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       {openFile && (
-                        <div className="text-sm text-slate-600 px-3 py-1.5 bg-slate-100 rounded-md">
+                        <div className="text-sm text-slate-600 px-2 py-1 bg-slate-100 rounded-md whitespace-nowrap">
                           {wordCount.words}字
                         </div>
                       )}
@@ -214,23 +217,25 @@ export default function WritingPage() {
                         <button
                           onClick={saveFile}
                           disabled={!openFile.isModified || isFileLoading}
-                          className="px-3 py-1.5 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                          className="px-2 py-1.5 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                          title="保存 (Ctrl+S)"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                           </svg>
-                          保存 (Ctrl+S)
+                          <span className="hidden xl:inline">保存</span>
                         </button>
                       )}
                       {openFile && (
                         <button
                           onClick={handleCloseFile}
-                          className="px-3 py-1.5 bg-gray-500 text-white text-sm rounded-md hover:bg-gray-600 transition-colors flex items-center gap-2"
+                          className="px-2 py-1.5 bg-gray-500 text-white text-sm rounded-md hover:bg-gray-600 transition-colors flex items-center gap-1"
+                          title="关闭"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                           </svg>
-                          关闭
+                          <span className="hidden xl:inline">关闭</span>
                         </button>
                       )}
                     </div>
@@ -278,14 +283,14 @@ export default function WritingPage() {
               <div className="bg-slate-50 border-l border-slate-300 flex flex-col h-full">
                 {/* AI区域标题 */}
                 <div className="p-4 h-16 border-b border-slate-200 bg-white">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-indigo-600 rounded-full"></div>
-                      <h2 className="font-semibold text-slate-900">AI写作助手</h2>
+                  <div className="flex items-center justify-between min-w-0">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-2 h-2 bg-indigo-600 rounded-full flex-shrink-0"></div>
+                      <h2 className="font-semibold text-slate-900 truncate" title="AI写作助手">AI写作助手</h2>
                     </div>
                     <button
                       onClick={() => setShowSettings(!showSettings)}
-                      className={`p-2 rounded-lg transition-all duration-200 ${
+                      className={`p-2 rounded-lg transition-all duration-200 flex-shrink-0 ${
                         showSettings 
                           ? 'bg-indigo-600 text-white shadow-sm' 
                           : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
@@ -481,7 +486,7 @@ export default function WritingPage() {
                       </div>
 
                       {/* AI输入区域 */}
-                      <div className="border-t border-slate-200 bg-white">
+                      <div className="bg-white">
                         <ChatInputArea
                           value={conversationState.inputValue}
                           onChange={conversationActions.updateInputValue}
