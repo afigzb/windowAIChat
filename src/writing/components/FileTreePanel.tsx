@@ -5,12 +5,17 @@ import { FileTreeNode } from './FileTreeNode'
 import { InlineEdit } from './InlineEdit'
 import { useFileTree } from './useFileTree'
 import type { FileSystemNode } from '../../storage/file-system'
+import { getFileName } from '../utils/fileContentReader'
 
 interface FileTreePanelProps {
   selectedFile?: string | null
+  // 新增：文件选择相关
+  selectedFiles?: Set<string>
+  onFileSelect?: (filePath: string, selected: boolean) => void
+  onClearSelectedFiles?: () => void
 }
 
-export function FileTreePanel({ selectedFile }: FileTreePanelProps) {
+export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onClearSelectedFiles }: FileTreePanelProps) {
   const {
     workspace,
     fileTree,
@@ -66,6 +71,49 @@ export function FileTreePanel({ selectedFile }: FileTreePanelProps) {
         </div>
       </div>
 
+      {/* 选中文件显示区域 */}
+      {selectedFiles && selectedFiles.size > 0 && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium text-blue-900">
+              已选择文件 ({selectedFiles.size})
+            </h3>
+            {onClearSelectedFiles && (
+              <button
+                onClick={onClearSelectedFiles}
+                className="text-xs text-blue-600 hover:text-blue-800 underline"
+                title="清除所有选择"
+              >
+                清除全部
+              </button>
+            )}
+          </div>
+          <div className="space-y-1 max-h-24 overflow-y-auto">
+            {Array.from(selectedFiles).map(filePath => (
+              <div key={filePath} className="flex items-center justify-between text-xs">
+                <span className="text-blue-800 truncate flex-1" title={filePath}>
+                  📄 {getFileName(filePath)}
+                </span>
+                {onFileSelect && (
+                  <button
+                    onClick={() => onFileSelect(filePath, false)}
+                    className="ml-2 text-blue-400 hover:text-blue-600 p-0.5"
+                    title="移除此文件"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 text-xs text-blue-600">
+            这些文件将在发送消息时自动附加到对话中
+          </div>
+        </div>
+      )}
+
       {/* 文件树 */}
       <div 
         className="border border-gray-300 rounded overflow-y-auto flex-1"
@@ -103,6 +151,8 @@ export function FileTreePanel({ selectedFile }: FileTreePanelProps) {
               inlineEdit={inlineEdit}
               onInlineEditConfirm={handleInlineEditConfirm}
               onInlineEditCancel={handleInlineEditCancel}
+              selectedFiles={selectedFiles}
+              onFileSelect={onFileSelect}
             />
           ))}
           {inlineEdit.isActive && inlineEdit.mode === 'create' && inlineEdit.parentPath === (workspace?.rootPath || '') && (

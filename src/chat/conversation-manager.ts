@@ -27,7 +27,7 @@ export interface ConversationState {
 
 // 对话管理器的操作接口
 export interface ConversationActions {
-  sendMessage: (content: string, parentNodeId?: string | null) => Promise<void>
+  sendMessage: (content: string, parentNodeId?: string | null, tempContent?: string) => Promise<void>
   editUserMessage: (nodeId: string, newContent: string) => Promise<void>
   updateInputValue: (value: string) => void
   abortRequest: () => void
@@ -47,14 +47,28 @@ async function generateAIMessage(
   currentMode: ChatMode,
   abortController: AbortController,
   onThinkingUpdate: (thinking: string) => void,
-  onAnswerUpdate: (answer: string) => void
+  onAnswerUpdate: (answer: string) => void,
+  tempContent?: string
 ): Promise<FlatMessage> {
   let currentGeneratedContent = ''
   let currentReasoningContent = ''
   
   try {
+    // 如果有临时内容，需要修改最后一条用户消息
+    let modifiedHistory = conversationHistory
+    if (tempContent && conversationHistory.length > 0) {
+      modifiedHistory = [...conversationHistory]
+      const lastMessage = modifiedHistory[modifiedHistory.length - 1]
+      if (lastMessage.role === 'user') {
+        modifiedHistory[modifiedHistory.length - 1] = {
+          ...lastMessage,
+          content: lastMessage.content + tempContent
+        }
+      }
+    }
+
     const result = await callDeepSeekAPI(
-      conversationHistory,
+      modifiedHistory,
       currentMode,
       config,
       abortController.signal,
@@ -154,7 +168,8 @@ export function useConversationManager(
   const generateAIReply = useCallback(async (
     userMessage: FlatMessage,
     currentFlatMessages?: Map<string, FlatMessage>,
-    currentActivePath?: string[]
+    currentActivePath?: string[],
+    tempContent?: string
   ) => {
     const flatMessages = currentFlatMessages || conversationTree.flatMessages
     const activePath = currentActivePath || conversationTree.activePath
@@ -181,7 +196,8 @@ export function useConversationManager(
         currentMode,
         abortControllerRef.current,
         setCurrentThinking,
-        setCurrentAnswer
+        setCurrentAnswer,
+        tempContent
       )
       
 
@@ -211,7 +227,7 @@ export function useConversationManager(
    * @param content 消息内容
    * @param parentNodeId 父节点ID，为空时添加到当前路径末尾
    */
-  const sendMessage = useCallback(async (content: string, parentNodeId: string | null = null) => {
+  const sendMessage = useCallback(async (content: string, parentNodeId: string | null = null, tempContent?: string) => {
     if (isLoading || !content.trim()) return
 
     // 确定父节点ID
@@ -221,7 +237,7 @@ export function useConversationManager(
         : null
     )
 
-    // 创建用户消息并添加到树中
+    // 创建用户消息并添加到树中（注意：这里只保存原始内容，不包含临时内容）
     const userMessage = createFlatMessage(content.trim(), 'user', actualParentId)
     const { newFlatMessages, newActivePath } = addMessageToTree(
       conversationTree.flatMessages,
@@ -230,7 +246,7 @@ export function useConversationManager(
     )
 
     updateConversationTree(newFlatMessages, newActivePath)
-    await generateAIReply(userMessage, newFlatMessages, newActivePath)
+    await generateAIReply(userMessage, newFlatMessages, newActivePath, tempContent)
   }, [conversationTree, isLoading, generateAIReply, updateConversationTree])
 
   /**

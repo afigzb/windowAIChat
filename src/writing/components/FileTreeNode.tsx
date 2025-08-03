@@ -23,6 +23,9 @@ interface FileTreeNodeProps {
   inlineEdit?: InlineEditState
   onInlineEditConfirm?: (name: string) => void
   onInlineEditCancel?: () => void
+  // 新增：文件选择相关
+  selectedFiles?: Set<string>
+  onFileSelect?: (filePath: string, selected: boolean) => void
 }
 
 function FileIcon({ node }: { node: FileSystemNode }) {
@@ -37,7 +40,9 @@ export function FileTreeNode({
   onContextMenu,
   inlineEdit,
   onInlineEditConfirm,
-  onInlineEditCancel
+  onInlineEditCancel,
+  selectedFiles,
+  onFileSelect
 }: FileTreeNodeProps) {
   const [isExpanded, setIsExpanded] = useState(level < 2)
 
@@ -60,6 +65,12 @@ export function FileTreeNode({
                     inlineEdit.parentPath === node.path
   
   const isSelected = selectedFile === node.path
+  const isFileSelected = selectedFiles?.has(node.path) || false
+
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation() // 防止触发文件点击
+    onFileSelect?.(node.path, e.target.checked)
+  }
 
   if (isRenaming) {
     return (
@@ -93,6 +104,15 @@ export function FileTreeNode({
             ▼
           </span>
         )}
+        {!node.isDirectory && (
+          <input
+            type="checkbox"
+            checked={isFileSelected}
+            onChange={handleCheckboxChange}
+            className="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 focus:ring-2"
+            title="选择此文件用于AI对话"
+          />
+        )}
         <FileIcon node={node} />
         <span className="text-sm truncate flex-1">{node.name}</span>
 
@@ -111,6 +131,8 @@ export function FileTreeNode({
               inlineEdit={inlineEdit}
               onInlineEditConfirm={onInlineEditConfirm}
               onInlineEditCancel={onInlineEditCancel}
+              selectedFiles={selectedFiles}
+              onFileSelect={onFileSelect}
             />
           ))}
           {inlineEdit?.isActive && 

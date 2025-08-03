@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import type { AIConfig, ChatMode } from '../chat/types'
 import { DEFAULT_CONFIG } from '../chat/api'
 import { MessageBubble, AISettings, ChatInputArea } from '../chat/components'
@@ -10,6 +10,7 @@ import { DocxEditor } from './components/DocxEditor'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import storage from '../storage'
 import { useDocxEditor } from './hooks/useDocxEditor'
+import { readFileContent, readMultipleFiles } from './utils/fileContentReader'
 
 
 
@@ -22,6 +23,10 @@ export default function WritingPage() {
   const [currentMode, setCurrentMode] = useState<ChatMode>('r1')
   const [showSettings, setShowSettings] = useState(false)
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
+  
+  // 新增：选中文件状态管理
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set())
+  const [fileContents, setFileContents] = useState<Map<string, string>>(new Map())
   
   // 对话历史管理
   const conversationHistory = useConversationHistory()
@@ -104,13 +109,68 @@ export default function WritingPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [conversationState.conversationTree.activePath])
 
+  // 处理文件选择
+  const handleFileSelect = useCallback(async (filePath: string, selected: boolean) => {
+    setSelectedFiles(prev => {
+      const newSet = new Set(prev)
+      if (selected) {
+        newSet.add(filePath)
+        // 异步读取文件内容
+        readFileContent(filePath)
+          .then(content => {
+            setFileContents(prevContents => {
+              const newContents = new Map(prevContents)
+              newContents.set(filePath, content)
+              return newContents
+            })
+          })
+          .catch(error => {
+            console.error(`读取文件失败: ${filePath}`, error)
+            // 读取失败时从选中列表中移除
+            setSelectedFiles(currentFiles => {
+              const newSet = new Set(currentFiles)
+              newSet.delete(filePath)
+              return newSet
+            })
+          })
+      } else {
+        newSet.delete(filePath)
+        // 同时移除对应的文件内容缓存
+        setFileContents(prevContents => {
+          const newContents = new Map(prevContents)
+          newContents.delete(filePath)
+          return newContents
+        })
+      }
+      return newSet
+    })
+  }, [])
+
+  // 清除所有选中文件
+  const handleClearSelectedFiles = useCallback(() => {
+    setSelectedFiles(new Set())
+    setFileContents(new Map())
+  }, [])
+
   // 处理发送
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!conversationState.inputValue.trim() || conversationState.isLoading) return
     
     const content = conversationState.inputValue
     conversationActions.updateInputValue('')
-    conversationActions.sendMessage(content)
+    
+    // 构建临时消息内容（从选中的文件）
+    let tempContent = ''
+    if (selectedFiles.size > 0) {
+      try {
+        tempContent = await readMultipleFiles(Array.from(selectedFiles))
+      } catch (error) {
+        console.error('读取选中文件失败:', error)
+        // 即使文件读取失败，也继续发送消息
+      }
+    }
+    
+    conversationActions.sendMessage(content, null, tempContent)
   }
   
   // 设置文件选择回调和Electron事件监听
@@ -181,7 +241,12 @@ export default function WritingPage() {
                   </h2>
                 </div>
                             <div className="flex-1 overflow-y-auto p-4">
-              <FileTreePanel selectedFile={selectedFile} />
+              <FileTreePanel 
+                selectedFile={selectedFile} 
+                selectedFiles={selectedFiles}
+                onFileSelect={handleFileSelect}
+                onClearSelectedFiles={handleClearSelectedFiles}
+              />
             </div>
               </div>
             </Panel>
