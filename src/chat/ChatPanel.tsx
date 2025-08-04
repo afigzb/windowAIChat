@@ -24,6 +24,8 @@ export function ChatPanel({
 }: ChatPanelProps) {
   const [showSettings, setShowSettings] = useState(false)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [conversationToDelete, setConversationToDelete] = useState<{id: string, title: string} | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatInputRef = useRef<{ focus: () => void }>(null)
   
@@ -101,6 +103,42 @@ export function ChatPanel({
     }
     
     conversationActions.sendMessage(content, null, extraContent)
+  }
+
+  // 处理删除对话
+  const handleDeleteConversation = () => {
+    if (!conversationToDelete) return
+    
+    if (conversationToDelete.id === currentConversationId) {
+      const allConversations = conversationHistory.conversations
+      const remaining = allConversations.filter(c => c.id !== conversationToDelete.id)
+      
+      if (remaining.length > 0) {
+        const nextConv = remaining[0]
+        setCurrentConversationId(nextConv.id)
+        const tree = conversationHistory.loadConversation(nextConv.id)
+        if (tree) {
+          conversationActions.updateConversationTree(tree.flatMessages, tree.activePath)
+        }
+      } else {
+        setCurrentConversationId(null)
+        conversationActions.updateConversationTree(new Map(), [])
+      }
+    }
+    
+    conversationHistory.deleteConversation(conversationToDelete.id)
+    
+    if (conversationHistory.conversations.length === 1) {
+      const newId = conversationHistory.createNewConversation(currentMode)
+      setCurrentConversationId(newId)
+    }
+    
+    setShowDeleteConfirm(false)
+    setConversationToDelete(null)
+    // 恢复输入区域焦点
+    setTimeout(() => {
+      chatInputRef.current?.focus()
+    }, 100)
   }
 
   return (
@@ -235,31 +273,8 @@ export function ChatPanel({
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                if (confirm(`确定要删除对话“${conv.title}”吗？`)) {
-                                  if (conv.id === currentConversationId) {
-                                    const allConversations = conversationHistory.conversations
-                                    const remaining = allConversations.filter(c => c.id !== conv.id)
-                                    
-                                    if (remaining.length > 0) {
-                                      const nextConv = remaining[0]
-                                      setCurrentConversationId(nextConv.id)
-                                      const tree = conversationHistory.loadConversation(nextConv.id)
-                                      if (tree) {
-                                        conversationActions.updateConversationTree(tree.flatMessages, tree.activePath)
-                                      }
-                                    } else {
-                                      setCurrentConversationId(null)
-                                      conversationActions.updateConversationTree(new Map(), [])
-                                    }
-                                  }
-                                  
-                                  conversationHistory.deleteConversation(conv.id)
-                                  
-                                  if (conversationHistory.conversations.length === 1) {
-                                    const newId = conversationHistory.createNewConversation(currentMode)
-                                    setCurrentConversationId(newId)
-                                  }
-                                }
+                                setConversationToDelete({ id: conv.id, title: conv.title })
+                                setShowDeleteConfirm(true)
                               }}
                               className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-600 transition-all duration-200 rounded"
                               title="删除对话"
@@ -376,6 +391,25 @@ export function ChatPanel({
         }}
         onCancel={() => {
           setShowClearConfirm(false)
+          // 恢复输入区域焦点
+          setTimeout(() => {
+            chatInputRef.current?.focus()
+          }, 100)
+        }}
+      />
+
+      {/* 删除确认对话框 */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="确认删除"
+        message={conversationToDelete ? `确定要删除对话"${conversationToDelete.title}"吗？此操作不可恢复。` : ''}
+        confirmText="删除"
+        cancelText="取消"
+        type="danger"
+        onConfirm={handleDeleteConversation}
+        onCancel={() => {
+          setShowDeleteConfirm(false)
+          setConversationToDelete(null)
           // 恢复输入区域焦点
           setTimeout(() => {
             chatInputRef.current?.focus()
