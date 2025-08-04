@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
 import type { MessageNode, AIConfig, ChatMode, MessageBubbleProps, BranchNavigation } from './types'
 import { DEFAULT_CONFIG } from './api'
 import { MarkdownRenderer } from './MarkdownRenderer'
@@ -590,7 +590,18 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
 }
 
 // 聊天输入区域
-export function ChatInputArea({ 
+export const ChatInputArea = forwardRef<
+  { focus: () => void },
+  {
+    value: string
+    onChange: (value: string) => void
+    onSend: () => void
+    isLoading: boolean
+    onAbort: () => void
+    currentMode: ChatMode
+    onModeChange: (mode: ChatMode) => void
+  }
+>(({ 
   value, 
   onChange, 
   onSend, 
@@ -598,16 +609,15 @@ export function ChatInputArea({
   onAbort, 
   currentMode, 
   onModeChange 
-}: {
-  value: string
-  onChange: (value: string) => void
-  onSend: () => void
-  isLoading: boolean
-  onAbort: () => void
-  currentMode: ChatMode
-  onModeChange: (mode: ChatMode) => void
-}) {
+}, ref) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // 暴露focus方法给父组件
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      textareaRef.current?.focus()
+    }
+  }), [])
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -682,4 +692,6 @@ export function ChatInputArea({
       </div>
     </div>
   )
-} 
+})
+
+ChatInputArea.displayName = 'ChatInputArea' 

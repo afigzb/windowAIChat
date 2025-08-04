@@ -5,6 +5,7 @@ import { useConversationManager } from './conversation-manager'
 import { useBranchManager } from './branch-manager'
 import { useConversationHistory } from './conversation-history'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
+import { ConfirmDialog } from '../writing/components/ConfirmDialog'
 
 interface ChatPanelProps {
   config: AIConfig
@@ -22,7 +23,9 @@ export function ChatPanel({
   additionalContent
 }: ChatPanelProps) {
   const [showSettings, setShowSettings] = useState(false)
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const chatInputRef = useRef<{ focus: () => void }>(null)
   
   // 对话历史管理
   const conversationHistory = useConversationHistory()
@@ -164,14 +167,7 @@ export function ChatPanel({
                     </svg>
                   </button>
                   <button 
-                    onClick={() => {
-                      if (confirm('确定要清空所有对话历史吗？')) {
-                        conversationHistory.clearAllConversations()
-                        const newId = conversationHistory.createNewConversation(currentMode)
-                        setCurrentConversationId(newId)
-                        conversationActions.updateConversationTree(new Map(), [])
-                      }
-                    }}
+                    onClick={() => setShowClearConfirm(true)}
                     className="text-xs text-slate-600 hover:text-slate-900 px-1.5 py-1 rounded hover:bg-white transition-colors whitespace-nowrap"
                     title="清空所有对话"
                   >
@@ -345,6 +341,7 @@ export function ChatPanel({
             {/* AI输入区域 */}
             <div className="bg-white border-t border-slate-200 flex-shrink-0">
               <ChatInputArea
+                ref={chatInputRef}
                 value={conversationState.inputValue}
                 onChange={conversationActions.updateInputValue}
                 onSend={handleSendMessage}
@@ -357,6 +354,34 @@ export function ChatPanel({
           </div>
         </Panel>
       </PanelGroup>
+
+      {/* 清空确认对话框 */}
+      <ConfirmDialog
+        isOpen={showClearConfirm}
+        title="确认清空"
+        message="确定要清空所有对话历史吗？此操作不可恢复。"
+        confirmText="清空"
+        cancelText="取消"
+        type="danger"
+        onConfirm={() => {
+          conversationHistory.clearAllConversations()
+          const newId = conversationHistory.createNewConversation(currentMode)
+          setCurrentConversationId(newId)
+          conversationActions.updateConversationTree(new Map(), [])
+          setShowClearConfirm(false)
+          // 恢复输入区域焦点
+          setTimeout(() => {
+            chatInputRef.current?.focus()
+          }, 100)
+        }}
+        onCancel={() => {
+          setShowClearConfirm(false)
+          // 恢复输入区域焦点
+          setTimeout(() => {
+            chatInputRef.current?.focus()
+          }, 100)
+        }}
+      />
     </div>
   )
 }
