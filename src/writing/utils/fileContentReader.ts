@@ -2,6 +2,7 @@
 // 负责读取各种类型文件的内容，并从HTML结构中提取纯文本
 
 import { fileContentCache } from './fileContentCache'
+import { detectFileType } from './fileTypeDetector'
 
 /**
  * 从HTML内容中提取纯文本
@@ -58,34 +59,48 @@ export async function readFileContent(filePath: string, useCache: boolean = true
       throw new Error('Electron API不可用')
     }
 
-    const extension = getFileExtension(filePath)
+    // 检测文件类型
+    const fileTypeInfo = detectFileType(filePath)
     let result: string = ''
     
-    switch (extension) {
-      case 'docx':
-      case 'doc':
+    switch (fileTypeInfo.readMethod) {
+      case 'html':
         // 对于DOCX/DOC文件，使用专门的API读取HTML内容然后提取纯文本
         const htmlContent = await (window as any).electronAPI.readDocxAsHtml(filePath)
         result = extractTextFromHTML(htmlContent || '')
         break
         
-      case 'txt':
-      case 'md':
-        // 对于纯文本文件，直接读取内容
-        const textContent = await (window as any).electronAPI.readFile(filePath)
-        result = (textContent || '').trim()
+      case 'image':
+        // 对于图片文件，读取为base64格式
+        const imageData = await (window as any).electronAPI.readImageAsBase64(filePath)
+        const fileName = getFileName(filePath)
+        const sizeKB = Math.round(imageData.size / 1024)
+        result = `[图片文件: ${fileName}]\n类型: ${imageData.mimeType}\n大小: ${sizeKB} KB\n\n![${fileName}](${imageData.dataUrl})`
         break
         
-      default:
-        // 对于其他文件类型，尝试作为文本读取
-        const content = await (window as any).electronAPI.readFile(filePath)
-        const contentStr = content || ''
-        // 如果内容看起来像HTML，提取纯文本；否则直接返回
-        if (contentStr.includes('<') && contentStr.includes('>')) {
-          result = extractTextFromHTML(contentStr)
+      case 'text':
+        // 对于文本文件
+        const extension = getFileExtension(filePath)
+        if (extension === 'txt' || extension === 'md') {
+          // 对于纯文本文件，直接读取内容
+          const textContent = await (window as any).electronAPI.readFile(filePath)
+          result = (textContent || '').trim()
         } else {
-          result = contentStr.trim()
+          // 对于其他文件类型，尝试作为文本读取
+          const content = await (window as any).electronAPI.readFile(filePath)
+          const contentStr = content || ''
+          // 如果内容看起来像HTML，提取纯文本；否则直接返回
+          if (contentStr.includes('<') && contentStr.includes('>')) {
+            result = extractTextFromHTML(contentStr)
+          } else {
+            result = contentStr.trim()
+          }
         }
+        break
+        
+      case 'none':
+      default:
+        throw new Error(fileTypeInfo.reason || '不支持的文件格式')
     }
     
     // 保存到缓存
@@ -108,6 +123,13 @@ export async function readFileContent(filePath: string, useCache: boolean = true
  */
 export function formatFileContent(filePath: string, content: string): string {
   const fileName = getFileName(filePath)
+  const fileTypeInfo = detectFileType(filePath)
+  
+  // 对于图片文件，使用特殊的格式化方式
+  if (fileTypeInfo.readMethod === 'image') {
+    // 图片内容已经包含了markdown格式的图片显示，直接使用
+    return `\n\n--- 图片文件: ${fileName} ---\n${content}\n--- 图片结束 ---`
+  }
   
   // 限制内容长度，避免消息过长
   const maxContentLength = 5000

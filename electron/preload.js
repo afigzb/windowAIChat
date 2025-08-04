@@ -33,6 +33,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readDocxAsHtml: (filePath) => ipcRenderer.invoke('read-docx-as-html', filePath),
   saveHtmlAsDocx: (filePath, htmlContent) => ipcRenderer.invoke('save-html-as-docx', filePath, htmlContent),
   
+  // 图片文件处理
+  readImageAsBase64: (filePath) => ipcRenderer.invoke('read-image-as-base64', filePath),
+  
   // === 右键菜单API ===
   
   // 设置工作区路径

@@ -141,8 +141,53 @@ export function useDocxEditor() {
         } else {
           htmlContent = '<p><br></p>'
         }
+      } else if (fileTypeInfo.readMethod === 'image') {
+        // 图片文件在编辑器中显示为预览
+        const imageData = await (window as any).electronAPI.readImageAsBase64(filePath)
+        const sizeKB = Math.round(imageData.size / 1024)
+        
+        htmlContent = `
+          <div style="text-align: center; padding: 20px;">
+            <h3>图片预览 - ${fileName}</h3>
+            <p style="color: #666; font-size: 0.9em; margin: 10px 0;">
+              ${imageData.mimeType} | ${sizeKB} KB | 点击图片查看原始尺寸
+            </p>
+            <div style="margin: 20px 0;">
+              <img 
+                src="${imageData.dataUrl}" 
+                alt="${fileName}"
+                style="
+                  max-width: 100%; 
+                  max-height: 500px; 
+                  height: auto; 
+                  cursor: zoom-in;
+                  border: 1px solid #ddd;
+                  border-radius: 4px;
+                  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                  transition: transform 0.2s ease;
+                "
+                onclick="
+                  if (this.style.maxHeight === 'none') {
+                    this.style.maxHeight = '500px';
+                    this.style.cursor = 'zoom-in';
+                    this.style.transform = 'none';
+                  } else {
+                    this.style.maxHeight = 'none';
+                    this.style.cursor = 'zoom-out';
+                    this.style.transform = 'scale(1)';
+                  }
+                "
+                onmouseover="if (this.style.maxHeight !== 'none') this.style.transform = 'scale(1.02)'"
+                onmouseout="if (this.style.maxHeight !== 'none') this.style.transform = 'none'"
+              />
+            </div>
+            <p style="color: #999; font-size: 0.8em; margin: 10px 0;">
+              💡 提示：点击图片可以在预览模式和原始尺寸之间切换
+            </p>
+          </div>
+        `
       } else {
-        throw new Error('不支持的文件格式')
+        throw new Error(fileTypeInfo.reason || '不支持的文件格式')
       }
       
       setOpenFile({

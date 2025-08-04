@@ -3,7 +3,7 @@
 export interface FileTypeInfo {
   isSupported: boolean // 是否支持编辑
   isSafeToRead: boolean // 是否安全读取（不会卡顿）
-  readMethod: 'html' | 'text' | 'none' // 读取方式
+  readMethod: 'html' | 'text' | 'image' | 'none' // 读取方式
   reason?: string // 不支持的原因
 }
 
@@ -12,11 +12,15 @@ const DOCUMENT_FORMATS = new Set([
   'docx', 'doc'
 ])
 
+// 支持的图片格式
+const IMAGE_FORMATS = new Set([
+  'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'ico', 'svg'
+])
+
 // 明确的二进制
 const UNSAFE_FORMATS = new Set([
   'zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'xz',
   'exe', 'msi', 'dmg', 'deb', 'rpm', 'app',
-  'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'ico',
   'mp3', 'wav', 'flac', 'aac', 'ogg', 'wma',
   'mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm',
   'pdf', 'xls', 'xlsx', 'ppt', 'pptx',
@@ -44,7 +48,16 @@ export function detectFileType(filePath: string): FileTypeInfo {
     }
   }
   
-  // 2. 检查是否是明确的二进制/危险格式
+  // 2. 检查是否是图片格式
+  if (extension && IMAGE_FORMATS.has(extension)) {
+    return {
+      isSupported: true,
+      isSafeToRead: true,
+      readMethod: 'image'
+    }
+  }
+  
+  // 3. 检查是否是明确的二进制/危险格式
   if (extension && UNSAFE_FORMATS.has(extension)) {
     return {
       isSupported: false,
@@ -54,7 +67,7 @@ export function detectFileType(filePath: string): FileTypeInfo {
     }
   }
   
-  // 3. 其他情况都尝试作为文本读取
+  // 4. 其他情况都尝试作为文本读取
   // 包括：常见文本格式、配置文件、代码文件、无扩展名文件等
   return {
     isSupported: true,
@@ -70,6 +83,8 @@ export function getSupportedFormats(): string[] {
   return [
     // 文档格式
     'docx', 'doc',
+    // 图片格式
+    'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'ico', 'svg',
     // 常见文本格式
     'txt', 'md', 'html', 'css', 'js', 'ts', 'json', 'xml',
     // 其他文本格式（除了明确的二进制格式外都支持）
@@ -101,6 +116,10 @@ export function getFileSafetyInfo(filePath: string): string {
   
   if (fileTypeInfo.readMethod === 'html') {
     return '支持：Office文档格式'
+  }
+  
+  if (fileTypeInfo.readMethod === 'image') {
+    return '支持：图片格式'
   }
   
   if (fileTypeInfo.readMethod === 'text') {
