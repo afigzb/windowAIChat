@@ -111,7 +111,7 @@ export function ChatPanel({
       />
 
       {/* AI区域标题 - 固定高度，不换行 */}
-      <header className="flex-shrink-0 px-3 py-2 h-14 border-b border-slate-200 bg-white">
+      <header className="flex-shrink-0 px-3 py-2 h-16 border-b border-slate-200 bg-white">
         <div className="flex items-center justify-between h-full min-w-0 gap-2">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <div className="w-2 h-2 bg-indigo-600 rounded-full flex-shrink-0"></div>
