@@ -63,9 +63,17 @@ export function InlineEdit({
       className="flex items-center gap-1 py-1 px-1"
       style={{ marginLeft: level * 16 }}
     >
-      <span>
-        {type === 'directory' ? '📁' : '📄'}
-      </span>
+      <div className="flex-shrink-0">
+        {type === 'directory' ? (
+          <svg className="w-4 h-4 text-slate-700" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M1 21V6h2v13h17v2zm4-4V2h7l2 2h9v13zm2-2h14V6h-7.825l-2-2H7zm0 0V4z"/>
+          </svg>
+        ) : (
+          <svg className="w-4 h-4 text-slate-700" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M4 22V2h10l6 6v6h-2V9h-5V4H6v16h9v2zm17.95.375L19 19.425v2.225h-2V16h5.65v2H20.4l2.95 2.95zM6 20V4z"/>
+          </svg>
+        )}
+      </div>
       <input
         ref={inputRef}
         type="text"

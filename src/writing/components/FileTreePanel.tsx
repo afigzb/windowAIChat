@@ -47,7 +47,12 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
           disabled={isLoading}
           className="w-full p-3 border-2 border-dashed border-slate-300 rounded-lg text-slate-600 hover:border-indigo-400 hover:text-indigo-600 transition-colors disabled:opacity-50"
         >
-          {isLoading ? '正在加载...' : '📁 选择工作目录'}
+          <div className="flex items-center justify-center gap-2">
+            <svg className="w-5 h-5 text-slate-700" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M1 21V6h2v13h17v2zm4-4V2h7l2 2h9v13zm2-2h14V6h-7.825l-2-2H7zm0 0V4z"/>
+            </svg>
+            <span>{isLoading ? '正在加载...' : '选择工作目录'}</span>
+          </div>
         </button>
       </div>
     )
@@ -60,10 +65,10 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 min-w-0">
           <div className="flex items-center justify-between mb-2 min-w-0 gap-2">
             <div className="flex items-center min-w-0 flex-1">
-              <h3 className="text-sm font-medium text-blue-900 whitespace-nowrap flex-shrink-0">
+              <h3 className="text-xs font-normal text-blue-600 whitespace-nowrap flex-shrink-0">
                 已选择文件
               </h3>
-              <span className="text-sm font-medium text-blue-900 whitespace-nowrap ml-1 flex-shrink-0">
+              <span className="text-xs font-normal text-blue-600 whitespace-nowrap ml-1 flex-shrink-0">
                 ({selectedFiles?.size || 0})
               </span>
             </div>
@@ -83,7 +88,9 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
               {selectedFiles && Array.from(selectedFiles).map(filePath => (
                 <div key={filePath} className="flex items-center justify-between text-xs py-1 px-1 rounded hover:bg-blue-100 transition-colors group min-w-0">
                   <div className="text-blue-800 flex items-center flex-1 mr-2 min-w-0" title={filePath}>
-                    <span className="flex-shrink-0 mr-1">📄</span>
+                    <svg className="w-3 h-3 text-blue-600 flex-shrink-0 mr-1" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M4 22V2h10l6 6v6h-2V9h-5V4H6v16h9v2zm17.95.375L19 19.425v2.225h-2V16h5.65v2H20.4l2.95 2.95zM6 20V4z"/>
+                    </svg>
                     <span className="truncate flex-1 min-w-0">{getFileName(filePath)}</span>
                   </div>
                   {onFileSelect && (
@@ -102,7 +109,9 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
               {/* 空状态提示 */}
               {(!selectedFiles || selectedFiles.size === 0) && (
                 <div className="h-full flex flex-col items-center justify-center text-blue-400 text-xs space-y-2">
-                  <div className="text-lg">📁</div>
+                  <svg className="w-6 h-6 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M1 21V6h2v13h17v2zm4-4V2h7l2 2h9v13zm2-2h14V6h-7.825l-2-2H7zm0 0V4z"/>
+                  </svg>
                   <div className="text-center">
                     <div className="whitespace-nowrap">暂无选中文件</div>
                     <div className="text-blue-300 mt-1 whitespace-nowrap">勾选下方文件来选择</div>
@@ -121,7 +130,9 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
       <div className="flex-shrink-0 px-4 py-3 border-b border-slate-200">
         <div className="flex items-center justify-between mb-2 min-w-0">
           <div className="flex items-center min-w-0 flex-1">
-            <span className="flex-shrink-0 mr-1">📁</span>
+            <svg className="w-4 h-4 text-slate-600 flex-shrink-0 mr-1" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M1 21V6h2v13h17v2zm4-4V2h7l2 2h9v13zm2-2h14V6h-7.825l-2-2H7zm0 0V4z"/>
+            </svg>
             <span className="font-medium text-slate-900 text-sm truncate">{workspace.name}</span>
           </div>
           <button
