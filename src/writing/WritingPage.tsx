@@ -268,12 +268,7 @@ export default function WritingPage() {
                   ) : (
                     <div className="h-full flex items-center justify-center text-slate-500">
                       <div className="text-center">
-                        <div className="mb-4">
-                          <svg className="w-16 h-16 text-slate-400 mx-auto" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-                            <path d="M15.5,13L14.09,14.41L16.67,17L14.09,19.59L15.5,21L19.5,17L15.5,13M8.5,13L4.5,17L8.5,21L9.91,19.59L7.33,17L9.91,14.41L8.5,13Z"/>
-                          </svg>
-                        </div>
+                        <div className="text-6xl mb-4">📝</div>
                         <h3 className="text-lg font-medium mb-2">DOCX文档编辑器</h3>
                         <p className="text-sm mb-4">从左侧文件管理中选择一个DOCX文件开始编辑</p>
                         <div className="text-xs text-slate-400">
