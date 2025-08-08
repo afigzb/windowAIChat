@@ -48,7 +48,17 @@ class StorageManager {
     }
 
     try {
-      this.currentConfig = this.loadData(STORAGE_KEYS.AI_CONFIG, defaultConfig)
+      const storedConfig = this.loadData(STORAGE_KEYS.AI_CONFIG, defaultConfig)
+      
+      // 检查配置完整性，如果缺少必要属性则使用默认配置
+      if (!storedConfig.v3Config || !storedConfig.r1Config) {
+        console.warn('检测到不完整的AI配置，使用默认配置')
+        this.currentConfig = { ...defaultConfig }
+        this.saveAIConfig(this.currentConfig) // 保存完整的默认配置
+      } else {
+        this.currentConfig = storedConfig
+      }
+      
       console.log('已加载AI配置:', this.currentConfig)
       return this.currentConfig
     } catch (error) {
