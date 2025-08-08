@@ -168,12 +168,12 @@ export default function WritingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="h-screen bg-slate-100 flex flex-col">
       {/* 主内容区 */}
-      <div className="flex border-t border-slate-300 flex-col min-h-screen">
+      <div className="flex border-t border-slate-300 flex-col flex-1">
         {/* 主工作区域 - 使用react-resizable-panels */}
         <main className="flex-1">
-          <PanelGroup direction="horizontal" style={{ height: '100vh' }}>
+          <PanelGroup direction="horizontal" style={{ height: 'calc(100vh - 1px)' }}>
             {/* 左侧：功能模块面板 */}
             <Panel defaultSize={25}>
               <div className="bg-white border-r border-slate-300 flex flex-col h-full">
