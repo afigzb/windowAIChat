@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini AI Chat</title>
+    <script type="importmap">
+        {
+            "imports": {
+                "@google/generative-ai": "https://esm.run/@google/generative-ai"
+            }
+        }
+    </script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        h1 { text-align: center; color: #333; }
+        #chatMessages { height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin-bottom: 20px; background: #fafafa; }
+        .message { margin-bottom: 10px; padding: 8px; border-radius: 4px; }
+        .user-message { background: #007bff; color: white; text-align: right; }
+        .ai-message { background: #e9ecef; color: #333; }
+        .input-area { display: flex; gap: 10px; }
+        #userInput { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        #sendButton { padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        #sendButton:hover { background: #0056b3; }
+        #sendButton:disabled { background: #6c757d; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gemini AI 对话</h1>
+        
+        <div id="chatMessages">
+            <div style="text-align: center; color: #666;">开始与 Gemini AI 对话吧！</div>
+        </div>
+
+        <div class="input-area">
+            <input 
+                type="text" 
+                id="userInput" 
+                placeholder="输入您的问题..." 
+                onkeypress="if(event.key==='Enter') sendMessage()"
+            >
+            <button id="sendButton" onclick="sendMessage()">发送</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { GoogleGenerativeAI } from "@google/generative-ai";
+        
+        const API_KEY = 'AIzaSyApVtBqj40hMmDxkh7LVNzz-mLi_-a_er8';
+        const genAI = new GoogleGenerativeAI(API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+        // 添加消息到聊天窗口
+        function addMessage(content, isUser = false) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + (isUser ? 'user-message' : 'ai-message');
+            messageDiv.textContent = content;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 发送消息
+        async function sendMessage() {
+            const userInput = document.getElementById('userInput');
+            const sendButton = document.getElementById('sendButton');
+            const message = userInput.value.trim();
+            
+            if (!message) return;
+
+            // 添加用户消息
+            addMessage(message, true);
+            userInput.value = '';
+            
+            // 禁用发送按钮
+            sendButton.disabled = true;
+            sendButton.textContent = '发送中...';
+
+            try {
+                const result = await model.generateContent(message);
+                const response = await result.response;
+                const text = response.text();
+                addMessage(text, false);
+            } catch (error) {
+                addMessage('错误：' + error.message, false);
+            } finally {
+                sendButton.disabled = false;
+                sendButton.textContent = '发送';
+            }
+        }
+
+        // 将函数暴露到全局作用域
+        window.sendMessage = sendMessage;
+    </script>
+</body>
+</html>

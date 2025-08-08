@@ -8,7 +8,7 @@
 }
 
 /* 隐藏所有默认焦点样式 */
-*:focus {
+/* *:focus {
   outline: none !important;
   box-shadow: none !important;
 }
@@ -16,7 +16,7 @@
 *:focus-visible {
   outline: none !important;
   box-shadow: none !important;
-}
+} */
 
 /* 自定义滚动条样式 */
 .scrollbar-thin {
