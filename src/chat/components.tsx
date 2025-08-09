@@ -27,7 +27,7 @@ const AnimatedDots = ({ size = 'sm', color = 'slate' }: { size?: 'sm' | 'md'; co
 }
 
 // 合并的图标组件
-type IconName = 'settings' | 'close' | 'send' | 'stop' | 'chevronDown' | 'chevronLeft' | 'chevronRight' | 'regenerate' | 'edit'
+type IconName = 'settings' | 'close' | 'send' | 'stop' | 'chevronDown' | 'chevronLeft' | 'chevronRight' | 'regenerate' | 'edit' | 'copy'
 
 const Icon = ({ name, className = "w-4 h-4" }: { name: IconName; className?: string }) => {
   const icons: Record<string, string> = {
@@ -42,7 +42,8 @@ const Icon = ({ name, className = "w-4 h-4" }: { name: IconName; className?: str
 
   const strokeIcons: Record<string, string> = {
     regenerate: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15",
-    edit: "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+    edit: "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z",
+    copy: "M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
   }
 
   if (strokeIcons[name]) {
@@ -104,25 +105,72 @@ function BranchNavigation({ navigation, onNavigate }: {
   )
 }
 
-// 模式切换按钮
+// 模式选择器
 export function ModelToggle({ currentMode, onModeChange, disabled }: {
   currentMode: ChatMode
   onModeChange: (mode: ChatMode) => void
   disabled?: boolean
 }) {
+  const [isOpen, setIsOpen] = useState(false)
+  
+  const modes = [
+    { value: 'r1', label: 'R1', color: 'bg-slate-600' },
+    { value: 'v3', label: 'V3', color: 'bg-indigo-600' }
+  ]
+  
+  const currentModeInfo = modes.find(mode => mode.value === currentMode)
+  
   return (
-    <button
-      onClick={() => onModeChange(currentMode === 'v3' ? 'r1' : 'v3')}
-      disabled={disabled}
-      className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition-colors ${
-        disabled 
-          ? 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed' 
-          : 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700'
-      }`}
-    >
-              <div className={`w-2 h-2 rounded-full ${currentMode === 'r1' ? 'bg-slate-600' : 'bg-indigo-600'}`} />
-      <span>{currentMode.toUpperCase()}</span>
-    </button>
+    <div className="relative">
+      <button
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        disabled={disabled}
+        className={`flex items-center gap-3 px-3 py-2 rounded-xl border text-sm font-medium transition-colors min-w-[80px] ${
+          disabled 
+            ? 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed' 
+            : 'border-slate-200 hover:border-slate-300 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100 text-slate-700 cursor-pointer bg-white hover:bg-slate-50'
+        }`}
+      >
+        <div className={`w-2 h-2 rounded-full ${currentModeInfo?.color}`} />
+        <span>{currentModeInfo?.label}</span>
+        <svg 
+          className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      
+      {isOpen && !disabled && (
+        <>
+          <div 
+            className="fixed inset-0 z-10" 
+            onClick={() => setIsOpen(false)} 
+          />
+          <div className="absolute -top-4 left-0 -translate-y-full mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg z-20 overflow-hidden">
+            {modes.map((mode) => (
+              <button
+                key={mode.value}
+                onClick={() => {
+                  onModeChange(mode.value as ChatMode)
+                  setIsOpen(false)
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors hover:bg-indigo-100 ${
+                  mode.value === currentMode ? 'bg-indigo-50 text-indigo-700' : 'text-slate-700'
+                }`}
+              >
+                <div className={`w-2 h-2 rounded-full ${mode.color}`} />
+                <div className="flex flex-col items-start">
+                  <span>{mode.label}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   )
 }
 
@@ -175,6 +223,7 @@ export function MessageBubble({
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState(node.content)
   const [isHovered, setIsHovered] = useState(false)
+  const [copySuccess, setCopySuccess] = useState(false)
   const isUser = node.role === 'user'
 
   const handleEditSave = () => {
@@ -212,7 +261,7 @@ export function MessageBubble({
           <div className={`flex items-center mb-3 gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
             <div className="flex items-center gap-2">
               <span className={`text-sm font-medium ${isUser ? 'text-indigo-700' : 'text-slate-700'}`}>
-                {isUser ? 'You' : 'DeepSeek'}
+                {isUser ? 'You' : 'AI'}
               </span>
               {!isUser && isGenerating && (
                 <div className="flex items-center gap-2 px-3 py-1 bg-indigo-50 text-indigo-800 text-xs rounded-full border border-indigo-200">
@@ -341,15 +390,40 @@ export function MessageBubble({
             )}
             
             {/* 操作按钮 */}
-            {!isUser && !isGenerating && onRegenerate && (
-              <button
-                onClick={() => onRegenerate(node.id)}
-                className="flex items-center gap-2 px-3 py-1.5 text-xs text-slate-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
-                title="重新生成回答"
-              >
-                <Icon name="regenerate" className="w-3 h-3" />
-                <span>重新生成</span>
-              </button>
+            {!isUser && !isGenerating && (
+              <div className="flex items-center gap-2">
+                {onRegenerate && (
+                  <button
+                    onClick={() => onRegenerate(node.id)}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs text-slate-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
+                    title="重新生成回答"
+                  >
+                    <Icon name="regenerate" className="w-3 h-3" />
+                    <span>重新生成</span>
+                  </button>
+                )}
+                
+                <button
+                  onClick={() => {
+                    // 复制回答内容，不包括思考过程
+                    navigator.clipboard.writeText(node.content).then(() => {
+                      setCopySuccess(true)
+                      setTimeout(() => setCopySuccess(false), 2000)
+                    }).catch(err => {
+                      console.error('复制失败:', err)
+                    })
+                  }}
+                  className={`flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                    copySuccess 
+                      ? 'text-green-700 bg-green-50' 
+                      : 'text-slate-500 hover:text-green-700 hover:bg-green-50'
+                  }`}
+                  title="复制回答内容"
+                >
+                  <Icon name="copy" className="w-3 h-3" />
+                  <span>{copySuccess ? '已复制' : '复制'}</span>
+                </button>
+              </div>
             )}
             
             {isUser && !isGenerating && !isEditing && onEditUserMessage && (
@@ -463,7 +537,7 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
                 type="password"
                 value={config.apiKey}
                 onChange={(e) => onConfigChange({ ...config, apiKey: e.target.value })}
-                placeholder="输入你的 DeepSeek API Key"
+                placeholder="输入你的 API Key"
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
               />
             </div>
@@ -505,7 +579,7 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-indigo-600" />
-              <h3 className="text-sm font-semibold text-slate-900">DeepSeek-V3 配置</h3>
+              <h3 className="text-sm font-semibold text-slate-900">V3 配置</h3>
             </div>
             
             <Slider
@@ -540,7 +614,7 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-slate-600" />
-              <h3 className="text-sm font-semibold text-slate-900">DeepSeek-R1 配置</h3>
+              <h3 className="text-sm font-semibold text-slate-900">R1 配置</h3>
             </div>
             
             <Slider
@@ -656,7 +730,7 @@ export const ChatInputArea = forwardRef<
                 adjustHeight(e.target)
               }}
               onKeyPress={handleKeyPress}
-              placeholder={isLoading ? "AI正在回复中，可以预输入下一条消息..." : "发送消息给 DeepSeek Assistant..."}
+              placeholder={isLoading ? "AI正在回复中，可以预输入下一条消息..." : "发送消息给 AI Assistant..."}
               className="w-full bg-transparent border-none focus:outline-none resize-none placeholder-slate-500 text-slate-900 leading-relaxed min-h-[60px] max-h-[150px]"
             />
           </div>
