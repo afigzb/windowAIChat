@@ -194,7 +194,7 @@ export default function WritingPage() {
               </div>
             </Panel>
 
-            <PanelResizeHandle className="w-0.5 bg-slate-300" />
+            <PanelResizeHandle className="w-px bg-slate-200" />
 
             {/* 中间：DOCX编辑区域 */}
             <Panel defaultSize={50}>
@@ -281,7 +281,7 @@ export default function WritingPage() {
               </div>
             </Panel>
 
-            <PanelResizeHandle className="w-0.5 bg-slate-300" />
+            <PanelResizeHandle className="w-px bg-slate-200" />
 
             {/* 右侧：AI助手区域 */}
             <Panel defaultSize={25}>

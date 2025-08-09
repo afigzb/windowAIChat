@@ -294,7 +294,7 @@ export function ChatPanel({
           </div>
         </Panel>
 
-        <PanelResizeHandle className="h-0.5 bg-slate-300" />
+        <PanelResizeHandle className="h-px bg-slate-200" />
         
         {/* 当前对话区域 */}
         <Panel defaultSize={65}>

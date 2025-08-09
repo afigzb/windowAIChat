@@ -9,8 +9,8 @@ import { MarkdownRenderer } from './MarkdownRenderer'
 const AnimatedDots = ({ size = 'sm', color = 'slate' }: { size?: 'sm' | 'md'; color?: 'teal' | 'slate' }) => {
   const dotSize = size === 'sm' ? 'w-1.5 h-1.5' : 'w-2 h-2'
   const colorClasses = {
-    teal: 'bg-indigo-600',
-    slate: 'bg-slate-400'
+    teal: 'bg-blue-600',
+    slate: 'bg-gray-400'
   }
   
   return (
@@ -49,7 +49,7 @@ const Icon = ({ name, className = "w-4 h-4" }: { name: IconName; className?: str
   if (strokeIcons[name]) {
     return (
       <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={strokeIcons[name]} />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={strokeIcons[name]} />
       </svg>
     )
   }
@@ -77,15 +77,15 @@ function BranchNavigation({ navigation, onNavigate }: {
         disabled={!navigation.canNavigateLeft}
         className={`p-1 rounded-lg transition-colors ${
           navigation.canNavigateLeft 
-            ? 'text-slate-500 hover:text-slate-700 hover:bg-slate-100' 
-            : 'text-slate-300 cursor-not-allowed'
+            ? 'text-gray-500 hover:text-gray-700 hover:bg-gray-100' 
+            : 'text-gray-300 cursor-not-allowed'
         }`}
         title="上一个分支"
       >
         <Icon name="chevronLeft" className="w-3 h-3" />
       </button>
       
-      <span className="px-3 py-1 text-slate-600 font-medium bg-slate-100 rounded-lg min-w-[3rem] text-center">
+      <span className="px-3 py-1 text-gray-600 font-medium bg-gray-100 rounded-lg min-w-[3rem] text-center">
         {navigation.currentIndex + 1}/{navigation.totalBranches}
       </span>
       
@@ -94,8 +94,8 @@ function BranchNavigation({ navigation, onNavigate }: {
         disabled={!navigation.canNavigateRight}
         className={`p-1 rounded-lg transition-colors ${
           navigation.canNavigateRight 
-            ? 'text-slate-500 hover:text-slate-700 hover:bg-slate-100' 
-            : 'text-slate-300 cursor-not-allowed'
+            ? 'text-gray-500 hover:text-gray-700 hover:bg-gray-100' 
+            : 'text-gray-300 cursor-not-allowed'
         }`}
         title="下一个分支"
       >
@@ -114,8 +114,8 @@ export function ModelToggle({ currentMode, onModeChange, disabled }: {
   const [isOpen, setIsOpen] = useState(false)
   
   const modes = [
-    { value: 'r1', label: 'R1', color: 'bg-slate-600' },
-    { value: 'v3', label: 'V3', color: 'bg-indigo-600' }
+    { value: 'r1', label: 'R1', color: 'bg-gray-700' },
+    { value: 'v3', label: 'V3', color: 'bg-blue-600' }
   ]
   
   const currentModeInfo = modes.find(mode => mode.value === currentMode)
@@ -125,16 +125,16 @@ export function ModelToggle({ currentMode, onModeChange, disabled }: {
       <button
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className={`flex items-center gap-3 px-3 py-2 rounded-xl border text-sm font-medium transition-colors min-w-[80px] ${
+        className={`flex items-center gap-3 px-3 py-2 rounded-xl border text-sm font-medium transition-all duration-200 min-w-[80px] shadow-sm ${
           disabled 
-            ? 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed' 
-            : 'border-slate-200 hover:border-slate-300 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100 text-slate-700 cursor-pointer bg-white hover:bg-slate-50'
+            ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed' 
+            : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 text-gray-700 cursor-pointer bg-white hover:bg-gray-50 hover:shadow-md'
         }`}
       >
         <div className={`w-2 h-2 rounded-full ${currentModeInfo?.color}`} />
         <span>{currentModeInfo?.label}</span>
         <svg 
-          className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
+          className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
           fill="none" 
           stroke="currentColor" 
           viewBox="0 0 24 24"
@@ -149,7 +149,7 @@ export function ModelToggle({ currentMode, onModeChange, disabled }: {
             className="fixed inset-0 z-10" 
             onClick={() => setIsOpen(false)} 
           />
-          <div className="absolute -top-4 left-0 -translate-y-full mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg z-20 overflow-hidden">
+          <div className="absolute -top-4 left-0 -translate-y-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl z-20 overflow-hidden backdrop-blur-sm">
             {modes.map((mode) => (
               <button
                 key={mode.value}
@@ -157,8 +157,8 @@ export function ModelToggle({ currentMode, onModeChange, disabled }: {
                   onModeChange(mode.value as ChatMode)
                   setIsOpen(false)
                 }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors hover:bg-indigo-100 ${
-                  mode.value === currentMode ? 'bg-indigo-50 text-indigo-700' : 'text-slate-700'
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-200 hover:bg-blue-50 ${
+                  mode.value === currentMode ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700'
                 }`}
               >
                 <div className={`w-2 h-2 rounded-full ${mode.color}`} />
@@ -181,14 +181,14 @@ function ThinkingContent({ content, isExpanded, onToggle }: {
   onToggle: () => void
 }) {
   return (
-    <div className="mb-6 w-full bg-slate-50 border border-slate-200 rounded-2xl p-5">
+    <div className="mb-6 w-full bg-gray-50 border border-gray-200 rounded-2xl p-5">
       <button
         onClick={onToggle}
         className="flex items-center gap-3 mb-4 w-full text-left"
       >
-        <div className="w-2 h-2 bg-indigo-600 rounded-full" />
-        <span className="text-sm font-medium text-slate-700">💭 思考过程</span>
-        <div className="ml-auto flex items-center gap-2 text-xs text-slate-500">
+        <div className="w-2 h-2 bg-blue-600 rounded-full" />
+        <span className="text-sm font-medium text-gray-700">💭 思考过程</span>
+        <div className="ml-auto flex items-center gap-2 text-xs text-gray-500">
           <span>{isExpanded ? '收起' : '展开'}</span>
           <div className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
             <Icon name="chevronDown" className="w-4 h-4" />
@@ -197,7 +197,7 @@ function ThinkingContent({ content, isExpanded, onToggle }: {
       </button>
       
       {isExpanded && (
-        <div className="text-sm text-slate-700 font-mono leading-relaxed whitespace-pre-wrap bg-white rounded-xl p-4 border border-slate-200">
+        <div className="text-sm text-gray-700 font-mono leading-relaxed whitespace-pre-wrap bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
           {content}
         </div>
       )}
@@ -260,12 +260,12 @@ export function MessageBubble({
           {/* 用户标识和状态 */}
           <div className={`flex items-center mb-3 gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
             <div className="flex items-center gap-2">
-              <span className={`text-sm font-medium ${isUser ? 'text-indigo-700' : 'text-slate-700'}`}>
+              <span className={`text-sm font-medium ${isUser ? 'text-blue-700' : 'text-gray-700'}`}>
                 {isUser ? 'You' : 'AI'}
               </span>
               {!isUser && isGenerating && (
-                <div className="flex items-center gap-2 px-3 py-1 bg-indigo-50 text-indigo-800 text-xs rounded-full border border-indigo-200">
-                  <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-pulse" />
+                <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-800 text-xs rounded-full border border-blue-200">
+                  <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse" />
                   <span>正在回复</span>
                 </div>
               )}
@@ -273,7 +273,7 @@ export function MessageBubble({
             
             {/* 时间戳 - 只在hover时显示 */}
             {node.content !== '正在生成...' && (
-              <div className={`text-xs text-slate-400 transition-opacity duration-200 ${
+              <div className={`text-xs text-gray-400 transition-opacity duration-200 ${
                 isHovered ? 'opacity-100' : 'opacity-0'
               }`}>
                 {node.timestamp.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
@@ -285,10 +285,10 @@ export function MessageBubble({
           {!isUser && (
             <>
               {isGenerating && currentThinking && showThinking && (
-                <div className="mb-6 w-full bg-slate-50 border border-slate-200 rounded-2xl p-5">
+                <div className="mb-6 w-full bg-gray-50 border border-gray-200 rounded-2xl p-5">
                   <div className="flex items-center gap-3 mb-4">
                     <AnimatedDots color="teal" />
-                    <span className="text-sm font-medium text-slate-700">💭 正在思考</span>
+                    <span className="text-sm font-medium text-gray-700">💭 正在思考</span>
                   </div>
                   <div className="text-xs text-slate-600 font-mono leading-relaxed whitespace-pre-wrap bg-white rounded-xl p-4 border border-slate-200">
                     {currentThinking}
@@ -314,8 +314,8 @@ export function MessageBubble({
             <div className={`${isEditing ? 'w-full' : ''}`}>
               <div className={`${
                 isEditing 
-                  ? 'bg-indigo-50 border border-indigo-200 rounded-2xl p-4' 
-                  : 'bg-indigo-600 text-white rounded-2xl px-5 py-3'
+                  ? 'bg-blue-50 border border-blue-200 rounded-2xl p-4' 
+                  : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl px-5 py-3 shadow-md'
               }`}>
                 {isEditing ? (
                   <div className="space-y-4">
@@ -330,7 +330,7 @@ export function MessageBubble({
                           handleEditCancel()
                         }
                       }}
-                      className="w-full bg-white text-slate-900 placeholder-slate-500 border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                      className="w-full bg-white text-gray-900 placeholder-gray-500 border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                       placeholder="修改消息内容..."
                       rows={Math.max(2, editContent.split('\n').length)}
                       autoFocus
@@ -338,13 +338,13 @@ export function MessageBubble({
                     <div className="flex gap-3 justify-end">
                       <button 
                         onClick={handleEditCancel} 
-                        className="px-4 py-2 text-slate-600 hover:text-slate-800 text-sm rounded-lg transition-colors"
+                        className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm rounded-lg transition-colors"
                       >
                         取消
                       </button>
                       <button 
                         onClick={handleEditSave} 
-                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-colors"
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors shadow-sm"
                       >
                         保存并重新生成
                       </button>
@@ -357,23 +357,23 @@ export function MessageBubble({
             </div>
           ) : (
             /* AI消息 - 卡片样式 */
-            <div className="w-full bg-white border border-slate-200 rounded-2xl overflow-hidden">
+            <div className="w-full bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
               <div className="p-6">
                 {isGenerating ? (
                   currentAnswer ? (
-                    <div className="text-slate-800 leading-relaxed">
+                    <div className="text-gray-800 leading-relaxed">
                       <MarkdownRenderer content={currentAnswer} />
                     </div>
                   ) : (
-                    <div className="flex items-center gap-4 p-8 bg-slate-50 rounded-xl">
+                    <div className="flex items-center gap-4 p-8 bg-gray-50 rounded-xl">
                       <AnimatedDots size="md" color="teal" />
-                      <span className="text-slate-600">正在准备回复...</span>
+                      <span className="text-gray-600">正在准备回复...</span>
                     </div>
                   )
                 ) : (
                   <MarkdownRenderer 
                     content={node.content} 
-                    className="text-slate-800 leading-relaxed text-[15px]" 
+                    className="text-gray-800 leading-relaxed text-[15px]" 
                   />
                 )}
               </div>
@@ -395,7 +395,7 @@ export function MessageBubble({
                 {onRegenerate && (
                   <button
                     onClick={() => onRegenerate(node.id)}
-                    className="flex items-center gap-2 px-3 py-1.5 text-xs text-slate-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
                     title="重新生成回答"
                   >
                     <Icon name="regenerate" className="w-3 h-3" />
@@ -413,10 +413,10 @@ export function MessageBubble({
                       console.error('复制失败:', err)
                     })
                   }}
-                  className={`flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                  className={`flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg transition-all duration-200 shadow-sm hover:shadow-md ${
                     copySuccess 
                       ? 'text-green-700 bg-green-50' 
-                      : 'text-slate-500 hover:text-green-700 hover:bg-green-50'
+                      : 'text-gray-500 hover:text-green-700 hover:bg-green-50'
                   }`}
                   title="复制回答内容"
                 >
@@ -432,7 +432,7 @@ export function MessageBubble({
                   setEditContent(node.content)
                   setIsEditing(true)
                 }}
-                className="flex items-center gap-2 px-3 py-1.5 text-xs text-slate-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
                 title="修改消息并重新生成"
               >
                 <Icon name="edit" className="w-3 h-3" />
@@ -445,7 +445,7 @@ export function MessageBubble({
         {/* 用户头像 */}
         {isUser && (
           <div className="flex-shrink-0 mt-1">
-            <div className="w-9 h-9 bg-indigo-600 rounded-2xl flex items-center justify-center">
+            <div className="w-9 h-9 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center shadow-md">
               <span className="text-white text-sm font-medium">U</span>
             </div>
           </div>
@@ -477,7 +477,7 @@ function Slider({
 }) {
   return (
     <div className="space-y-3">
-      <label className="block text-sm font-medium text-slate-700">
+      <label className="block text-sm font-medium text-gray-700">
         {label} ({formatValue(value)})
       </label>
       <div className="px-4 py-3 bg-slate-50 rounded-xl border border-slate-200">
@@ -491,7 +491,7 @@ function Slider({
                       className="w-full accent-indigo-600"
         />
         {marks && (
-          <div className="flex justify-between text-xs text-slate-500 mt-2">
+          <div className="flex justify-between text-xs text-gray-500 mt-2">
             {marks.map((mark, i) => <span key={i}>{mark}</span>)}
           </div>
         )}
@@ -517,7 +517,7 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
             <div className="w-9 h-9 rounded-2xl bg-indigo-600 flex items-center justify-center">
               <Icon name="settings" className="w-5 h-5 text-white" />
             </div>
-            <h2 className="text-lg font-semibold text-slate-900">模型设置</h2>
+            <h2 className="text-lg font-semibold text-gray-900">模型设置</h2>
           </div>
           <button
             onClick={onClose}
@@ -530,33 +530,33 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
           {/* API Key设置 */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-slate-900">API 设置</h3>
+            <h3 className="text-sm font-semibold text-gray-900">API 设置</h3>
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700">API Key</label>
+              <label className="block text-sm font-medium text-gray-700">API Key</label>
               <input
                 type="password"
                 value={config.apiKey}
                 onChange={(e) => onConfigChange({ ...config, apiKey: e.target.value })}
                 placeholder="输入你的 API Key"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               />
             </div>
           </div>
 
           {/* 对话设置 */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-slate-900">对话设置</h3>
+            <h3 className="text-sm font-semibold text-gray-900">对话设置</h3>
             
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700">系统提示</label>
+              <label className="block text-sm font-medium text-gray-700">系统提示</label>
               <textarea
                 value={config.systemPrompt}
                 onChange={(e) => onConfigChange({ ...config, systemPrompt: e.target.value })}
                 placeholder="设置AI的角色和行为..."
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm min-h-[80px] resize-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm min-h-[80px] resize-none"
                 rows={3}
               />
-              <p className="text-xs text-slate-500">定义AI的角色定位和回答风格</p>
+              <p className="text-xs text-gray-500">定义AI的角色定位和回答风格</p>
             </div>
             
             <Slider
@@ -572,14 +572,14 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
               marks={['4条', '20条 推荐', '40条']}
               formatValue={(v) => `${v}条消息 (${Math.floor(v/2)}次对话)`}
             />
-            <p className="text-xs text-slate-500">为节约tokens，只保留最近的消息发送给AI</p>
+            <p className="text-xs text-gray-500">为节约tokens，只保留最近的消息发送给AI</p>
           </div>
 
           {/* V3配置 */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-indigo-600" />
-              <h3 className="text-sm font-semibold text-slate-900">V3 配置</h3>
+              <h3 className="text-sm font-semibold text-gray-900">V3 配置</h3>
             </div>
             
             <Slider
@@ -614,7 +614,7 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-slate-600" />
-              <h3 className="text-sm font-semibold text-slate-900">R1 配置</h3>
+              <h3 className="text-sm font-semibold text-gray-900">R1 配置</h3>
             </div>
             
             <Slider
@@ -634,17 +634,17 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
 
           {/* 显示设置 */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-slate-900">显示设置</h3>
+            <h3 className="text-sm font-semibold text-gray-900">显示设置</h3>
             <label className="flex items-center justify-between p-4 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
               <div>
-                <span className="font-medium text-slate-900">显示思考过程</span>
+                <span className="font-medium text-gray-900">显示思考过程</span>
                 <p className="text-xs text-slate-600 mt-1">在R1模式下显示AI的推理步骤</p>
               </div>
               <input
                 type="checkbox"
                 checked={config.showThinking}
                 onChange={(e) => onConfigChange({ ...config, showThinking: e.target.checked })}
-                className="w-4 h-4 text-indigo-700 border-2 border-slate-300 rounded"
+                className="w-4 h-4 text-indigo-700 border-2 border-gray-300 rounded"
               />
             </label>
           </div>
@@ -653,7 +653,7 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
         <div className="p-6 border-t border-slate-200">
           <button
             onClick={() => onConfigChange(DEFAULT_CONFIG)}
-            className="w-full px-4 py-3 text-slate-600 border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors font-medium"
+            className="w-full px-4 py-3 text-slate-600 border border-gray-300 rounded-xl hover:bg-slate-50 transition-colors font-medium"
           >
             重置为默认设置
           </button>
@@ -720,7 +720,7 @@ export const ChatInputArea = forwardRef<
   return (
     <div className="sticky bottom-0">
       <div className="max-w-4xl mx-auto p-6 pt-0">
-        <div className="border border-slate-200 rounded-2xl bg-white focus-within:border-indigo-300 transition-colors">
+        <div className="border border-gray-200 rounded-2xl bg-white focus-within:border-blue-400 transition-colors shadow-sm hover:shadow-md">
           <div className="p-4">
             <textarea
               ref={textareaRef}
@@ -731,18 +731,18 @@ export const ChatInputArea = forwardRef<
               }}
               onKeyPress={handleKeyPress}
               placeholder={isLoading ? "AI正在回复中，可以预输入下一条消息..." : "发送消息给 AI Assistant..."}
-              className="w-full bg-transparent border-none focus:outline-none resize-none placeholder-slate-500 text-slate-900 leading-relaxed min-h-[60px] max-h-[150px]"
+              className="w-full bg-transparent border-none focus:outline-none resize-none placeholder-gray-500 text-gray-900 leading-relaxed min-h-[60px] max-h-[150px]"
             />
           </div>
 
-          <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
             <div className="flex items-center gap-4">
               <ModelToggle currentMode={currentMode} onModeChange={onModeChange} disabled={isLoading} />
               
               {isLoading && (
                 <div className="flex items-center gap-2">
                   <AnimatedDots size="sm" color="slate" />
-                  <span className="text-xs text-slate-500">AI正在回复中...</span>
+                  <span className="text-xs text-gray-500">AI正在回复中...</span>
                 </div>
               )}
             </div>
@@ -750,12 +750,12 @@ export const ChatInputArea = forwardRef<
             <button
               onClick={isLoading ? onAbort : onSend}
               disabled={!isLoading && !canSend}
-              className={`px-5 py-2.5 rounded-xl transition-colors text-sm font-medium flex items-center gap-2 ${
+              className={`px-5 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium flex items-center gap-2 shadow-sm hover:shadow-md ${
                 isLoading 
-                  ? 'bg-slate-600 text-white hover:bg-slate-700'
+                  ? 'bg-gray-600 text-white hover:bg-gray-700'
                   : canSend
-                    ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                    : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}
             >
               <Icon name={isLoading ? 'stop' : 'send'} />
