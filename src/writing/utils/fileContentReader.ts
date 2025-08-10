@@ -13,12 +13,36 @@ export function extractTextFromHTML(htmlContent: string): string {
     return ''
   }
 
+  // 先移除样式/脚本/头部等不应出现在纯文本中的内容
+  const sanitizedHtml = htmlContent
+    // 移除<style>块
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    // 移除<script>块
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    // 移除<head>、<title>等头部内容
+    .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '')
+    .replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '')
+    // 移除HTML注释
+    .replace(/<!--([\s\S]*?)-->/g, '')
+
   // 创建临时DOM元素来提取纯文本
   const tempDiv = document.createElement('div')
-  tempDiv.innerHTML = htmlContent
+  tempDiv.innerHTML = sanitizedHtml
   const textContent = tempDiv.textContent || tempDiv.innerText || ''
   
-  return textContent.trim()
+  console.log('textContent', textContent);
+  console.log('textContent2:::', textContent.replace(/\r\n?/g, '\n')
+  .replace(/\u00A0/g, ' ')
+  .replace(/[\t ]+/g, ' ')
+  .replace(/\n{3,}/g, '\n\n')
+  .trim());
+  // 规范化空白字符，避免出现过多连续空行/空格
+  return textContent
+    .replace(/\r\n?/g, '\n')
+    .replace(/\u00A0/g, ' ')
+    .replace(/[\t ]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
 }
 
 /**

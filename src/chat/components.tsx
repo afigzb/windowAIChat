@@ -266,6 +266,7 @@ export function MessageBubble({
   const [isHovered, setIsHovered] = useState(false)
   const [copySuccess, setCopySuccess] = useState(false)
   const isUser = node.role === 'user'
+  const contentRef = useRef<HTMLDivElement>(null)
 
   const handleEditSave = () => {
     if (editContent.trim() && editContent.trim() !== node.content && onEditUserMessage) {
@@ -402,7 +403,7 @@ export function MessageBubble({
               <div className="p-6">
                 {isGenerating ? (
                   currentAnswer ? (
-                    <div className="text-gray-800 leading-relaxed">
+                    <div ref={contentRef} className="text-gray-800 leading-relaxed">
                       <MarkdownRenderer content={currentAnswer} />
                     </div>
                   ) : (
@@ -412,10 +413,12 @@ export function MessageBubble({
                     </div>
                   )
                 ) : (
-                  <MarkdownRenderer 
-                    content={node.content} 
-                    className="text-gray-800 leading-relaxed text-[15px]" 
-                  />
+                  <div ref={contentRef}>
+                    <MarkdownRenderer 
+                      content={node.content} 
+                      className="text-gray-800 leading-relaxed text-[15px]" 
+                    />
+                  </div>
                 )}
               </div>
             </div>
@@ -445,22 +448,43 @@ export function MessageBubble({
                 )}
                 
                 <button
-                  onClick={() => {
-                    // 将markdown转换为纯文本后复制
-                    const plainText = markdownToPlainText(node.content)
-                    navigator.clipboard.writeText(plainText).then(() => {
+                  onClick={async () => {
+                    try {
+                      const container = contentRef.current
+                      const html = container?.innerHTML || ''
+                      const text = container?.innerText || markdownToPlainText(node.content)
+
+                      if ((window as any).ClipboardItem && navigator.clipboard && (navigator.clipboard as any).write) {
+                        const clipboardItem = new (window as any).ClipboardItem({
+                          'text/html': new Blob([html], { type: 'text/html' }),
+                          'text/plain': new Blob([text], { type: 'text/plain' })
+                        })
+                        await (navigator.clipboard as any).write([clipboardItem])
+                      } else {
+                        await navigator.clipboard.writeText(text)
+                      }
+
                       setCopySuccess(true)
                       setTimeout(() => setCopySuccess(false), 2000)
-                    }).catch(err => {
+                    } catch (err) {
                       console.error('复制失败:', err)
-                    })
+                      // 兜底：尝试复制纯文本
+                      try {
+                        const fallback = markdownToPlainText(node.content)
+                        await navigator.clipboard.writeText(fallback)
+                        setCopySuccess(true)
+                        setTimeout(() => setCopySuccess(false), 2000)
+                      } catch (err2) {
+                        console.error('复制纯文本也失败:', err2)
+                      }
+                    }
                   }}
                   className={`flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg transition-all duration-200 shadow-sm hover:shadow-md ${
                     copySuccess 
                       ? 'text-green-700 bg-green-50' 
                       : 'text-gray-500 hover:text-green-700 hover:bg-green-50'
                   }`}
-                  title="复制纯文本内容"
+                  title="复制内容（保留格式）"
                 >
                   <Icon name="copy" className="w-3 h-3" />
                   <span>{copySuccess ? '已复制' : '复制'}</span>
