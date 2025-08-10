@@ -409,9 +409,20 @@ function postProcessHtml(html) {
   return styles + html
 }
 
+// 将用于预览的样式从HTML内容中移除，避免以文本形式写入DOCX
+function sanitizeHtmlForDocx(html) {
+  if (!html) return ''
+  // 去除所有<style>...</style>块（包括我们注入的预览样式）
+  const withoutStyleTags = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+  return withoutStyleTags
+}
+
 // 将HTML内容保存为DOCX文件
 ipcMain.handle('save-html-as-docx', async (event, filePath, htmlContent) => {
   try {
+    // 先移除预览样式，避免被当成正文写入DOCX
+    const cleanedHtmlContent = sanitizeHtmlForDocx(htmlContent)
+
     // 创建基本的HTML文档结构
     const fullHtml = `
       <html>
@@ -420,7 +431,7 @@ ipcMain.handle('save-html-as-docx', async (event, filePath, htmlContent) => {
           <title>Document</title>
         </head>
         <body>
-          ${htmlContent}
+          ${cleanedHtmlContent}
         </body>
       </html>
     `
