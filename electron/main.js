@@ -267,8 +267,101 @@ ipcMain.handle('read-docx-as-html', async (event, filePath) => {
       return '<p></p>'
     }
 
-    const result = await mammoth.convertToHtml({ path: filePath })
-    const htmlContent = result.value
+    // 配置mammoth选项以保留更多格式
+    const options = {
+      // 包含默认样式映射
+      includeDefaultStyleMap: true,
+      
+      // 自定义样式映射以保留更多格式
+      styleMap: [
+        // 段落样式
+        "p[style-name='Heading 1'] => h1:fresh",
+        "p[style-name='Heading 2'] => h2:fresh", 
+        "p[style-name='Heading 3'] => h3:fresh",
+        "p[style-name='Heading 4'] => h4:fresh",
+        "p[style-name='Heading 5'] => h5:fresh",
+        "p[style-name='Heading 6'] => h6:fresh",
+        
+        // 字符样式
+        "r[style-name='Strong'] => strong",
+        "r[style-name='Emphasis'] => em",
+        
+        // 保留粗体、斜体、下划线
+        "b => strong",
+        "i => em", 
+        "u => u",
+        
+        // 保留字体颜色和背景色
+        "r[color] => span.color",
+        "r[highlight] => span.highlight",
+        
+        // 保留字体大小
+        "r[font-size] => span.font-size",
+        
+        // 保留字体族
+        "r[font-family] => span.font-family",
+        
+        // 列表样式
+        "p[style-name='List Paragraph'] => p.list-paragraph",
+        
+        // 表格样式
+        "table => table.docx-table",
+        "tr => tr",
+        "td => td",
+        "th => th",
+        
+        // 居中、左对齐、右对齐
+        "p[alignment='center'] => p.text-center",
+        "p[alignment='left'] => p.text-left", 
+        "p[alignment='right'] => p.text-right",
+        "p[alignment='justify'] => p.text-justify"
+      ],
+      
+      // 转换图片
+      convertImage: mammoth.images.imgElement(function(image) {
+        return image.read("base64").then(function(imageBuffer) {
+          return {
+            src: "data:" + image.contentType + ";base64," + imageBuffer
+          }
+        })
+      }),
+      
+      // 保留空段落
+      ignoreEmptyParagraphs: false,
+      
+      // 保留原始样式信息
+      includeEmbeddedStyleMap: true,
+      
+      // 转换时保留更多信息
+      transformDocument: function(document) {
+        // 遍历文档元素，保留更多样式信息
+        document.children.forEach(function(element) {
+          if (element.type === 'paragraph') {
+            // 保留段落的缩进信息
+            if (element.indent && element.indent.left) {
+              element.styleName = element.styleName || ''
+              element.styleName += ' indent-left-' + element.indent.left
+            }
+            if (element.indent && element.indent.right) {
+              element.styleName = element.styleName || ''
+              element.styleName += ' indent-right-' + element.indent.right
+            }
+          }
+        })
+        return document
+      }
+    }
+
+    const result = await mammoth.convertToHtml({ path: filePath }, options)
+    let htmlContent = result.value
+    
+    // 输出警告信息（如果有的话）
+    if (result.messages && result.messages.length > 0) {
+      console.log('DOCX转换警告:', result.messages)
+    }
+    
+    // 后处理HTML以添加更多样式支持
+    htmlContent = postProcessHtml(htmlContent)
     
     // 如果内容为空，返回空段落
     return htmlContent || '<p></p>'
@@ -277,6 +370,44 @@ ipcMain.handle('read-docx-as-html', async (event, filePath) => {
     throw error
   }
 })
+
+// HTML后处理函数，添加更多样式支持
+function postProcessHtml(html) {
+  // 添加CSS样式以支持更多格式
+  const styles = `
+    <style>
+      .docx-table { 
+        border-collapse: collapse; 
+        width: 100%; 
+        border: 1px solid #ddd;
+      }
+      .docx-table td, .docx-table th { 
+        border: 1px solid #ddd; 
+        padding: 8px; 
+        text-align: left;
+      }
+      .text-center { text-align: center; }
+      .text-left { text-align: left; }
+      .text-right { text-align: right; }
+      .text-justify { text-align: justify; }
+      .list-paragraph { margin-left: 20px; }
+      .color { color: inherit; }
+      .highlight { background-color: yellow; }
+      .font-size { font-size: inherit; }
+      .font-family { font-family: inherit; }
+      u { text-decoration: underline; }
+      strong { font-weight: bold; }
+      em { font-style: italic; }
+      
+      /* 缩进样式 */
+      [class*="indent-left-"] { padding-left: 20px; }
+      [class*="indent-right-"] { padding-right: 20px; }
+    </style>
+  `
+  
+  // 将样式添加到HTML内容前面
+  return styles + html
+}
 
 // 将HTML内容保存为DOCX文件
 ipcMain.handle('save-html-as-docx', async (event, filePath, htmlContent) => {
