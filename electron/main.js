@@ -301,8 +301,19 @@ ipcMain.handle('read-docx-as-html', async (event, filePath) => {
         // 保留字体族
         "r[font-family] => span.font-family",
         
-        // 列表样式
-        "p[style-name='List Paragraph'] => p.list-paragraph",
+        // 列表样式（将Word列表正确映射为HTML列表）
+        "p:ordered-list(1) => ol > li:fresh",
+        "p:ordered-list(2) => ol > li:fresh",
+        "p:ordered-list(3) => ol > li:fresh",
+        "p:ordered-list(4) => ol > li:fresh",
+        "p:ordered-list(5) => ol > li:fresh",
+        "p:ordered-list(6) => ol > li:fresh",
+        "p:unordered-list(1) => ul > li:fresh",
+        "p:unordered-list(2) => ul > li:fresh",
+        "p:unordered-list(3) => ul > li:fresh",
+        "p:unordered-list(4) => ul > li:fresh",
+        "p:unordered-list(5) => ul > li:fresh",
+        "p:unordered-list(6) => ul > li:fresh",
         
         // 表格样式
         "table => table.docx-table",
@@ -386,6 +397,10 @@ function postProcessHtml(html) {
         padding: 8px; 
         text-align: left;
       }
+      /* 确保列表样式可见（Tailwind等reset可能会隐藏标记） */
+      ul { list-style-type: disc; padding-left: 1.5rem; margin: 0.5rem 0; }
+      ol { list-style-type: decimal; padding-left: 1.5rem; margin: 0.5rem 0; }
+      li { margin: 0.25rem 0; }
       .text-center { text-align: center; }
       .text-left { text-align: left; }
       .text-right { text-align: right; }
@@ -405,8 +420,73 @@ function postProcessHtml(html) {
     </style>
   `
   
+  // 将段落中以数字或项目符号开头的连续块转换为HTML列表
+  function convertParagraphsToLists(sourceHtml) {
+    if (!sourceHtml) return sourceHtml
+    const paragraphRegex = /<p[^>]*>[\s\S]*?<\/p>/gi
+    let result = ''
+    let lastIndex = 0
+    let currentListType = null // 'ol' | 'ul' | null
+    let listBuffer = []
+
+    const flushList = () => {
+      if (!currentListType || listBuffer.length === 0) return
+      result += `<${currentListType}>` + listBuffer.map(item => `<li>${item}</li>`).join('') + `</${currentListType}>`
+      currentListType = null
+      listBuffer = []
+    }
+
+    let match
+    while ((match = paragraphRegex.exec(sourceHtml)) !== null) {
+      // 追加<p>前的内容
+      result += sourceHtml.slice(lastIndex, match.index)
+      lastIndex = match.index + match[0].length
+
+      const pHtml = match[0]
+      const inner = pHtml.replace(/^<p[^>]*>/i, '').replace(/<\/p>$/i, '')
+      const textForDetection = inner.replace(/<[^>]+>/g, '').trim()
+
+      // 检测有序/无序列表标记
+      const orderedMatch = textForDetection.match(/^(\d+)[\.|\)]\s+(.+)$/)
+      const unorderedMatch = textForDetection.match(/^([\u00B7\u2022\-•·])\s+(.+)$/)
+
+      if (orderedMatch) {
+        // 从原始inner中移除前缀（允许前置标签/空白）
+        const cleanedInner = inner
+          .replace(/^(\s|<[^>]+>)*(\d+[\.|\)])\s*/i, '')
+        if (currentListType !== 'ol') {
+          flushList()
+          currentListType = 'ol'
+        }
+        listBuffer.push(cleanedInner)
+        continue
+      }
+
+      if (unorderedMatch) {
+        const cleanedInner = inner
+          .replace(/^(\s|<[^>]+>)*([\u00B7\u2022\-•·])\s*/i, '')
+        if (currentListType !== 'ul') {
+          flushList()
+          currentListType = 'ul'
+        }
+        listBuffer.push(cleanedInner)
+        continue
+      }
+
+      // 普通段落，先把已累积的列表输出，然后原样输出<p>
+      flushList()
+      result += pHtml
+    }
+
+    // 追加剩余内容并冲刷列表
+    result += sourceHtml.slice(lastIndex)
+    flushList()
+    return result
+  }
+
+  const converted = convertParagraphsToLists(html)
   // 将样式添加到HTML内容前面
-  return styles + html
+  return styles + converted
 }
 
 // 将用于预览的样式从HTML内容中移除，避免以文本形式写入DOCX
