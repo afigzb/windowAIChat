@@ -7,7 +7,7 @@
     <script type="importmap">
         {
             "imports": {
-                "@google/generative-ai": "https://esm.run/@google/generative-ai"
+                "@google/genai": "https://esm.run/@google/genai"
             }
         }
     </script>
@@ -46,11 +46,12 @@
     </div>
 
     <script type="module">
-        import { GoogleGenerativeAI } from "@google/generative-ai";
+        import { GoogleGenAI } from "@google/genai";
         
         const API_KEY = 'AIzaSyApVtBqj40hMmDxkh7LVNzz-mLi_-a_er8';
-        const genAI = new GoogleGenerativeAI(API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const ai = new GoogleGenAI({
+            apiKey: API_KEY
+        });
 
         // 添加消息到聊天窗口
         function addMessage(content, isUser = false) {
@@ -60,6 +61,25 @@
             messageDiv.textContent = content;
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+            return messageDiv;
+        }
+
+        // 更新消息内容（用于流式传输）
+        function updateMessage(messageDiv, content) {
+            messageDiv.textContent = content;
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 打字机效果显示文本
+        async function typewriterEffect(messageDiv, newText, currentText) {
+            const fullText = currentText + newText;
+            for (let i = currentText.length; i <= fullText.length; i++) {
+                const displayText = fullText.substring(0, i);
+                updateMessage(messageDiv, displayText);
+                await new Promise(resolve => setTimeout(resolve, 10));
+            }
+            return fullText;
         }
 
         // 发送消息
@@ -78,13 +98,51 @@
             sendButton.disabled = true;
             sendButton.textContent = '发送中...';
 
+            // 创建一个空的AI消息框，用于流式显示
+            const aiMessageDiv = addMessage('AI思考中...', false);
+            let accumulatedText = '';
+
             try {
-                const result = await model.generateContent(message);
-                const response = await result.response;
-                const text = response.text();
-                addMessage(text, false);
+                console.log('开始发送请求到Gemini API...');
+                console.log('请求内容:', message);
+                
+                // 使用流式传输和思考配置
+                const response = await ai.models.generateContentStream({
+                    model: "gemini-2.5-flash",
+                    contents: message,
+                    config: {
+                        thinkingConfig: {
+                            thinkingBudget: -1, // 启用动态思考
+                        },
+                    }
+                });
+
+                // 清除"思考中..."提示
+                updateMessage(aiMessageDiv, '');
+                accumulatedText = '';
+
+                // 逐步接收响应流
+                for await (const chunk of response) {
+                    // 输出完整的原始chunk数据
+                    console.log('=== AI发送的完整chunk数据 ===');
+                    console.log(JSON.stringify(chunk, null, 2));
+                    console.log('==============================');
+                    
+                    // 提取文本内容
+                    const chunkText = chunk.text || chunk.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                    
+                    if (chunkText) {
+                        // 使用打字机效果显示新的chunk内容
+                        accumulatedText = await typewriterEffect(aiMessageDiv, chunkText, accumulatedText);
+                    }
+                }
+
+                // 如果没有接收到任何内容，显示完整响应
+                if (!accumulatedText) {
+                    updateMessage(aiMessageDiv, '未收到响应内容，可能需要检查API配置');
+                }
             } catch (error) {
-                addMessage('错误：' + error.message, false);
+                updateMessage(aiMessageDiv, '错误：' + error.message);
             } finally {
                 sendButton.disabled = false;
                 sendButton.textContent = '发送';
