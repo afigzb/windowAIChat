@@ -36,7 +36,13 @@ export const MarkdownRenderer = memo<MarkdownRendererProps>(function MarkdownRen
               <span>{language}</span>
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(String(children).replace(/\n$/, ''))
+                  const codeText = String(children).replace(/\n$/, '')
+                  navigator.clipboard.writeText(codeText).then(() => {
+                    // 可以添加一个简单的视觉反馈
+                    console.log('代码已复制到剪贴板')
+                  }).catch(err => {
+                    console.error('复制代码失败:', err)
+                  })
                 }}
                 className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-gray-400 hover:text-white"
                 title="复制代码"

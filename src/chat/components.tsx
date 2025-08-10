@@ -205,6 +205,47 @@ function ThinkingContent({ content, isExpanded, onToggle }: {
   )
 }
 
+// Markdown转纯文本工具函数
+const markdownToPlainText = (markdown: string): string => {
+  return markdown
+    // 移除代码块
+    .replace(/```[\s\S]*?```/g, (match) => {
+      // 提取代码块内容，保留换行
+      const codeContent = match.replace(/```(\w+)?\n?/, '').replace(/```$/, '')
+      return codeContent
+    })
+    // 移除内联代码的反引号
+    .replace(/`([^`]+)`/g, '$1')
+    // 移除链接但保留文本
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // 移除图片
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+    // 移除标题的#号
+    .replace(/^#{1,6}\s+/gm, '')
+    // 移除粗体和斜体标记
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/_([^_]+)_/g, '$1')
+    // 移除删除线
+    .replace(/~~([^~]+)~~/g, '$1')
+    // 移除引用标记
+    .replace(/^>\s+/gm, '')
+    // 移除列表标记，保留内容和缩进结构
+    .replace(/^(\s*)[-*+]\s+/gm, '$1• ')
+    .replace(/^(\s*)\d+\.\s+/gm, '$1')
+    // 移除水平线
+    .replace(/^-{3,}$/gm, '')
+    .replace(/^={3,}$/gm, '')
+    // 移除表格分隔符，保留内容
+    .replace(/\|/g, ' ')
+    .replace(/^[\s-:]+$/gm, '')
+    // 清理多余的空行
+    .replace(/\n{3,}/g, '\n\n')
+    // 清理首尾空白
+    .trim()
+}
+
 // 消息气泡组件
 export function MessageBubble({ 
   node, 
@@ -405,8 +446,9 @@ export function MessageBubble({
                 
                 <button
                   onClick={() => {
-                    // 复制回答内容，不包括思考过程
-                    navigator.clipboard.writeText(node.content).then(() => {
+                    // 将markdown转换为纯文本后复制
+                    const plainText = markdownToPlainText(node.content)
+                    navigator.clipboard.writeText(plainText).then(() => {
                       setCopySuccess(true)
                       setTimeout(() => setCopySuccess(false), 2000)
                     }).catch(err => {
@@ -418,7 +460,7 @@ export function MessageBubble({
                       ? 'text-green-700 bg-green-50' 
                       : 'text-gray-500 hover:text-green-700 hover:bg-green-50'
                   }`}
-                  title="复制回答内容"
+                  title="复制纯文本内容"
                 >
                   <Icon name="copy" className="w-3 h-3" />
                   <span>{copySuccess ? '已复制' : '复制'}</span>
