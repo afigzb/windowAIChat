@@ -177,7 +177,7 @@ export function ChatPanel({
       </header>
       
       {/* AI区域内容 - 垂直分割 */}
-      <PanelGroup direction="vertical" className="flex-1 min-h-0">
+      <PanelGroup direction="vertical" className="flex-1 min-h-0" autoSaveId="writing-page-panels">
         {/* 对话历史区域 */}
         <Panel defaultSize={35}>
           <div className="bg-slate-50 border-b border-slate-200 h-full flex flex-col min-w-0">
