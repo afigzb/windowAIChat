@@ -173,9 +173,9 @@ export default function WritingPage() {
       <div className="flex border-t border-slate-300 flex-col flex-1">
         {/* 主工作区域 - 使用react-resizable-panels */}
         <main className="flex-1">
-          <PanelGroup direction="horizontal" style={{ height: 'calc(100vh - 1px)' }}>
+          <PanelGroup direction="horizontal" style={{ height: 'calc(100vh - 1px)' }} autoSaveId="writing-page-panels">
             {/* 左侧：功能模块面板 */}
-            <Panel defaultSize={25}>
+            <Panel defaultSize={20}>
               <div className="bg-white border-r border-slate-300 flex flex-col h-full">
                 <div className="p-4 h-16 border-b border-slate-200 flex items-center">
                   <h2 className="font-semibold text-slate-900 whitespace-nowrap overflow-hidden text-ellipsis">
@@ -284,7 +284,7 @@ export default function WritingPage() {
             <PanelResizeHandle className="w-px bg-slate-200" />
 
             {/* 右侧：AI助手区域 */}
-            <Panel defaultSize={25}>
+            <Panel defaultSize={30}>
               <ChatPanel
                 config={config}
                 onConfigChange={handleConfigChange}
