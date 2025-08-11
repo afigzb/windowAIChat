@@ -172,7 +172,7 @@ export function formatFileContent(filePath: string, content: string): string {
  * @param batchSize 批处理大小（默认为3，避免同时处理过多文件）
  * @returns Promise<string> 格式化后的所有文件内容
  */
-export async function readMultipleFiles(filePaths: string[], batchSize: number = 3): Promise<string> {
+export async function readMultipleFiles(filePaths: string[], batchSize: number = 3, useCache: boolean = false): Promise<string> {
   if (filePaths.length === 0) {
     return ''
   }
@@ -186,7 +186,7 @@ export async function readMultipleFiles(filePaths: string[], batchSize: number =
     // 并行处理当前批次的文件
     const batchPromises = batch.map(async (filePath) => {
       try {
-        const content = await readFileContent(filePath)
+        const content = await readFileContent(filePath, useCache)
         if (content.trim()) {
           return formatFileContent(filePath, content)
         }

@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import type { WordCountResult } from '../utils/wordCount'
 import { detectFileType, getSupportedFormats } from '../utils/fileTypeDetector'
 import { useConfirm } from './useConfirm'
+import { fileContentCache } from '../utils/fileContentCache'
 
 export interface DocxFile {
   path: string
@@ -62,6 +63,11 @@ export function useDocxEditor() {
         originalHtmlContent: prev.htmlContent,
         isModified: false
       } : null)
+
+      // 使对应文件的内容缓存失效，避免后续读取到旧内容
+      try {
+        fileContentCache.remove(openFile.path)
+      } catch {}
       
       return true
     } catch (err) {

@@ -8,7 +8,8 @@ import { ConfirmDialog } from './components/ConfirmDialog'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import storage from '../storage'
 import { useDocxEditor } from './hooks/useDocxEditor'
-import { readFileContent, readMultipleFiles } from './utils/fileContentReader'
+import { readFileContent, readMultipleFiles, extractTextFromHTML, formatFileContent } from './utils/fileContentReader'
+import { detectFileType } from './utils/fileTypeDetector'
 
 
 
@@ -86,20 +87,42 @@ export default function WritingPage() {
       }
       
       try {
-        // 仅在需要时才读取文件内容
-        const contents = await readMultipleFiles(filePaths)
-        
-        // 更新内容缓存（但不阻塞UI）
-        Promise.all(filePaths.map(async filePath => {
+        // 为了包含未保存的编辑内容：优先使用当前打开文件的编辑器内容
+        const parts: string[] = []
+        for (const filePath of filePaths) {
           try {
-            const content = await readFileContent(filePath)
-            setFileContents(prev => {
-              const newContents = new Map(prev)
-              newContents.set(filePath, content)
-              return newContents
-            })
+            if (openFile && openFile.path === filePath) {
+              const typeInfo = detectFileType(filePath)
+              if (typeInfo.readMethod === 'image') {
+                // 图片仍从磁盘读取（包含元信息）且不使用缓存
+                const content = await readFileContent(filePath, false)
+                parts.push(formatFileContent(filePath, content))
+                setFileContents(prev => {
+                  const newContents = new Map(prev)
+                  newContents.set(filePath, content)
+                  return newContents
+                })
+              } else {
+                const text = extractTextFromHTML(openFile.htmlContent || '')
+                parts.push(formatFileContent(filePath, text))
+                setFileContents(prev => {
+                  const newContents = new Map(prev)
+                  newContents.set(filePath, text)
+                  return newContents
+                })
+              }
+            } else {
+              // 其他文件从磁盘读取最新内容，禁用缓存以避免旧内容
+              const content = await readFileContent(filePath, false)
+              parts.push(formatFileContent(filePath, content))
+              setFileContents(prev => {
+                const newContents = new Map(prev)
+                newContents.set(filePath, content)
+                return newContents
+              })
+            }
           } catch (error) {
-            console.error(`缓存文件内容失败: ${filePath}`, error)
+            console.error(`读取文件失败: ${filePath}`, error)
           } finally {
             setLoadingFiles(prev => {
               const newSet = new Set(prev)
@@ -107,9 +130,8 @@ export default function WritingPage() {
               return newSet
             })
           }
-        }))
-        
-        return contents
+        }
+        return parts.join('')
       } finally {
         // 确保加载状态被清除
         setTimeout(() => {
