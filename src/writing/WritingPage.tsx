@@ -203,12 +203,12 @@ export default function WritingPage() {
               {([
                 { key: 'workspace', label: '工作区', icon: (
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M3 12h18M3 17h18" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                   </svg>
                 )},
                 { key: 'api', label: 'API', icon: (
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
                   </svg>
                 )},
                 { key: 'settings', label: '设置', icon: (
@@ -357,9 +357,7 @@ export default function WritingPage() {
                       <h2 className="font-semibold text-slate-900">API 配置</h2>
                     </div>
                     <div className="flex-1 overflow-auto p-6">
-                      <div className="max-w-3xl">
-                        <ApiProviderManager config={config} onConfigChange={handleConfigChange} />
-                      </div>
+                      <ApiProviderManager config={config} onConfigChange={handleConfigChange} />
                     </div>
                   </div>
                 </div>
@@ -372,8 +370,8 @@ export default function WritingPage() {
                     <div className="h-16 px-4 border-b border-slate-200 flex items-center">
                       <h2 className="font-semibold text-slate-900">设置</h2>
                     </div>
-                    <div className="flex-1 overflow-auto p-6">
-                      <div className="max-w-3xl space-y-6">
+                  <div className="flex-1 overflow-auto p-6">
+                    <div className="space-y-6">
                         <div className="space-y-2">
                           <label className="block text-sm font-medium text-gray-700">系统提示</label>
                           <textarea

@@ -68,7 +68,15 @@ export function ConfirmDialog({
   const confirmBg = getConfirmButtonStyle()
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div 
+      className="fixed inset-0 z-50 overflow-y-auto"
+      onClick={(e) => {
+        // 点击背景区域时取消对话框
+        if (e.target === e.currentTarget) {
+          onCancel()
+        }
+      }}
+    >
       {/* 对话框容器 */}
       <div className="flex min-h-full items-center justify-center p-4">
         <div 
@@ -77,6 +85,10 @@ export function ConfirmDialog({
           aria-modal="true"
           aria-labelledby="dialog-title"
           aria-describedby="dialog-description"
+          onClick={(e) => {
+            // 阻止点击对话框内容时触发背景点击
+            e.stopPropagation()
+          }}
         >
           {/* 对话框内容 */}
           <div className="p-6">

@@ -89,6 +89,11 @@ export function ChatPanel({
   // 点击外部关闭抽屉
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // 如果有确认对话框打开，不处理外部点击
+      if (showClearConfirm || showDeleteConfirm) {
+        return
+      }
+      
       if (showHistoryDrawer && historyDrawerRef.current && !historyDrawerRef.current.contains(event.target as Node)) {
         setShowHistoryDrawer(false)
       }
@@ -98,7 +103,7 @@ export function ChatPanel({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [showHistoryDrawer])
+  }, [showHistoryDrawer, showClearConfirm, showDeleteConfirm])
 
   // 处理发送
   const handleSendMessage = async () => {

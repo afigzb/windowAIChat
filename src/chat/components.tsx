@@ -132,10 +132,7 @@ export function ApiProviderToggle({ config, onProviderChange, disabled }: {
         }`}
       >
         <div className={`w-2 h-2 rounded-full ${getProviderColor(config.currentProviderId)}`} />
-        <div className="flex flex-col items-start min-w-0 flex-1">
-          <span className="truncate">{currentProvider?.name || '未知配置'}</span>
-          <span className="text-xs text-gray-500 truncate">{currentProvider?.model || ''}</span>
-        </div>
+        <span className="truncate">{currentProvider?.name || '未知配置'}</span>
         <svg 
           className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} 
           fill="none" 
@@ -165,10 +162,7 @@ export function ApiProviderToggle({ config, onProviderChange, disabled }: {
                 }`}
               >
                 <div className={`w-2 h-2 rounded-full ${getProviderColor(provider.id)}`} />
-                <div className="flex flex-col items-start min-w-0 flex-1">
-                  <span className="truncate">{provider.name}</span>
-                  <span className="text-xs text-gray-500 truncate">{provider.model}</span>
-                </div>
+                <span className="truncate">{provider.name}</span>
               </button>
             ))}
           </div>
@@ -906,8 +900,8 @@ export function ApiProviderManager({ config, onConfigChange }: {
 
       {/* 删除确认对话框 */}
       {deletingProvider && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-200">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
                 <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
