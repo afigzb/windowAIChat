@@ -54,8 +54,8 @@ export interface RegenerateContext {
 
 // ===== API相关 =====
 
-// DeepSeek 流式响应
-export interface DeepSeekStreamResponse {
+// OpenAI 格式的流式响应（适用于OpenAI兼容的API）
+export interface ChatStreamResponse {
   choices: Array<{
     delta: {
       content?: string
@@ -66,19 +66,27 @@ export interface DeepSeekStreamResponse {
 
 // ===== 配置相关 =====
 
-// AI配置类型
-export interface AIConfig {
-  v3Config: {
-    temperature: number
-    maxTokens: number
-  }
-  r1Config: {
-    maxTokens: number
-  }
-  showThinking: boolean
+// 提供商类型
+export type ProviderType = 'openai' | 'gemini'
+
+// 通用提供方配置
+export interface ApiProviderConfig {
+  id: string               // 配置唯一标识
+  name: string             // 配置显示名称
+  type: ProviderType       // 提供商类型（手动指定）
+  baseUrl: string          // 完整的聊天补全接口URL
   apiKey: string           // API密钥
-  historyLimit: number     // 保留的对话历史数量（消息条数）
-  systemPrompt: string     // 系统提示词
+  model: string            // 模型名称
+  extraHeaders?: Record<string, string>  // 额外请求头
+  extraParams?: Record<string, any>      // 额外请求体参数
+}
+
+// AI配置类型（精细参数已废弃）
+export interface AIConfig {
+  currentProviderId: string              // 当前使用的API配置ID
+  providers: ApiProviderConfig[]         // 可用的API配置列表
+  historyLimit: number
+  systemPrompt: string
 }
 
 // ===== 组件Props =====
@@ -101,7 +109,6 @@ export interface MessageBubbleProps {
   isGenerating?: boolean
   currentThinking?: string
   currentAnswer?: string
-  showThinking?: boolean
 }
 
 // ===== 工具函数类型 =====

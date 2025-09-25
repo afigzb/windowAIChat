@@ -25,10 +25,17 @@ export interface Workspace {
   lastAccessed: Date
 }
 
+// 文件夹展开状态类型
+export interface FolderExpansionState {
+  [filePath: string]: boolean // 文件夹路径 -> 是否展开
+}
+
 // 文件系统管理器  
 export class FileSystemManager {
   private currentWorkspace: Workspace | null = null
   private fileTree: FileSystemNode[] = []
+  private expansionState: FolderExpansionState = {}
+  private defaultExpansionLevel = 2 // 默认展开层级
 
   /**
    * 初始化文件系统管理器
@@ -39,6 +46,9 @@ export class FileSystemManager {
       const recentWorkspace = this.loadRecentWorkspace()
       if (recentWorkspace && (await this.isValidWorkspace(recentWorkspace.rootPath))) {
         await this.setWorkspace(recentWorkspace)
+      } else {
+        // 如果没有工作区，也要加载默认的展开状态
+        this.loadExpansionState()
       }
     } catch (error) {
       console.warn('初始化文件系统失败:', error)
@@ -82,6 +92,9 @@ export class FileSystemManager {
     
     // 保存到本地存储
     this.saveRecentWorkspace(workspace)
+    
+    // 加载对应工作区的展开状态
+    this.loadExpansionState()
     
     // 加载文件树
     await this.loadFileTree()
@@ -217,6 +230,33 @@ export class FileSystemManager {
     return findInNodes(this.fileTree)
   }
 
+  /**
+   * 获取文件夹是否应该展开
+   */
+  isFolderExpanded(folderPath: string, level: number = 0): boolean {
+    // 如果已经有存储的状态，优先使用存储的状态
+    if (this.expansionState.hasOwnProperty(folderPath)) {
+      return this.expansionState[folderPath]
+    }
+    // 否则根据默认层级判断
+    return level < this.defaultExpansionLevel
+  }
+
+  /**
+   * 设置文件夹展开状态
+   */
+  setFolderExpanded(folderPath: string, expanded: boolean): void {
+    this.expansionState[folderPath] = expanded
+    this.saveExpansionState()
+  }
+
+  /**
+   * 获取完整的展开状态
+   */
+  getExpansionState(): FolderExpansionState {
+    return { ...this.expansionState }
+  }
+
   // 私有方法
 
   private async isValidWorkspace(path: string): Promise<boolean> {
@@ -254,6 +294,29 @@ export class FileSystemManager {
 
   private generateId(): string {
     return Date.now().toString(36) + Math.random().toString(36).substr(2)
+  }
+
+  private getExpansionStateKey(): string {
+    return this.currentWorkspace ? `expansion_state_${this.currentWorkspace.id}` : 'expansion_state_default'
+  }
+
+  private loadExpansionState(): void {
+    try {
+      const key = this.getExpansionStateKey()
+      this.expansionState = storage.loadGenericData<FolderExpansionState>(key, {})
+    } catch (error) {
+      console.warn('加载展开状态失败:', error)
+      this.expansionState = {}
+    }
+  }
+
+  private saveExpansionState(): void {
+    try {
+      const key = this.getExpansionStateKey()
+      storage.saveGenericData(key, this.expansionState)
+    } catch (error) {
+      console.error('保存展开状态失败:', error)
+    }
   }
 }
 

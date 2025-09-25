@@ -1,108 +1,77 @@
-import type { FlatMessage, DeepSeekStreamResponse, AIConfig, ChatMode } from './types'
+import type { FlatMessage, AIConfig, ChatMode, ApiProviderConfig, ProviderType } from './types'
+import { OpenAIAdapter } from './openai-adapter'
+import { GeminiAdapter } from './gemini-adapter'
 
-// DeepSeek API 配置
-const API_BASE_URL = 'https://api.deepseek.com/v1/chat/completions'
-
-// 默认AI配置参数
-export const DEFAULT_CONFIG: AIConfig = {
-  v3Config: {
-    temperature: 1.0,    // 创造性参数，越高越创新
-    maxTokens: 8000      // 最大输出长度 - V3模式限制为8K
+// 默认API提供方配置
+const DEFAULT_PROVIDERS: ApiProviderConfig[] = [
+  {
+    id: 'deepseek-chat',
+    name: 'DeepSeek Chat',
+    type: 'openai',
+    baseUrl: 'https://api.deepseek.com/v1/chat/completions',
+    apiKey: '',
+    model: 'deepseek-chat'
   },
-  r1Config: {
-    maxTokens: 32000     // R1模式最大输出长度 - R1模式默认32K，最大64K
+  {
+    id: 'deepseek-reasoner',
+    name: 'DeepSeek R1',
+    type: 'openai',
+    baseUrl: 'https://api.deepseek.com/v1/chat/completions',
+    apiKey: '',
+    model: 'deepseek-reasoner'
   },
-  showThinking: true,    // 是否显示思考过程
-  apiKey: '',           // 用户自定义API密钥
-  historyLimit: 20,     // 默认保留20条消息（10次对话）
-  systemPrompt: '你是DeepSeek，目的是帮助用户完成小说写作。'  // 默认系统提示
-}
-
-/**
- * 构建API请求消息列表
- * 过滤掉系统不需要的消息类型，添加系统提示
- * 根据配置限制保留的对话历史数量
- * @param messages 原始消息列表
- * @param config AI配置对象
- */
-function buildMessages(messages: FlatMessage[], config: AIConfig): Array<{ role: string; content: string }> {
-  const currentDate = new Date().toLocaleDateString('zh-CN', {
-    month: 'long',
-    day: 'numeric',
-    weekday: 'long'
-  })
-  
-  // 使用配置中的系统提示
-  const systemPrompt = `${config.systemPrompt}\n今天是${currentDate}。`
-  
-  // 处理消息，仅保留用户和助手消息
-  const allProcessedMessages = messages
-    .filter(m => m.role === 'user' || m.role === 'assistant')
-    .map(m => ({ role: m.role, content: m.content }))
-  
-  // 根据配置限制保留的历史消息数量
-  const recentMessages = allProcessedMessages.slice(-config.historyLimit)
-  
-  const finalMessages = [
-    { role: 'system', content: systemPrompt },
-    ...recentMessages
-  ]
-  
-  return finalMessages
-}
-
-/**
- * 构建完整的API请求体
- * 根据不同模式设置不同参数
- */
-function buildRequestBody(
-  messages: FlatMessage[], 
-  currentMode: ChatMode, 
-  config: AIConfig
-): Record<string, any> {
-  const model = currentMode === 'r1' ? 'deepseek-reasoner' : 'deepseek-chat'
-  const modelConfig = currentMode === 'r1' ? config.r1Config : config.v3Config
-  
-  const requestBody = {
-    model,
-    messages: buildMessages(messages, config),
-    max_tokens: modelConfig.maxTokens,
-    stream: true    // 启用流式响应
-  }
-
-  // V3模式添加temperature参数，R1模式不支持
-  if (currentMode === 'v3') {
-    return { ...requestBody, temperature: config.v3Config.temperature }
-  }
-
-  return requestBody
-}
-
-/**
- * 解析流式响应数据块
- * 处理 Server-Sent Events 格式的数据
- */
-function parseStreamChunk(chunk: string): Array<{ reasoning_content?: string; content?: string }> {
-  return chunk.split('\n')
-    .filter(line => line.startsWith('data: '))
-    .map(line => line.slice(6).trim())
-    .filter(data => data !== '[DONE]')
-    .map(data => {
-      try {
-        const parsed: DeepSeekStreamResponse = JSON.parse(data)
-        return parsed.choices[0]?.delta || {}
-      } catch {
-        return {}
+  {
+    id: 'kimi-chat',
+    name: 'Kimi Chat',
+    type: 'openai',
+    baseUrl: 'https://api.moonshot.cn/v1/chat/completions',
+    apiKey: '',
+    model: 'kimi-k2-0905-preview'
+  },
+  {
+    id: 'kimi-thinking',
+    name: 'Kimi Thinking',
+    type: 'openai',
+    baseUrl: 'https://api.moonshot.cn/v1/chat/completions',
+    apiKey: '',
+    model: 'kimi-thinking-preview'
+  },
+  {
+    id: 'gemini-flash',
+    name: 'Google Gemini 2.5 Flash (思考模式)',
+    type: 'gemini',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+    apiKey: '',
+    model: 'gemini-2.5-flash',
+    extraParams: {
+      // 启用Gemini思考配置（预算-1表示由服务端动态分配）
+      thinkingConfig: {
+        thinkingBudget: -1
       }
-    })
-    .filter(delta => delta.reasoning_content || delta.content)
+    }
+  }
+]
+
+// 默认AI配置参数（通用Provider）
+export const DEFAULT_CONFIG: AIConfig = {
+  currentProviderId: DEFAULT_PROVIDERS[0].id, // 自动选择第一个可用配置
+  providers: DEFAULT_PROVIDERS,
+  historyLimit: 20,
+  systemPrompt: '你是AI写作助手，帮助用户完成小说写作。'
 }
 
 /**
- * 调用DeepSeek API的主函数
- * 支持流式响应和中断控制
+ * 获取 API 提供商类型（使用配置中的类型，不再自动检测）
  */
-export async function callDeepSeekAPI(
+function getProviderType(provider: ApiProviderConfig): ProviderType {
+  return provider.type
+}
+
+/**
+ * 通用AI API调用函数 - 统一接口层
+ * 根据配置的提供商类型选择合适的适配器（不再自动检测）
+ */
+export async function callAIAPI(
   messages: FlatMessage[],
   currentMode: ChatMode,
   config: AIConfig,
@@ -110,56 +79,28 @@ export async function callDeepSeekAPI(
   onThinkingUpdate: (thinking: string) => void,
   onAnswerUpdate: (answer: string) => void
 ): Promise<{ reasoning_content?: string; content: string }> {
+  const currentProvider = config.providers.find(p => p.id === config.currentProviderId)
+  if (!currentProvider) {
+    throw new Error(`找不到API配置: ${config.currentProviderId}`)
+  }
   
-  const requestBody = buildRequestBody(messages, currentMode, config)
-  
-  // 直接输出发送的消息内容
-  console.log('📤 发送给API的消息:', JSON.stringify(requestBody.messages, null, 2))
-  
-  const response = await fetch(API_BASE_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${config.apiKey}`
-    },
-    body: JSON.stringify(requestBody),
-    signal: abortSignal
-  })
+  // 使用配置中的提供商类型创建对应的适配器
+  const providerType = getProviderType(currentProvider)
+  let adapter: OpenAIAdapter | GeminiAdapter
 
-  if (!response.ok) {
-    throw new Error(`API 请求失败: ${response.status}`)
+  if (providerType === 'gemini') {
+    adapter = new GeminiAdapter(currentProvider)
+  } else {
+    adapter = new OpenAIAdapter(currentProvider)
   }
 
-  const reader = response.body?.getReader()
-  if (!reader) throw new Error('无法获取响应流')
-
-  let reasoning_content = ''  // R1模式的思考过程
-  let content = ''           // 最终回答内容
-
-  try {
-    // 持续读取流式数据
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-
-      const deltas = parseStreamChunk(new TextDecoder().decode(value))
-      for (const delta of deltas) {
-        if (delta.reasoning_content) {
-          reasoning_content += delta.reasoning_content
-          onThinkingUpdate(reasoning_content)  // 实时更新思考过程
-        }
-        if (delta.content) {
-          content += delta.content
-          onAnswerUpdate(content)  // 实时更新回答内容
-        }
-      }
-    }
-  } finally {
-    reader.releaseLock()
-  }
-
-  return {
-    reasoning_content: reasoning_content || undefined,
-    content: content || '抱歉，我无法理解您的问题。'
-  }
+  // 通过适配器调用 API
+  return await adapter.callAPI(
+    messages,
+    currentMode,
+    config,
+    abortSignal,
+    onThinkingUpdate,
+    onAnswerUpdate
+  )
 } 

@@ -26,6 +26,7 @@ export interface ConversationHistoryManager {
 }
 
 const STORAGE_KEY = 'writing_conversation_history'
+const ACTIVE_CONVERSATION_KEY = 'active_conversation_id'
 
 // 生成对话标题（基于第一条用户消息）
 function generateTitle(tree: ConversationTree): string {
@@ -78,9 +79,32 @@ export function useConversationHistory(): ConversationHistoryManager {
     }
   })
 
-  const [currentConversationId, setCurrentConversationId] = useState<string | null>(
-    conversations.length > 0 ? conversations[0].id : null
-  )
+  // 加载上次活跃的对话ID
+  const loadActiveConversationId = (): string | null => {
+    try {
+      const savedId = storage.loadGenericData<string>(ACTIVE_CONVERSATION_KEY, '')
+      // 检查保存的ID是否还存在于对话列表中
+      if (savedId && conversations.some(conv => conv.id === savedId)) {
+        return savedId
+      }
+      // 如果保存的对话不存在，返回最新的对话
+      return conversations.length > 0 ? conversations[0].id : null
+    } catch (error) {
+      console.warn('加载活跃对话ID失败:', error)
+      return conversations.length > 0 ? conversations[0].id : null
+    }
+  }
+
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(loadActiveConversationId())
+
+  // 保存活跃对话ID到存储
+  const saveActiveConversationId = useCallback((id: string | null) => {
+    try {
+      storage.saveGenericData(ACTIVE_CONVERSATION_KEY, id || '')
+    } catch (error) {
+      console.error('保存活跃对话ID失败:', error)
+    }
+  }, [])
 
   // 保存到存储
   const saveToStorage = useCallback((convs: ConversationHistoryItem[]) => {
@@ -118,18 +142,20 @@ export function useConversationHistory(): ConversationHistoryManager {
     
     setConversations(prev => [newConversation, ...prev])
     setCurrentConversationId(newId)
+    saveActiveConversationId(newId) // 保存活跃对话ID
     return newId
-  }, [])
+  }, [saveActiveConversationId])
 
   // 加载对话
   const loadConversation = useCallback((id: string): ConversationTree | null => {
     const conversation = conversations.find(conv => conv.id === id)
     if (conversation) {
       setCurrentConversationId(id)
+      saveActiveConversationId(id) // 保存活跃对话ID
       return conversation.conversationTree
     }
     return null
-  }, [conversations])
+  }, [conversations, saveActiveConversationId])
 
   // 更新对话
   const updateConversation = useCallback((id: string, tree: ConversationTree) => {
@@ -153,19 +179,23 @@ export function useConversationHistory(): ConversationHistoryManager {
       const filtered = prev.filter(conv => conv.id !== id)
       // 如果删除的是当前对话，切换到第一个对话
       if (currentConversationId === id && filtered.length > 0) {
-        setCurrentConversationId(filtered[0].id)
+        const newActiveId = filtered[0].id
+        setCurrentConversationId(newActiveId)
+        saveActiveConversationId(newActiveId) // 保存新的活跃对话ID
       } else if (filtered.length === 0) {
         setCurrentConversationId(null)
+        saveActiveConversationId(null) // 清空活跃对话ID
       }
       return filtered
     })
-  }, [currentConversationId])
+  }, [currentConversationId, saveActiveConversationId])
 
   // 清空所有对话
   const clearAllConversations = useCallback(() => {
     setConversations([])
     setCurrentConversationId(null)
-  }, [])
+    saveActiveConversationId(null) // 清空活跃对话ID
+  }, [saveActiveConversationId])
 
   // 重命名对话
   const renameConversation = useCallback((id: string, newTitle: string) => {

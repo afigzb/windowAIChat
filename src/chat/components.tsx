@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
-import type { MessageNode, AIConfig, ChatMode, MessageBubbleProps, BranchNavigation } from './types'
+import type { MessageNode, AIConfig, ChatMode, MessageBubbleProps, BranchNavigation, ApiProviderConfig, ProviderType } from './types'
 import { DEFAULT_CONFIG } from './api'
 import { MarkdownRenderer } from './MarkdownRenderer'
 
@@ -105,36 +105,39 @@ function BranchNavigation({ navigation, onNavigate }: {
   )
 }
 
-// 模式选择器
-export function ModelToggle({ currentMode, onModeChange, disabled }: {
-  currentMode: ChatMode
-  onModeChange: (mode: ChatMode) => void
+// API提供方选择器
+export function ApiProviderToggle({ config, onProviderChange, disabled }: {
+  config: AIConfig
+  onProviderChange: (providerId: string) => void
   disabled?: boolean
 }) {
   const [isOpen, setIsOpen] = useState(false)
   
-  const modes = [
-    { value: 'r1', label: 'R1', color: 'bg-gray-700' },
-    { value: 'v3', label: 'V3', color: 'bg-blue-600' }
-  ]
-  
-  const currentModeInfo = modes.find(mode => mode.value === currentMode)
+  const currentProvider = config.providers.find(p => p.id === config.currentProviderId)
+  const getProviderColor = (providerId: string) => {
+    // 根据提供方ID生成颜色
+    const colors = ['bg-blue-600', 'bg-green-600', 'bg-purple-600', 'bg-orange-600', 'bg-red-600', 'bg-teal-600']
+    return colors[providerId.length % colors.length]
+  }
   
   return (
     <div className="relative">
       <button
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className={`flex items-center gap-3 px-3 py-2 rounded-xl border text-sm font-medium transition-all duration-200 min-w-[80px] shadow-sm ${
+        className={`flex items-center gap-3 px-3 py-2 rounded-xl border text-sm font-medium transition-all duration-200 min-w-[120px] shadow-sm ${
           disabled 
             ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed' 
             : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 text-gray-700 cursor-pointer bg-white hover:bg-gray-50 hover:shadow-md'
         }`}
       >
-        <div className={`w-2 h-2 rounded-full ${currentModeInfo?.color}`} />
-        <span>{currentModeInfo?.label}</span>
+        <div className={`w-2 h-2 rounded-full ${getProviderColor(config.currentProviderId)}`} />
+        <div className="flex flex-col items-start min-w-0 flex-1">
+          <span className="truncate">{currentProvider?.name || '未知配置'}</span>
+          <span className="text-xs text-gray-500 truncate">{currentProvider?.model || ''}</span>
+        </div>
         <svg 
-          className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
+          className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} 
           fill="none" 
           stroke="currentColor" 
           viewBox="0 0 24 24"
@@ -149,21 +152,22 @@ export function ModelToggle({ currentMode, onModeChange, disabled }: {
             className="fixed inset-0 z-10" 
             onClick={() => setIsOpen(false)} 
           />
-          <div className="absolute -top-4 left-0 -translate-y-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl z-20 overflow-hidden backdrop-blur-sm">
-            {modes.map((mode) => (
+          <div className="absolute -top-4 left-0 -translate-y-full mt-1 w-full min-w-[200px] bg-white border border-gray-200 rounded-xl shadow-xl z-20 overflow-hidden backdrop-blur-sm">
+            {config.providers.map((provider) => (
               <button
-                key={mode.value}
+                key={provider.id}
                 onClick={() => {
-                  onModeChange(mode.value as ChatMode)
+                  onProviderChange(provider.id)
                   setIsOpen(false)
                 }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-200 hover:bg-blue-50 ${
-                  mode.value === currentMode ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700'
+                  provider.id === config.currentProviderId ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700'
                 }`}
               >
-                <div className={`w-2 h-2 rounded-full ${mode.color}`} />
-                <div className="flex flex-col items-start">
-                  <span>{mode.label}</span>
+                <div className={`w-2 h-2 rounded-full ${getProviderColor(provider.id)}`} />
+                <div className="flex flex-col items-start min-w-0 flex-1">
+                  <span className="truncate">{provider.name}</span>
+                  <span className="text-xs text-gray-500 truncate">{provider.model}</span>
                 </div>
               </button>
             ))}
@@ -258,7 +262,6 @@ export function MessageBubble({
   isGenerating = false,
   currentThinking = '',
   currentAnswer = '',
-  showThinking = false
 }: MessageBubbleProps) {
   const [showThinkingExpanded, setShowThinkingExpanded] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -326,7 +329,7 @@ export function MessageBubble({
           {/* AI思考过程 */}
           {!isUser && (
             <>
-              {isGenerating && currentThinking && showThinking && (
+              {isGenerating && currentThinking && (
                 <div className="mb-6 w-full bg-gray-50 border border-gray-200 rounded-2xl p-5">
                   <div className="flex items-center gap-3 mb-4">
                     <AnimatedDots color="teal" />
@@ -566,6 +569,232 @@ function Slider({
   )
 }
 
+// API配置管理组件
+function ApiProviderManager({ config, onConfigChange }: {
+  config: AIConfig
+  onConfigChange: (config: AIConfig) => void
+}) {
+  const [editingProvider, setEditingProvider] = useState<ApiProviderConfig | null>(null)
+  const [showAddForm, setShowAddForm] = useState(false)
+  
+  const handleSaveProvider = (provider: ApiProviderConfig) => {
+    const newProviders = editingProvider
+      ? config.providers.map(p => p.id === provider.id ? provider : p)
+      : [...config.providers, provider]
+    
+    onConfigChange({
+      ...config,
+      providers: newProviders,
+      // 如果是新添加的配置，自动切换到它
+      currentProviderId: editingProvider ? config.currentProviderId : provider.id
+    })
+    
+    setEditingProvider(null)
+    setShowAddForm(false)
+  }
+  
+  const handleDeleteProvider = (providerId: string) => {
+    if (config.providers.length <= 1) {
+      alert('至少需要保留一个API配置')
+      return
+    }
+    
+    const newProviders = config.providers.filter(p => p.id !== providerId)
+    const newCurrentId = config.currentProviderId === providerId 
+      ? newProviders[0].id 
+      : config.currentProviderId
+    
+    onConfigChange({
+      ...config,
+      providers: newProviders,
+      currentProviderId: newCurrentId
+    })
+  }
+  
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-gray-900">API 配置管理</h3>
+        <button
+          onClick={() => setShowAddForm(true)}
+          className="px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors"
+        >
+          添加配置
+        </button>
+      </div>
+      
+      {/* 配置列表 */}
+      <div className="space-y-2">
+        {config.providers.map((provider) => (
+          <div
+            key={provider.id}
+            className={`p-3 border rounded-lg transition-colors ${
+              provider.id === config.currentProviderId ? 'border-blue-300 bg-blue-50' : 'border-gray-200'
+            }`}
+          >
+            <div className="flex items-start justify-between">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm">{provider.name}</span>
+                  {provider.id === config.currentProviderId && (
+                    <span className="px-2 py-0.5 bg-blue-600 text-white text-xs rounded">当前</span>
+                  )}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  <div>类型: {provider.type === 'openai' ? 'OpenAI 兼容' : 'Google Gemini'}</div>
+                  <div>模型: {provider.model}</div>
+                  <div className="truncate">URL: {provider.baseUrl}</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 ml-2">
+                <button
+                  onClick={() => setEditingProvider(provider)}
+                  className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                  title="编辑"
+                >
+                  <Icon name="edit" className="w-3 h-3" />
+                </button>
+                {config.providers.length > 1 && (
+                  <button
+                    onClick={() => handleDeleteProvider(provider.id)}
+                    className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                    title="删除"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      {/* 编辑/添加表单 */}
+      {(editingProvider || showAddForm) && (
+        <ApiProviderForm
+          provider={editingProvider}
+          onSave={handleSaveProvider}
+          onCancel={() => {
+            setEditingProvider(null)
+            setShowAddForm(false)
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+// API配置表单组件
+function ApiProviderForm({ provider, onSave, onCancel }: {
+  provider: ApiProviderConfig | null
+  onSave: (provider: ApiProviderConfig) => void
+  onCancel: () => void
+}) {
+  const [formData, setFormData] = useState<ApiProviderConfig>(() => 
+    provider || {
+      id: `provider-${Date.now()}`,
+      name: '',
+      type: 'openai',
+      baseUrl: '',
+      apiKey: '',
+      model: ''
+    }
+  )
+  
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!formData.name.trim() || !formData.baseUrl.trim() || !formData.model.trim()) {
+      alert('请填写必要字段')
+      return
+    }
+    onSave(formData)
+  }
+  
+  return (
+    <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">配置名称 *</label>
+          <input
+            type="text"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder="如: GPT-4o, Claude, Kimi Chat"
+            className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            required
+          />
+        </div>
+        
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">API URL *</label>
+          <input
+            type="text"
+            value={formData.baseUrl}
+            onChange={(e) => setFormData({ ...formData, baseUrl: e.target.value })}
+            placeholder="https://api.example.com/v1/chat/completions"
+            className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            required
+          />
+        </div>
+        
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">API Key</label>
+          <input
+            type="password"
+            value={formData.apiKey}
+            onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
+            placeholder="输入API密钥"
+            className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">提供商类型 *</label>
+          <select
+            value={formData.type}
+            onChange={(e) => setFormData({ ...formData, type: e.target.value as ProviderType })}
+            className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            required
+          >
+            <option value="openai">OpenAI 兼容 (Kimi, Claude, DeepSeek 等)</option>
+            <option value="gemini">Google Gemini</option>
+          </select>
+        </div>
+        
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">模型名称 *</label>
+          <input
+            type="text"
+            value={formData.model}
+            onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+            placeholder="如: gpt-4o, claude-3, kimi-chat"
+            className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            required
+          />
+        </div>
+        
+        <div className="flex gap-2 pt-2">
+          <button
+            type="submit"
+            className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+          >
+            {provider ? '保存' : '添加'}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-3 py-1.5 bg-gray-500 text-white text-sm rounded hover:bg-gray-600 transition-colors"
+          >
+            取消
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
 // AI设置面板
 export function AISettings({ config, onConfigChange, onClose, isOpen }: {
   config: AIConfig
@@ -594,20 +823,8 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
-          {/* API Key设置 */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gray-900">API 设置</h3>
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">API Key</label>
-              <input
-                type="password"
-                value={config.apiKey}
-                onChange={(e) => onConfigChange({ ...config, apiKey: e.target.value })}
-                placeholder="输入你的 API Key"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              />
-            </div>
-          </div>
+          {/* API配置管理 */}
+          <ApiProviderManager config={config} onConfigChange={onConfigChange} />
 
           {/* 对话设置 */}
           <div className="space-y-4">
@@ -641,79 +858,7 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
             <p className="text-xs text-gray-500">为节约tokens，只保留最近的消息发送给AI</p>
           </div>
 
-          {/* V3配置 */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-indigo-600" />
-              <h3 className="text-sm font-semibold text-gray-900">V3 配置</h3>
-            </div>
-            
-            <Slider
-              label="创意度"
-              value={config.v3Config.temperature}
-              onChange={(temperature) => onConfigChange({
-                ...config,
-                v3Config: { ...config.v3Config, temperature }
-              })}
-              min={0}
-              max={2}
-              step={0.1}
-              marks={['0.0 精确', '1.0 均衡', '2.0 创意']}
-            />
-
-            <Slider
-              label="回复长度"
-              value={config.v3Config.maxTokens}
-              onChange={(maxTokens) => onConfigChange({
-                ...config,
-                v3Config: { ...config.v3Config, maxTokens }
-              })}
-              min={100}
-              max={8000}
-              step={100}
-              marks={['100', '4K 推荐', '8K 最大']}
-              formatValue={(v) => v.toLocaleString() + ' tokens'}
-            />
-          </div>
-
-          {/* R1配置 */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-slate-600" />
-              <h3 className="text-sm font-semibold text-gray-900">R1 配置</h3>
-            </div>
-            
-            <Slider
-              label="回复长度"
-              value={config.r1Config.maxTokens}
-              onChange={(maxTokens) => onConfigChange({
-                ...config,
-                r1Config: { ...config.r1Config, maxTokens }
-              })}
-              min={100}
-              max={64000}
-              step={100}
-              marks={['100', '32K 推荐', '64K 最大']}
-              formatValue={(v) => v.toLocaleString() + ' tokens'}
-            />
-          </div>
-
-          {/* 显示设置 */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gray-900">显示设置</h3>
-            <label className="flex items-center justify-between p-4 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
-              <div>
-                <span className="font-medium text-gray-900">显示思考过程</span>
-                <p className="text-xs text-slate-600 mt-1">在R1模式下显示AI的推理步骤</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={config.showThinking}
-                onChange={(e) => onConfigChange({ ...config, showThinking: e.target.checked })}
-                className="w-4 h-4 text-indigo-700 border-2 border-gray-300 rounded"
-              />
-            </label>
-          </div>
+          {/* 已废除的精细参数控制移除 */}
         </div>
 
         <div className="p-6 border-t border-slate-200">
@@ -738,8 +883,8 @@ export const ChatInputArea = forwardRef<
     onSend: () => void
     isLoading: boolean
     onAbort: () => void
-    currentMode: ChatMode
-    onModeChange: (mode: ChatMode) => void
+    config: AIConfig
+    onProviderChange: (providerId: string) => void
   }
 >(({ 
   value, 
@@ -747,8 +892,8 @@ export const ChatInputArea = forwardRef<
   onSend, 
   isLoading, 
   onAbort, 
-  currentMode, 
-  onModeChange 
+  config,
+  onProviderChange 
 }, ref) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -803,7 +948,7 @@ export const ChatInputArea = forwardRef<
 
           <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
             <div className="flex items-center gap-4">
-              <ModelToggle currentMode={currentMode} onModeChange={onModeChange} disabled={isLoading} />
+              <ApiProviderToggle config={config} onProviderChange={onProviderChange} disabled={isLoading} />
               
               {isLoading && (
                 <div className="flex items-center gap-2">

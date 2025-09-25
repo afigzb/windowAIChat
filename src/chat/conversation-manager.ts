@@ -5,7 +5,7 @@ import type {
   AIConfig, 
   ChatMode 
 } from './types'
-import { callDeepSeekAPI } from './api'
+import { callAIAPI } from './api'
 import {
   createInitialConversationTree,
   createFlatMessage,
@@ -67,7 +67,7 @@ async function generateAIMessage(
       }
     }
 
-    const result = await callDeepSeekAPI(
+    const result = await callAIAPI(
       modifiedHistory,
       currentMode,
       config,

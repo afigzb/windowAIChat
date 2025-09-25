@@ -1,8 +1,9 @@
 // 文件树节点组件
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { InlineEdit } from './InlineEdit'
 import type { FileSystemNode } from '../../storage/file-system'
+import { fileSystemManager } from '../../storage/file-system'
 
 interface InlineEditState {
   isActive: boolean
@@ -57,11 +58,23 @@ export function FileTreeNode({
   onFileSelect,
   loadingFiles
 }: FileTreeNodeProps) {
-  const [isExpanded, setIsExpanded] = useState(level < 2)
+  const [isExpanded, setIsExpanded] = useState(() => 
+    node.isDirectory ? fileSystemManager.isFolderExpanded(node.path, level) : false
+  )
+
+  // 当节点路径变化时，更新展开状态
+  useEffect(() => {
+    if (node.isDirectory) {
+      setIsExpanded(fileSystemManager.isFolderExpanded(node.path, level))
+    }
+  }, [node.path, node.isDirectory, level])
 
   const handleClick = () => {
     if (node.isDirectory) {
-      setIsExpanded(!isExpanded)
+      const newExpanded = !isExpanded
+      setIsExpanded(newExpanded)
+      // 更新文件系统管理器中的展开状态
+      fileSystemManager.setFolderExpanded(node.path, newExpanded)
     } else {
       onFileClick?.(node)
     }

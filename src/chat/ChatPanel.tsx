@@ -4,7 +4,6 @@ import { MessageBubble, AISettings, ChatInputArea } from './components'
 import { useConversationManager } from './conversation-manager'
 import { useBranchManager } from './branch-manager'
 import { useConversationHistory } from './conversation-history'
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { ConfirmDialog } from '../writing/components/ConfirmDialog'
 
 interface ChatPanelProps {
@@ -23,11 +22,13 @@ export function ChatPanel({
   additionalContent
 }: ChatPanelProps) {
   const [showSettings, setShowSettings] = useState(false)
+  const [showHistoryDrawer, setShowHistoryDrawer] = useState(false)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [conversationToDelete, setConversationToDelete] = useState<{id: string, title: string} | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatInputRef = useRef<{ focus: () => void }>(null)
+  const historyDrawerRef = useRef<HTMLDivElement>(null)
   
   // 对话历史管理
   const conversationHistory = useConversationHistory()
@@ -58,7 +59,8 @@ export function ChatPanel({
         const newId = conversationHistory.createNewConversation(currentMode)
         setCurrentConversationId(newId)
       } else {
-        setCurrentConversationId(conversationHistory.conversations[0].id)
+        // 使用conversation-history中已经处理好的活跃对话ID
+        setCurrentConversationId(conversationHistory.currentConversationId)
       }
     }
   }, [])
@@ -85,6 +87,20 @@ export function ChatPanel({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [conversationState.conversationTree.activePath])
 
+  // 点击外部关闭抽屉
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showHistoryDrawer && historyDrawerRef.current && !historyDrawerRef.current.contains(event.target as Node)) {
+        setShowHistoryDrawer(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showHistoryDrawer])
+
   // 处理发送
   const handleSendMessage = async () => {
     if (!conversationState.inputValue.trim() || conversationState.isLoading) return
@@ -109,28 +125,27 @@ export function ChatPanel({
   const handleDeleteConversation = () => {
     if (!conversationToDelete) return
     
-    if (conversationToDelete.id === currentConversationId) {
-      const allConversations = conversationHistory.conversations
-      const remaining = allConversations.filter(c => c.id !== conversationToDelete.id)
-      
-      if (remaining.length > 0) {
-        const nextConv = remaining[0]
-        setCurrentConversationId(nextConv.id)
-        const tree = conversationHistory.loadConversation(nextConv.id)
+    // 删除对话，conversation-history会自动处理活跃对话的选择
+    conversationHistory.deleteConversation(conversationToDelete.id)
+    
+    // 同步更新本地的currentConversationId
+    setCurrentConversationId(conversationHistory.currentConversationId)
+    
+    // 如果删除后没有对话了，创建新对话
+    if (conversationHistory.conversations.length === 0) {
+      const newId = conversationHistory.createNewConversation(currentMode)
+      setCurrentConversationId(newId)
+    } else {
+      // 加载新的活跃对话
+      const activeId = conversationHistory.currentConversationId
+      if (activeId) {
+        const tree = conversationHistory.loadConversation(activeId)
         if (tree) {
           conversationActions.updateConversationTree(tree.flatMessages, tree.activePath)
         }
       } else {
-        setCurrentConversationId(null)
         conversationActions.updateConversationTree(new Map(), [])
       }
-    }
-    
-    conversationHistory.deleteConversation(conversationToDelete.id)
-    
-    if (conversationHistory.conversations.length === 1) {
-      const newId = conversationHistory.createNewConversation(currentMode)
-      setCurrentConversationId(newId)
     }
     
     setShowDeleteConfirm(false)
@@ -160,148 +175,155 @@ export function ChatPanel({
               AI写作助手
             </h2>
           </div>
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className={`p-1.5 rounded-md transition-all duration-200 flex-shrink-0 ${
-              showSettings 
-                ? 'bg-indigo-600 text-white shadow-sm' 
-                : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
-            }`}
-            title="AI设置"
-          >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd"/>
-            </svg>
-          </button>
+          <div className="flex items-center gap-1">
+            <div className="relative" ref={historyDrawerRef}>
+              <button
+                onClick={() => setShowHistoryDrawer(!showHistoryDrawer)}
+                className={`p-1.5 rounded-md transition-all duration-200 flex-shrink-0 ${
+                  showHistoryDrawer 
+                    ? 'bg-indigo-600 text-white shadow-sm' 
+                    : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+                }`}
+                title="对话历史"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
+              
+              {/* 对话历史抽屉 */}
+              {showHistoryDrawer && (
+                <div className="absolute top-full right-6 mt-1 w-96 bg-white border border-slate-200 rounded-lg shadow-xl z-20 max-h-96 flex flex-col">
+                    {/* 抽屉头部 */}
+                    <div className="flex items-center justify-between p-3 border-b border-slate-200">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-slate-600 rounded-full"></div>
+                        <h3 className="text-sm font-semibold text-slate-900">对话历史</h3>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button 
+                          onClick={() => {
+                            const newId = conversationHistory.createNewConversation(currentMode)
+                            setCurrentConversationId(newId)
+                            conversationActions.updateConversationTree(new Map(), [])
+                          }}
+                          className="p-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors" 
+                          title="新建对话"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setShowClearConfirm(true)
+                          }}
+                          className="text-xs text-slate-600 hover:text-slate-900 px-1.5 py-1 rounded hover:bg-white transition-colors whitespace-nowrap"
+                          title="清空所有对话"
+                        >
+                          清空
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {/* 抽屉内容 - 可滚动的对话列表 */}
+                    <div className="flex-1 overflow-y-auto p-2">
+                      {conversationHistory.conversations.length === 0 ? (
+                        <div className="text-center py-8 text-slate-500 text-sm">
+                          暂无对话历史
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          {conversationHistory.conversations.map((conv) => {
+                            const isActive = conv.id === currentConversationId
+                            const timeStr = new Date(conv.timestamp).toLocaleString('zh-CN', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              month: 'numeric',
+                              day: 'numeric'
+                            })
+                            
+                            return (
+                              <div 
+                                key={conv.id}
+                                onClick={() => {
+                                  if (conv.id !== currentConversationId) {
+                                    const tree = conversationHistory.loadConversation(conv.id)
+                                    if (tree) {
+                                      setCurrentConversationId(conv.id)
+                                      conversationActions.updateConversationTree(tree.flatMessages, tree.activePath)
+                                    }
+                                  }
+                                }}
+                                className={`group rounded-md border transition-all duration-200 cursor-pointer p-2 ${
+                                  isActive 
+                                    ? 'bg-indigo-50 border-indigo-300 shadow-sm' 
+                                    : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-sm hover:bg-slate-50'
+                                }`}
+                              >
+                                <div className="flex items-start justify-between min-w-0">
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className={`text-sm font-medium truncate mb-1 ${
+                                      isActive ? 'text-indigo-700' : 'text-slate-900 group-hover:text-indigo-700'
+                                    }`} title={conv.title}>
+                                      {conv.title}
+                                    </h4>
+                                    <time className="text-xs text-slate-500 whitespace-nowrap block" dateTime={new Date(conv.timestamp).toISOString()}>
+                                      {timeStr}
+                                    </time>
+                                  </div>
+                                  <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                                    <button
+                                      onClick={() => {
+                                        setConversationToDelete({ id: conv.id, title: conv.title })
+                                        setShowDeleteConfirm(true)
+                                      }}
+                                      className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-600 transition-all duration-200 rounded flex items-center justify-center"
+                                      title="删除对话"
+                                    >
+                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                    </button>
+                                    <div className="w-2 h-2 flex items-center justify-center">
+                                      {isActive && (
+                                        <div className="w-2 h-2 bg-indigo-600 rounded-full"></div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+              )}
+            </div>
+            
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className={`p-1.5 rounded-md transition-all duration-200 flex-shrink-0 ${
+                showSettings 
+                  ? 'bg-indigo-600 text-white shadow-sm' 
+                  : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+              }`}
+              title="AI设置"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd"/>
+              </svg>
+            </button>
+          </div>
         </div>
       </header>
       
-      {/* AI区域内容 - 垂直分割 */}
-      <PanelGroup direction="vertical" className="flex-1 min-h-0" autoSaveId="writing-page-panels">
-        {/* 对话历史区域 */}
-        <Panel defaultSize={35}>
-          <div className="bg-slate-50 border-b border-slate-200 h-full flex flex-col min-w-0">
-            {/* 对话历史标题栏 - 固定高度 */}
-            <header className="flex-shrink-0 p-3 border-b border-slate-200">
-              <div className="flex items-center justify-between min-w-0">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <div className="w-2 h-2 bg-slate-600 rounded-full flex-shrink-0"></div>
-                  <h3 className="text-sm font-semibold text-slate-900 whitespace-nowrap overflow-hidden text-ellipsis">
-                    对话历史
-                  </h3>
-                </div>
-                <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-                  <button 
-                    onClick={() => {
-                      const newId = conversationHistory.createNewConversation(currentMode)
-                      setCurrentConversationId(newId)
-                      conversationActions.updateConversationTree(new Map(), [])
-                    }}
-                    className="p-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors" 
-                    title="新建对话"
-                  >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                  </button>
-                  <button 
-                    onClick={() => setShowClearConfirm(true)}
-                    className="text-xs text-slate-600 hover:text-slate-900 px-1.5 py-1 rounded hover:bg-white transition-colors whitespace-nowrap"
-                    title="清空所有对话"
-                  >
-                    清空
-                  </button>
-                </div>
-              </div>
-            </header>
-            
-            {/* 对话列表区域 - 可滚动 */}
-            <div className="flex-1 overflow-y-auto p-3">
-              <div className="space-y-2">
-                {conversationHistory.conversations.length === 0 ? (
-                  <div className="text-center py-8 text-slate-500 text-sm">
-                    暂无对话历史
-                  </div>
-                ) : (
-                  conversationHistory.conversations.map((conv) => {
-                    const isActive = conv.id === currentConversationId
-                    const timeStr = new Date(conv.timestamp).toLocaleString('zh-CN', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      month: 'numeric',
-                      day: 'numeric'
-                    })
-                    
-                    return (
-                      <article 
-                        key={conv.id}
-                        className={`group rounded-lg border transition-all duration-200 min-w-0 ${
-                          isActive 
-                            ? 'bg-indigo-50 border-indigo-300 shadow-sm' 
-                            : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-sm'
-                        }`}
-                      >
-                        <div 
-                          onClick={() => {
-                            if (conv.id !== currentConversationId) {
-                              setCurrentConversationId(conv.id)
-                              const tree = conversationHistory.loadConversation(conv.id)
-                              if (tree) {
-                                conversationActions.updateConversationTree(tree.flatMessages, tree.activePath)
-                              }
-                            }
-                          }}
-                          className="p-2.5 cursor-pointer flex items-start min-w-0"
-                        >
-                          <div className="flex-1 min-w-0 mr-2">
-                            <h4 className={`text-sm font-medium truncate mb-1 ${
-                              isActive ? 'text-indigo-700' : 'text-slate-900 group-hover:text-indigo-700'
-                            }`} title={conv.title}>
-                              {conv.title}
-                            </h4>
-                            <time className="text-xs text-slate-500 mb-1 whitespace-nowrap block" dateTime={new Date(conv.timestamp).toISOString()}>
-                              {timeStr}
-                            </time>
-                            <p className="text-xs text-slate-600 leading-relaxed line-clamp-2" title={conv.preview}>
-                              {conv.preview}
-                            </p>
-                          </div>
-                          <div className="flex items-start gap-1 flex-shrink-0">
-                            {isActive && (
-                              <div className="w-2 h-2 bg-indigo-600 rounded-full mt-1"></div>
-                            )}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setConversationToDelete({ id: conv.id, title: conv.title })
-                                setShowDeleteConfirm(true)
-                              }}
-                              className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-600 transition-all duration-200 rounded"
-                              title="删除对话"
-                            >
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      </article>
-                    )
-                  })
-                )}
-              </div>
-            </div>
-          </div>
-        </Panel>
-
-        <PanelResizeHandle className="h-px bg-slate-200" />
-        
-        {/* 当前对话区域 */}
-        <Panel defaultSize={65}>
-          <div className="flex flex-col h-full min-w-0">
-            <div className="flex-1 overflow-y-auto bg-white min-h-0">
-              <div className="space-y-0">
-                {activeNodes.map((node) => {
+      {/* 当前对话区域 - 占据全部空间 */}
+      <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 overflow-y-auto bg-white min-h-0">
+          <div className="space-y-0">
+            {activeNodes.map((node) => {
                   const branchNavigation = branchManager.getBranchNavigationForNode(node.id)
                   const isInActivePath = conversationState.conversationTree.activePath.includes(node.id)
                   const isGeneratingNode = conversationState.isLoading && node.content === '正在生成...'
@@ -344,7 +366,6 @@ export function ChatPanel({
                       isGenerating={isGeneratingNode}
                       currentThinking={isGeneratingNode ? conversationState.currentThinking : ''}
                       currentAnswer={isGeneratingNode ? conversationState.currentAnswer : ''}
-                      showThinking={config.showThinking}
                     />
                   )
                 })}
@@ -362,13 +383,14 @@ export function ChatPanel({
                 onSend={handleSendMessage}
                 isLoading={conversationState.isLoading}
                 onAbort={conversationActions.abortRequest}
-                currentMode={currentMode}
-                onModeChange={onModeChange}
+                config={config}
+                onProviderChange={(providerId) => onConfigChange({
+                  ...config,
+                  currentProviderId: providerId
+                })}
               />
-            </div>
-          </div>
-        </Panel>
-      </PanelGroup>
+        </div>
+      </div>
 
       {/* 清空确认对话框 */}
       <ConfirmDialog
