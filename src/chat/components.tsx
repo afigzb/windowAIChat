@@ -1209,9 +1209,9 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
                 historyLimit
               })}
               min={4}
-              max={40}
+              max={80}
               step={2}
-              marks={['4条', '20条 推荐', '40条']}
+              marks={['4条', '20条 推荐', '80条']}
               formatValue={(v) => `${v}条消息 (${Math.floor(v/2)}次对话)`}
             />
             <p className="text-xs text-gray-500">为节约tokens，只保留最近的消息发送给AI</p>

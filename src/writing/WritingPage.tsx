@@ -384,16 +384,23 @@ export default function WritingPage() {
                           <p className="text-xs text-gray-500">定义AI的角色定位和回答风格</p>
                         </div>
                         <div className="space-y-3">
-                          <label className="block text-sm font-medium text-gray-700">历史消息保留数量 ({config.historyLimit})</label>
-                          <input
-                            type="range"
-                            min={4}
-                            max={40}
-                            step={2}
-                            value={config.historyLimit}
-                            onChange={(e) => handleConfigChange({ ...config, historyLimit: parseInt(e.target.value, 10) })}
-                            className="w-full accent-indigo-600"
-                          />
+                          <label className="block text-sm font-medium text-gray-700">历史消息保留数量 ({config.historyLimit}条消息)</label>
+                          <div className="px-4 py-3 bg-slate-50 rounded-xl border border-slate-200">
+                            <input
+                              type="range"
+                              min={4}
+                              max={80}
+                              step={2}
+                              value={config.historyLimit}
+                              onChange={(e) => handleConfigChange({ ...config, historyLimit: parseInt(e.target.value, 10) })}
+                              className="w-full accent-indigo-600"
+                            />
+                            <div className="flex justify-between text-xs text-gray-500 mt-2">
+                              <span>4条</span>
+                              <span>40条 推荐</span>
+                              <span>80条</span>
+                            </div>
+                          </div>
                           <div className="text-xs text-gray-500">为节约 tokens，只保留最近的消息发送给 AI</div>
                         </div>
                         <div>
