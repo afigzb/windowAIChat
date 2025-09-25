@@ -56,7 +56,7 @@ const DEFAULT_PROVIDERS: ApiProviderConfig[] = [
 export const DEFAULT_CONFIG: AIConfig = {
   currentProviderId: DEFAULT_PROVIDERS[0].id, // 自动选择第一个可用配置
   providers: DEFAULT_PROVIDERS,
-  historyLimit: 20,
+  historyLimit: 40,
   systemPrompt: '你是AI写作助手，帮助用户完成小说写作。'
 }
 

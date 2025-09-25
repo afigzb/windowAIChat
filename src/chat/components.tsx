@@ -722,6 +722,16 @@ export function ApiProviderManager({ config, onConfigChange }: {
           添加配置
         </button>
       </div>
+
+      {/* 添加表单 - 移到顶部 */}
+      {showAddForm && !editingProvider && (
+        <ApiProviderForm
+          provider={null}
+          onSave={handleSaveProvider}
+          onCancel={() => setShowAddForm(false)}
+          inline={false}
+        />
+      )}
       
       {/* 配置列表 */}
       <div className="grid gap-4">
@@ -888,15 +898,6 @@ export function ApiProviderManager({ config, onConfigChange }: {
         </div>
       )}
       
-      {/* 添加表单 */}
-      {showAddForm && !editingProvider && (
-        <ApiProviderForm
-          provider={null}
-          onSave={handleSaveProvider}
-          onCancel={() => setShowAddForm(false)}
-          inline={false}
-        />
-      )}
 
       {/* 删除确认对话框 */}
       {deletingProvider && (
@@ -1211,7 +1212,7 @@ export function AISettings({ config, onConfigChange, onClose, isOpen }: {
               min={4}
               max={80}
               step={2}
-              marks={['4条', '20条 推荐', '80条']}
+              marks={['4条', '40条 推荐', '80条']}
               formatValue={(v) => `${v}条消息 (${Math.floor(v/2)}次对话)`}
             />
             <p className="text-xs text-gray-500">为节约tokens，只保留最近的消息发送给AI</p>

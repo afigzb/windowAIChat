@@ -190,7 +190,7 @@ export function ChatPanel({
               
               {/* 对话历史抽屉 */}
               {showHistoryDrawer && (
-                <div className="absolute top-full right-6 mt-1 w-96 bg-white border border-slate-200 rounded-lg shadow-xl z-20 max-h-96 flex flex-col">
+                <div className="fixed top-14 right-8 w-96 bg-white border border-slate-200 rounded-lg shadow-xl z-50 max-h-96 flex flex-col">
                     {/* 抽屉头部 */}
                     <div className="flex items-center justify-between p-3 border-b border-slate-200">
                       <div className="flex items-center gap-2">
