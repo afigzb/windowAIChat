@@ -257,8 +257,8 @@ export default function WritingPage() {
                   {/* 中间：DOCX编辑 */}
                   <Panel defaultSize={50}>
                     <div className="bg-white flex flex-col h-full">
-                      <div className="p-4 h-16 border-b border-slate-200">
-                        <div className="flex items-center justify-between min-w-0">
+                      <div className="p-4 h-16 border-b border-slate-200 flex items-center">
+                        <div className="flex items-center justify-between min-w-0 w-full">
                           <div className="flex items-center gap-3 min-w-0 flex-1">
                             <h2 
                               className="font-semibold text-slate-900 truncate" 
@@ -303,13 +303,18 @@ export default function WritingPage() {
                             )}
                           </div>
                         </div>
-                        {fileError && (
-                          <div className="mt-2 px-4 py-2 bg-red-50 text-red-600 text-sm rounded">{fileError}</div>
-                        )}
-                        {isFileLoading && (
-                          <div className="mt-2 px-4 py-2 bg-blue-50 text-blue-600 text-sm rounded">正在处理文件...</div>
-                        )}
                       </div>
+                      {/* 错误和加载状态显示区域 */}
+                      {(fileError || isFileLoading) && (
+                        <div className="px-4 py-2 border-b border-slate-200">
+                          {fileError && (
+                            <div className="px-4 py-2 bg-red-50 text-red-600 text-sm rounded">{fileError}</div>
+                          )}
+                          {isFileLoading && (
+                            <div className="px-4 py-2 bg-blue-50 text-blue-600 text-sm rounded">正在处理文件...</div>
+                          )}
+                        </div>
+                      )}
                       <div className="flex-1 p-4 overflow-hidden">
                         {openFile ? (
                           <DocxEditor 
