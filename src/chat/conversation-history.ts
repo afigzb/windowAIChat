@@ -10,14 +10,13 @@ export interface ConversationHistoryItem {
   timestamp: Date
   preview: string
   conversationTree: ConversationTree
-  mode: 'v3' | 'r1'
 }
 
 // 对话历史管理器的返回类型
 export interface ConversationHistoryManager {
   conversations: ConversationHistoryItem[]
   currentConversationId: string | null
-  createNewConversation: (mode?: 'v3' | 'r1') => string
+  createNewConversation: () => string
   loadConversation: (id: string) => ConversationTree | null
   updateConversation: (id: string, tree: ConversationTree) => void
   deleteConversation: (id: string) => void
@@ -129,15 +128,14 @@ export function useConversationHistory(): ConversationHistoryManager {
   }, [conversations, saveToStorage])
 
   // 创建新对话
-  const createNewConversation = useCallback((mode: 'v3' | 'r1' = 'r1'): string => {
+  const createNewConversation = useCallback((): string => {
     const newId = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     const newConversation: ConversationHistoryItem = {
       id: newId,
       title: '新对话',
       timestamp: new Date(),
       preview: '空对话',
-      conversationTree: createInitialConversationTree(''),
-      mode
+      conversationTree: createInitialConversationTree('')
     }
     
     setConversations(prev => [newConversation, ...prev])

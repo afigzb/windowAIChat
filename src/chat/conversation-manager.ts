@@ -2,8 +2,7 @@ import { useState, useRef, useCallback } from 'react'
 import type { 
   FlatMessage, 
   ConversationTree, 
-  AIConfig, 
-  ChatMode 
+  AIConfig
 } from './types'
 import { callAIAPI } from './api'
 import {
@@ -44,7 +43,6 @@ async function generateAIMessage(
   conversationHistory: FlatMessage[],
   placeholderMessage: FlatMessage,
   config: AIConfig,
-  currentMode: ChatMode,
   abortController: AbortController,
   onThinkingUpdate: (thinking: string) => void,
   onAnswerUpdate: (answer: string) => void,
@@ -69,7 +67,6 @@ async function generateAIMessage(
 
     const result = await callAIAPI(
       modifiedHistory,
-      currentMode,
       config,
       abortController.signal,
       (thinking) => {
@@ -113,12 +110,10 @@ async function generateAIMessage(
  * 对话管理器主Hook
  * 管理整个对话的状态和逻辑
  * @param config AI配置
- * @param currentMode 当前聊天模式
  * @param initialWelcomeMessage 初始欢迎消息
  */
 export function useConversationManager(
   config: AIConfig,
-  currentMode: ChatMode,
   initialWelcomeMessage?: string
 ) {
   // 核心状态：对话树
@@ -193,7 +188,6 @@ export function useConversationManager(
         conversationHistory,
         placeholderMessage,
         config,
-        currentMode,
         abortControllerRef.current,
         setCurrentThinking,
         setCurrentAnswer,
@@ -212,7 +206,7 @@ export function useConversationManager(
       clearStreamState()
       abortControllerRef.current = null
     }
-  }, [conversationTree, config, currentMode, updateConversationTree, clearStreamState])
+  }, [conversationTree, config, updateConversationTree, clearStreamState])
 
   // 中断当前请求
   const abortRequest = useCallback(() => {
@@ -321,7 +315,6 @@ export function useConversationManager(
         conversationHistory,
         newMessage,
         config,
-        currentMode,
         abortControllerRef.current,
         setCurrentThinking,
         setCurrentAnswer,
@@ -337,7 +330,7 @@ export function useConversationManager(
       clearStreamState()
       abortControllerRef.current = null
     }
-  }, [conversationTree, isLoading, config, currentMode, updateConversationTree, clearStreamState])
+  }, [conversationTree, isLoading, config, updateConversationTree, clearStreamState])
 
   // 获取当前要渲染的消息节点
   const activeNodes = getActiveNodesFromPath(conversationTree.activePath, conversationTree.rootNodes)

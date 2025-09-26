@@ -1,4 +1,4 @@
-import type { FlatMessage, ChatStreamResponse, AIConfig, ChatMode, ApiProviderConfig } from './types'
+import type { FlatMessage, ChatStreamResponse, AIConfig, ApiProviderConfig } from './types'
 
 /**
  * OpenAI 系适配器 - 处理 OpenAI 兼容的 API (DeepSeek、Kimi 等)
@@ -44,7 +44,6 @@ export class OpenAIAdapter {
    */
   private buildRequestBody(
     messages: FlatMessage[],
-    _currentMode: ChatMode,
     config: AIConfig
   ): Record<string, any> {
     const commonMessages = this.buildMessages(messages, config)
@@ -107,13 +106,12 @@ export class OpenAIAdapter {
    */
   async callAPI(
     messages: FlatMessage[],
-    currentMode: ChatMode,
     config: AIConfig,
     abortSignal: AbortSignal,
     onThinkingUpdate: (thinking: string) => void,
     onAnswerUpdate: (answer: string) => void
   ): Promise<{ reasoning_content?: string; content: string }> {
-    const requestBody = this.buildRequestBody(messages, currentMode, config)
+    const requestBody = this.buildRequestBody(messages, config)
     
     // 构建请求头
     const headers: Record<string, string> = {

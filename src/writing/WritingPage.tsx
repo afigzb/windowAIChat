@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { AIConfig, ChatMode } from '../chat/types'
+import type { AIConfig } from '../chat/types'
 import { DEFAULT_CONFIG } from '../chat/api'
 import { ChatPanel } from '../chat/ChatPanel'
 import { ApiProviderManager } from '../chat/components'
@@ -20,7 +20,6 @@ export default function WritingPage() {
     // 初始化时从存储加载配置
     return storage.initAIConfig(DEFAULT_CONFIG)
   })
-  const [currentMode, setCurrentMode] = useState<ChatMode>('r1')
   const [activeTool, setActiveTool] = useState<'workspace' | 'api' | 'settings'>('workspace')
 
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
@@ -341,8 +340,6 @@ export default function WritingPage() {
                     <ChatPanel
                       config={config}
                       onConfigChange={handleConfigChange}
-                      currentMode={currentMode}
-                      onModeChange={setCurrentMode}
                       additionalContent={getAdditionalContent}
                     />
                   </Panel>

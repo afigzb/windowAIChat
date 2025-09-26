@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
-import type { MessageNode, AIConfig, ChatMode, MessageBubbleProps, BranchNavigation, ApiProviderConfig, ProviderType } from './types'
+import type { MessageNode, AIConfig, MessageBubbleProps, BranchNavigation, ApiProviderConfig, ProviderType } from './types'
 import { DEFAULT_CONFIG } from './api'
 import { MarkdownRenderer } from './MarkdownRenderer'
 

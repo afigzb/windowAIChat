@@ -1,4 +1,4 @@
-import type { FlatMessage, AIConfig, ChatMode, ApiProviderConfig } from './types'
+import type { FlatMessage, AIConfig, ApiProviderConfig } from './types'
 
 /**
  * Gemini 系适配器 - 专门处理 Google Gemini API
@@ -44,7 +44,6 @@ export class GeminiAdapter {
    */
   private buildRequestBody(
     messages: FlatMessage[],
-    _currentMode: ChatMode,
     config: AIConfig
   ): Record<string, any> {
     const commonMessages = this.buildMessages(messages, config)
@@ -109,13 +108,12 @@ export class GeminiAdapter {
    */
   async callAPI(
     messages: FlatMessage[],
-    currentMode: ChatMode,
     config: AIConfig,
     abortSignal: AbortSignal,
     onThinkingUpdate: (thinking: string) => void,
     onAnswerUpdate: (answer: string) => void
   ): Promise<{ reasoning_content?: string; content: string }> {
-    const requestBody = this.buildRequestBody(messages, currentMode, config)
+    const requestBody = this.buildRequestBody(messages, config)
     
     // 构建请求URL（包含API Key）
     const fetchUrl = `${this.provider.baseUrl}?key=${this.provider.apiKey}`

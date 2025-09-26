@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import type { AIConfig, ChatMode } from './types'
+import type { AIConfig } from './types'
 import { MessageBubble, ChatInputArea } from './components'
 import { useConversationManager } from './conversation-manager'
 import { useBranchManager } from './branch-manager'
@@ -9,16 +9,12 @@ import { ConfirmDialog } from '../writing/components/ConfirmDialog'
 interface ChatPanelProps {
   config: AIConfig
   onConfigChange: (config: AIConfig) => void
-  currentMode: ChatMode
-  onModeChange: (mode: ChatMode) => void
   additionalContent?: (() => Promise<string>) | string // 额外的上下文内容（如选中的文件内容）
 }
 
 export function ChatPanel({
   config,
   onConfigChange,
-  currentMode,
-  onModeChange,
   additionalContent
 }: ChatPanelProps) {
   const [showHistoryDrawer, setShowHistoryDrawer] = useState(false)
@@ -38,7 +34,7 @@ export function ChatPanel({
     actions: conversationActions,
     activeNodes,
     regenerateMessage
-  } = useConversationManager(config, currentMode)
+  } = useConversationManager(config)
 
   // 分支管理器
   const branchManager = useBranchManager({
@@ -55,7 +51,7 @@ export function ChatPanel({
   useEffect(() => {
     if (!currentConversationId) {
       if (conversationHistory.conversations.length === 0) {
-        const newId = conversationHistory.createNewConversation(currentMode)
+        const newId = conversationHistory.createNewConversation()
         setCurrentConversationId(newId)
       } else {
         // 使用conversation-history中已经处理好的活跃对话ID
@@ -137,7 +133,7 @@ export function ChatPanel({
     
     // 如果删除后没有对话了，创建新对话
     if (conversationHistory.conversations.length === 0) {
-      const newId = conversationHistory.createNewConversation(currentMode)
+          const newId = conversationHistory.createNewConversation()
       setCurrentConversationId(newId)
     } else {
       // 加载新的活跃对话
@@ -200,7 +196,7 @@ export function ChatPanel({
                       <div className="flex items-center gap-1">
                         <button 
                           onClick={() => {
-                            const newId = conversationHistory.createNewConversation(currentMode)
+                            const newId = conversationHistory.createNewConversation()
                             setCurrentConversationId(newId)
                             conversationActions.updateConversationTree(new Map(), [])
                           }}
@@ -387,7 +383,7 @@ export function ChatPanel({
         type="danger"
         onConfirm={() => {
           conversationHistory.clearAllConversations()
-          const newId = conversationHistory.createNewConversation(currentMode)
+          const newId = conversationHistory.createNewConversation()
           setCurrentConversationId(newId)
           conversationActions.updateConversationTree(new Map(), [])
           setShowClearConfirm(false)

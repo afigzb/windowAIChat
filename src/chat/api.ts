@@ -1,4 +1,4 @@
-import type { FlatMessage, AIConfig, ChatMode, ApiProviderConfig, ProviderType } from './types'
+import type { FlatMessage, AIConfig, ApiProviderConfig, ProviderType } from './types'
 import { OpenAIAdapter } from './openai-adapter'
 import { GeminiAdapter } from './gemini-adapter'
 
@@ -38,17 +38,11 @@ const DEFAULT_PROVIDERS: ApiProviderConfig[] = [
   },
   {
     id: 'gemini-flash',
-    name: 'Google Gemini 2.5 Flash (思考模式)',
+    name: 'Google Gemini 2.5 Flash',
     type: 'gemini',
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
     apiKey: '',
-    model: 'gemini-2.5-flash',
-    extraParams: {
-      // 启用Gemini思考配置（预算-1表示由服务端动态分配）
-      thinkingConfig: {
-        thinkingBudget: -1
-      }
-    }
+    model: 'gemini-2.5-flash'
   }
 ]
 
@@ -70,7 +64,6 @@ function getProviderType(provider: ApiProviderConfig): ProviderType {
 interface ChatAdapter {
   callAPI(
     messages: FlatMessage[],
-    currentMode: ChatMode,
     config: AIConfig,
     abortSignal: AbortSignal,
     onThinkingUpdate: (thinking: string) => void,
@@ -89,7 +82,6 @@ function createAdapter(provider: ApiProviderConfig): ChatAdapter {
  */
 export async function callAIAPI(
   messages: FlatMessage[],
-  currentMode: ChatMode,
   config: AIConfig,
   abortSignal: AbortSignal,
   onThinkingUpdate: (thinking: string) => void,
@@ -104,7 +96,6 @@ export async function callAIAPI(
 
   return await adapter.callAPI(
     messages,
-    currentMode,
     config,
     abortSignal,
     onThinkingUpdate,

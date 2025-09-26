@@ -3,8 +3,6 @@
 // 消息角色
 export type MessageRole = 'user' | 'assistant' | 'system'
 
-// 对话模式
-export type ChatMode = 'v3' | 'r1'
 
 // ===== 消息相关 =====
 
@@ -14,7 +12,7 @@ export interface FlatMessage {
   content: string
   role: MessageRole
   timestamp: Date
-  reasoning_content?: string  // R1模式的思考过程
+  reasoning_content?: string  // 思考过程（支持思考的模型使用）
   parentId: string | null     // 父消息ID，根消息为null
 }
 
