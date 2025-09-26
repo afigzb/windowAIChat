@@ -316,7 +316,6 @@ export function ApiProviderManager({ config, onConfigChange }: {
   const [editingProvider, setEditingProvider] = useState<ApiProviderConfig | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [deletingProvider, setDeletingProvider] = useState<string | null>(null)
-  const [testingProvider, setTestingProvider] = useState<string | null>(null)
   
   const handleSaveProvider = (provider: ApiProviderConfig) => {
     const newProviders = editingProvider
@@ -360,94 +359,6 @@ export function ApiProviderManager({ config, onConfigChange }: {
     })
   }
 
-  const [testResults, setTestResults] = useState<Record<string, 'success' | 'error' | null>>({})
-
-  const testOpenAICompatible = async (provider: ApiProviderConfig): Promise<boolean> => {
-    try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      }
-      
-      if (provider.apiKey) {
-        headers['Authorization'] = `Bearer ${provider.apiKey}`
-      }
-
-      const response = await fetch(provider.baseUrl, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          model: provider.model,
-          messages: [{ role: 'user', content: 'Hi' }],
-          max_tokens: 1,
-          stream: false
-        }),
-        signal: AbortSignal.timeout(10000) // 10秒超时
-      })
-
-      return response.ok
-    } catch (error) {
-      console.error('OpenAI API测试失败:', error)
-      return false
-    }
-  }
-
-  const testGeminiAPI = async (provider: ApiProviderConfig): Promise<boolean> => {
-    try {
-      const url = provider.apiKey 
-        ? `${provider.baseUrl}?key=${provider.apiKey}`
-        : provider.baseUrl
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{ text: 'Hi' }]
-          }],
-          generationConfig: {
-            maxOutputTokens: 1
-          }
-        }),
-        signal: AbortSignal.timeout(10000) // 10秒超时
-      })
-
-      return response.ok
-    } catch (error) {
-      console.error('Gemini API测试失败:', error)
-      return false
-    }
-  }
-
-  const handleTestConnection = async (providerId: string) => {
-    const provider = config.providers.find(p => p.id === providerId)
-    if (!provider) return
-
-    setTestingProvider(providerId)
-    try {
-      let success = false
-      
-      // 根据提供商类型选择测试方法
-      if (provider.type === 'gemini') {
-        success = await testGeminiAPI(provider)
-      } else {
-        // 默认使用 OpenAI 兼容测试（包括 type 为空的情况）
-        success = await testOpenAICompatible(provider)
-      }
-      
-      setTestResults(prev => ({ ...prev, [providerId]: success ? 'success' : 'error' }))
-    } catch (error) {
-      console.error('API连接测试失败:', error)
-      setTestResults(prev => ({ ...prev, [providerId]: 'error' }))
-    } finally {
-      setTestingProvider(null)
-      // 5秒后清除测试结果
-      setTimeout(() => {
-        setTestResults(prev => ({ ...prev, [providerId]: null }))
-      }, 5000)
-    }
-  }
   
   return (
     <div className="space-y-6">
@@ -482,8 +393,6 @@ export function ApiProviderManager({ config, onConfigChange }: {
       <div className="grid gap-4">
         {config.providers.map((provider) => {
           const isActive = provider.id === config.currentProviderId
-          const isTesting = testingProvider === provider.id
-          const testResult = testResults[provider.id]
           const isEditing = editingProvider?.id === provider.id
           
           return (
@@ -509,17 +418,6 @@ export function ApiProviderManager({ config, onConfigChange }: {
                         <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
                           {provider.type === 'openai' || !provider.type ? 'OpenAI 兼容' : 'Google Gemini'}
                         </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        {testResult && (
-                          <span className={`text-xs px-2 py-0.5 rounded ${
-                            testResult === 'success' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {testResult === 'success' ? '连接成功' : '连接失败'}
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -547,31 +445,19 @@ export function ApiProviderManager({ config, onConfigChange }: {
                 
                 {/* 操作按钮 */}
                 <div className="flex items-center gap-1 ml-4">
-                  {!isActive && (
-                    <button
-                      onClick={() => handleSwitchProvider(provider.id)}
-                      className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                      title="切换到此配置"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </button>
-                  )}
-                  
                   <button
-                    onClick={() => handleTestConnection(provider.id)}
-                    disabled={isTesting}
-                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
-                    title="测试连接"
+                    onClick={() => handleSwitchProvider(provider.id)}
+                    className={`p-2 rounded-lg transition-colors ${
+                      isActive 
+                        ? 'text-green-600 bg-green-50 cursor-default' 
+                        : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
+                    }`}
+                    title={isActive ? '当前使用的配置' : '切换到此配置'}
+                    disabled={isActive}
                   >
-                    {isTesting ? (
-                      <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                    )}
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                   </button>
                   
                   <button
