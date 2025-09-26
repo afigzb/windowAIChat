@@ -64,53 +64,44 @@ export class GeminiAdapter {
       }
     }
     
-    const base = {
-      contents,
-      generationConfig: { temperature: 0.9, maxOutputTokens: 2048 }
+    // 构建生成配置，优先使用provider配置的maxTokens
+    const generationConfig: Record<string, any> = { 
+      temperature: 0.9, 
+      maxOutputTokens: this.provider.maxTokens || 2048 
     }
     
-    return this.provider.extraParams ? { ...base, ...this.provider.extraParams } : base
+    let base: Record<string, any> = {
+      contents,
+      generationConfig
+    }
+    
+    base = this.provider.extraParams ? { ...base, ...this.provider.extraParams } : base
+
+    // 代码配置模式：允许用户以JSON覆盖或扩展请求体
+    if (this.provider.enableCodeConfig && this.provider.codeConfigJson) {
+      try {
+        const userJson = JSON.parse(this.provider.codeConfigJson)
+        // 更新策略：始终用我们构建的 contents 覆盖用户提供的 contents
+        base = {
+          ...base,
+          ...userJson,
+          contents: base.contents
+        }
+      } catch (e) {
+        // 忽略JSON解析失败，继续使用表单模式
+      }
+    }
+
+    return base
   }
 
-  /**
-   * 提取 Gemini 响应中的最终答案与可能的思考内容
-   * 由于Google的返回结构在不同版本/SDK之间可能存在差异，这里做尽量稳健的提取。
-   */
-  private extractGeminiOutputs(result: any): { thinking: string; answer: string } {
-    const candidate = result?.candidates?.[0] || {}
-    const parts = candidate?.content?.parts || []
-
-    let answerText = ''
-    let reasoningText = ''
-
-    for (const p of parts) {
-      if (p && typeof p.text === 'string') {
-        answerText += (answerText ? '\n' : '') + p.text
-      }
-      // 兼容可能的思考字段命名
-      if (p && typeof p.thought === 'string') {
-        reasoningText += (reasoningText ? '\n' : '') + p.thought
-      }
-      if (p && typeof p.reasoning === 'string') {
-        reasoningText += (reasoningText ? '\n' : '') + p.reasoning
-      }
-      if (p && p.thought && typeof p.thought.text === 'string') {
-        reasoningText += (reasoningText ? '\n' : '') + p.thought.text
-      }
-    }
-
-    // 兜底：尝试从candidate或顶层读取
-    if (!reasoningText) {
-      if (typeof candidate?.reasoning === 'string') {
-        reasoningText = candidate.reasoning
-      } else if (typeof candidate?.thoughts === 'string') {
-        reasoningText = candidate.thoughts
-      } else if (typeof result?.reasoning === 'string') {
-        reasoningText = result.reasoning
-      }
-    }
-
-    return { thinking: reasoningText, answer: answerText }
+  // 简化提取：仅从 parts[].text 聚合为最终答案
+  private extractAnswer(result: any): string {
+    const parts = result?.candidates?.[0]?.content?.parts || []
+    const texts = parts
+      .map((p: any) => (p && typeof p.text === 'string' ? p.text : ''))
+      .filter((t: string) => !!t)
+    return texts.join('\n').trim()
   }
 
   /**
@@ -138,8 +129,6 @@ export class GeminiAdapter {
       Object.assign(headers, this.provider.extraHeaders)
     }
 
-    console.log('📤 发送给 Gemini API:', JSON.stringify(requestBody.contents, null, 2))
-
     const response = await fetch(fetchUrl, {
       method: 'POST',
       headers,
@@ -154,21 +143,13 @@ export class GeminiAdapter {
 
     // Gemini 非流式响应
     const result = await response.json()
-    const extracted = this.extractGeminiOutputs(result)
-    
-    const content = extracted.answer || result.candidates?.[0]?.content?.parts?.[0]?.text || '抱歉，我无法理解您的问题。'
-    let reasoning_content: string | undefined
-
-    if (extracted.thinking) {
-      reasoning_content = extracted.thinking
-      onThinkingUpdate(reasoning_content)
+    const content = this.extractAnswer(result)
+    if (!content) {
+      throw new Error('Gemini API 返回空响应内容')
     }
-    
+
     onAnswerUpdate(content)
 
-    return {
-      reasoning_content,
-      content
-    }
+    return { content }
   }
 }

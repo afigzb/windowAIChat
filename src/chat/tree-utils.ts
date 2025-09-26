@@ -2,8 +2,7 @@ import type {
   FlatMessage, 
   MessageNode, 
   ConversationTree, 
-  BranchNavigation, 
-  RegenerateContext 
+  BranchNavigation 
 } from './types'
 
 // ===== 工具函数 =====
@@ -82,28 +81,12 @@ export function buildNodeMap(roots: MessageNode[]): Map<string, MessageNode> {
 }
 
 // 在树中查找节点（使用预构建的节点映射）
-export function findNode(nodeId: string, roots: MessageNode[]): MessageNode | null {
-  return buildNodeMap(roots).get(nodeId) || null
-}
+// 已移除未使用的 findNode
 
 // ===== 路径管理 =====
 
 // 获取从根到指定节点的路径（利用扁平存储直接追溯）
-export function getPathToNode(nodeId: string, flatMessages: Map<string, FlatMessage>): string[] {
-  const path: string[] = []
-  let currentId: string | null = nodeId
-
-  // 从目标节点向上追溯到根节点
-  while (currentId) {
-    const message = flatMessages.get(currentId)
-    if (!message) break
-    
-    path.unshift(currentId) // 插入到开头，构建正向路径
-    currentId = message.parentId
-  }
-
-  return path
-}
+// 已移除未使用的 getPathToNode
 
 // 根据激活路径获取要渲染的节点序列
 export function getActiveNodesFromPath(activePath: string[], roots: MessageNode[]): MessageNode[] {
@@ -237,27 +220,7 @@ export function getConversationHistory(nodeId: string, flatMessages: Map<string,
 // ===== 重新生成支持 =====
 
 // 获取重新生成的上下文
-export function getRegenerateContext(nodeId: string, flatMessages: Map<string, FlatMessage>): RegenerateContext | null {
-  const targetMessage = flatMessages.get(nodeId)
-  if (!targetMessage) return null
-
-  // 对于AI消息，重新生成意味着要替换这条消息
-  // 对于用户消息，重新生成意味着要基于这条消息生成新的AI回复
-  const parentNodeId = targetMessage.role === 'assistant' 
-    ? targetMessage.parentId || '' 
-    : nodeId
-
-  // 获取到父节点为止的对话历史
-  const conversationHistory = parentNodeId 
-    ? getConversationHistory(parentNodeId, flatMessages)
-    : []
-
-  return {
-    targetNodeId: nodeId,
-    parentNodeId,
-    conversationHistory
-  }
-}
+// 已移除未使用的 getRegenerateContext
 
 // ===== 树操作 =====
 

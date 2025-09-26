@@ -50,33 +50,14 @@ class StorageManager {
     try {
       const storedConfig = this.loadData(STORAGE_KEYS.AI_CONFIG, defaultConfig)
       
-      // 检查配置完整性：providers 和 currentProviderId 必须存在
-      if (!(storedConfig as any).providers || !(storedConfig as any).currentProviderId) {
-        console.warn('检测到旧版AI配置，迁移到多Provider配置')
-        // 从旧配置迁移
-        const oldConfig = storedConfig as any
-        const migrated: AIConfig = {
-          currentProviderId: 'deepseek-chat',
-          providers: [
-            {
-              id: 'deepseek-chat',
-              name: 'DeepSeek Chat',
-              type: 'openai',
-              baseUrl: oldConfig.provider?.baseUrl || 'https://api.deepseek.com/v1/chat/completions',
-              apiKey: oldConfig.provider?.apiKey || oldConfig.apiKey || '',
-              model: oldConfig.provider?.model || 'deepseek-chat'
-            }
-          ],
-          historyLimit: oldConfig.historyLimit ?? defaultConfig.historyLimit,
-          systemPrompt: oldConfig.systemPrompt ?? defaultConfig.systemPrompt
-        }
-        this.currentConfig = migrated
-        this.saveAIConfig(this.currentConfig)
+      // 简单验证：如果配置结构不对，直接用默认配置
+      if (!storedConfig.providers || !storedConfig.currentProviderId) {
+        console.warn('存储的AI配置格式不兼容，使用默认配置')
+        this.currentConfig = { ...defaultConfig }
       } else {
-        this.currentConfig = storedConfig as AIConfig
+        this.currentConfig = storedConfig
       }
       
-      console.log('已加载AI配置:', this.currentConfig)
       return this.currentConfig
     } catch (error) {
       console.warn('加载AI配置失败，使用默认配置:', error)
@@ -91,7 +72,6 @@ class StorageManager {
   saveAIConfig(config: AIConfig): void {
     this.currentConfig = { ...config }
     this.saveData(STORAGE_KEYS.AI_CONFIG, config)
-    console.log('AI配置已保存:', config)
   }
 
   /**

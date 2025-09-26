@@ -49,13 +49,38 @@ export class OpenAIAdapter {
   ): Record<string, any> {
     const commonMessages = this.buildMessages(messages, config)
     
-    const base = {
+    const base: Record<string, any> = {
       model: this.provider.model,
       messages: commonMessages,
       stream: true
     }
     
-    return this.provider.extraParams ? { ...base, ...this.provider.extraParams } : base
+    // 添加最大token数限制（如果配置了）
+    if (this.provider.maxTokens && this.provider.maxTokens > 0) {
+      base.max_tokens = this.provider.maxTokens
+    }
+    
+    let merged: Record<string, any> = this.provider.extraParams ? { ...base, ...this.provider.extraParams } : base
+
+    // 代码配置模式：允许用户以JSON覆盖或扩展请求体
+    if (this.provider.enableCodeConfig && this.provider.codeConfigJson) {
+      try {
+        const userJson = JSON.parse(this.provider.codeConfigJson)
+
+        // 合并策略（更新）：
+        // - 其他字段：浅合并，用户优先
+        // - messages：始终使用系统构建的对话历史（覆盖用户提供的 messages）
+        merged = {
+          ...merged,
+          ...userJson,
+          messages: base.messages
+        }
+      } catch (e) {
+        // JSON 解析失败时，忽略用户配置，继续使用表单模式
+      }
+    }
+
+    return merged
   }
 
   /**
@@ -100,8 +125,6 @@ export class OpenAIAdapter {
       Object.assign(headers, this.provider.extraHeaders)
     }
 
-    console.log('📤 发送给 OpenAI 兼容 API 的消息:', JSON.stringify(requestBody.messages, null, 2))
-
     const response = await fetch(this.provider.baseUrl, {
       method: 'POST',
       headers,
@@ -142,9 +165,13 @@ export class OpenAIAdapter {
       reader.releaseLock()
     }
 
+    if (!content) {
+      throw new Error('OpenAI 兼容 API 返回空响应内容')
+    }
+
     return {
       reasoning_content: reasoning_content || undefined,
-      content: content || '抱歉，我无法理解您的问题。'
+      content
     }
   }
 }

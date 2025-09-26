@@ -45,13 +45,6 @@ export interface BranchNavigation {
   canNavigateRight: boolean // 是否可以向右切换
 }
 
-// 重新生成上下文
-export interface RegenerateContext {
-  targetNodeId: string      // 要重新生成的目标节点ID
-  parentNodeId: string      // 父节点ID
-  conversationHistory: FlatMessage[]  // 到目标节点为止的对话历史
-}
-
 // ===== API相关 =====
 
 // OpenAI 格式的流式响应（适用于OpenAI兼容的API）
@@ -77,8 +70,12 @@ export interface ApiProviderConfig {
   baseUrl: string          // 完整的聊天补全接口URL
   apiKey: string           // API密钥
   model: string            // 模型名称
+  maxTokens?: number       // 最大输出令牌数（可选）
   extraHeaders?: Record<string, string>  // 额外请求头
   extraParams?: Record<string, any>      // 额外请求体参数
+  // 代码配置模式
+  enableCodeConfig?: boolean             // 是否启用代码配置模式
+  codeConfigJson?: string               // 用户填写的原始JSON字符串
 }
 
 // AI配置类型（精细参数已废弃）
@@ -90,11 +87,6 @@ export interface AIConfig {
 }
 
 // ===== 组件Props =====
-
-// 聊天页面属性（暂时保留接口以保持兼容性）
-export interface ChatPageProps {
-  // 已删除onBack属性
-}
 
 // 消息气泡属性（优化后）
 export interface MessageBubbleProps {
@@ -112,11 +104,3 @@ export interface MessageBubbleProps {
 }
 
 // ===== 工具函数类型 =====
-
-// 树构建器
-export interface TreeBuilder {
-  buildTreeFromFlat: (flatMessages: Map<string, FlatMessage>) => MessageNode[]
-  getConversationHistory: (targetNodeId: string, flatMessages: Map<string, FlatMessage>) => FlatMessage[]
-  findNode: (nodeId: string, roots: MessageNode[]) => MessageNode | null
-  getBranchNavigation: (nodeId: string, activePath: string[], roots: MessageNode[]) => BranchNavigation
-} 

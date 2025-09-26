@@ -67,6 +67,22 @@ function getProviderType(provider: ApiProviderConfig): ProviderType {
   return provider.type
 }
 
+interface ChatAdapter {
+  callAPI(
+    messages: FlatMessage[],
+    currentMode: ChatMode,
+    config: AIConfig,
+    abortSignal: AbortSignal,
+    onThinkingUpdate: (thinking: string) => void,
+    onAnswerUpdate: (answer: string) => void
+  ): Promise<{ reasoning_content?: string; content: string }>
+}
+
+function createAdapter(provider: ApiProviderConfig): ChatAdapter {
+  const type = getProviderType(provider)
+  return type === 'gemini' ? new GeminiAdapter(provider) : new OpenAIAdapter(provider)
+}
+
 /**
  * 通用AI API调用函数 - 统一接口层
  * 根据配置的提供商类型选择合适的适配器（不再自动检测）
@@ -83,18 +99,9 @@ export async function callAIAPI(
   if (!currentProvider) {
     throw new Error(`找不到API配置: ${config.currentProviderId}`)
   }
-  
-  // 使用配置中的提供商类型创建对应的适配器
-  const providerType = getProviderType(currentProvider)
-  let adapter: OpenAIAdapter | GeminiAdapter
 
-  if (providerType === 'gemini') {
-    adapter = new GeminiAdapter(currentProvider)
-  } else {
-    adapter = new OpenAIAdapter(currentProvider)
-  }
+  const adapter = createAdapter(currentProvider)
 
-  // 通过适配器调用 API
   return await adapter.callAPI(
     messages,
     currentMode,

@@ -952,7 +952,10 @@ function ApiProviderForm({ provider, onSave, onCancel, inline = false }: {
       type: 'openai',
       baseUrl: '',
       apiKey: '',
-      model: ''
+      model: '',
+      maxTokens: undefined,
+      enableCodeConfig: false,
+      codeConfigJson: ''
     }
   )
   
@@ -976,8 +979,18 @@ function ApiProviderForm({ provider, onSave, onCancel, inline = false }: {
       }
     }
     
-    if (!formData.model.trim()) {
-      newErrors.model = '请输入模型名称'
+    if (!formData.enableCodeConfig) {
+      if (!formData.model.trim()) {
+        newErrors.model = '请输入模型名称'
+      }
+    }
+
+    if (formData.enableCodeConfig && formData.codeConfigJson) {
+      try {
+        JSON.parse(formData.codeConfigJson)
+      } catch (e) {
+        newErrors.codeConfigJson = '代码配置JSON格式不正确'
+      }
     }
     
     setErrors(newErrors)
@@ -1106,25 +1119,88 @@ function ApiProviderForm({ provider, onSave, onCancel, inline = false }: {
           )}
         </div>
         
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            模型名称 <span className="text-red-500">*</span>
+        {!formData.enableCodeConfig && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              模型名称 <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.model}
+              onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+              placeholder="如: gpt-4o, claude-3, kimi-chat"
+              className={getFieldClass('model')}
+              required={!formData.enableCodeConfig}
+            />
+            {errors.model && <p className="text-red-500 text-xs mt-1">{errors.model}</p>}
+            {!inline && (
+              <p className="text-xs text-gray-500 mt-1">
+                具体的模型标识符
+              </p>
+            )}
+          </div>
+        )}
+        
+        {!formData.enableCodeConfig && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              最大输出Tokens
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="10000000"
+              value={formData.maxTokens || ''}
+              onChange={(e) => setFormData({ 
+                ...formData, 
+                maxTokens: e.target.value ? parseInt(e.target.value) : undefined 
+              })}
+              placeholder="如果没查看api文档，请留空，错误的值会导致api报错"
+              className={getFieldClass('maxTokens')}
+            />
+            {!inline && (
+              <p className="text-xs text-gray-500 mt-1">
+                限制AI回复的最大令牌数，留空使用模型默认值
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* 代码配置模式开关 */}
+        <div className="pt-2">
+          <label className="inline-flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={!!formData.enableCodeConfig}
+              onChange={(e) => setFormData({ ...formData, enableCodeConfig: e.target.checked })}
+              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span className="text-sm font-medium text-gray-700">启用代码配置模式</span>
           </label>
-          <input
-            type="text"
-            value={formData.model}
-            onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-            placeholder="如: gpt-4o, claude-3, kimi-chat"
-            className={getFieldClass('model')}
-            required
-          />
-          {errors.model && <p className="text-red-500 text-xs mt-1">{errors.model}</p>}
-          {!inline && (
-            <p className="text-xs text-gray-500 mt-1">
-              具体的模型标识符
-            </p>
-          )}
+          <p className="text-xs text-gray-500 mt-1">使用你自己的JSON作为请求体。我们会自动拼接对话历史。</p>
         </div>
+
+        {/* 代码配置JSON编辑器 */}
+        {formData.enableCodeConfig && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              代码配置 JSON
+            </label>
+            <textarea
+              value={formData.codeConfigJson || ''}
+              onChange={(e) => setFormData({ ...formData, codeConfigJson: e.target.value })}
+              className={`${getFieldClass('codeConfigJson')} font-mono h-48`}
+              placeholder={formData.type === 'openai' 
+                ? '{\n  "model": "gpt-4o",\n  "stream": true,\n  "temperature": 0.7,\n  "max_tokens": 1024\n}'
+                : '{\n  "generationConfig": {\n    "maxOutputTokens": 2048,\n    "temperature": 0.9\n  }\n}'
+              }
+            />
+            {errors.codeConfigJson && <p className="text-red-500 text-xs mt-1">{errors.codeConfigJson}</p>}
+            <p className="text-xs text-gray-500 mt-1">
+              提示：消息始终使用系统维护的对话历史，JSON 中的 <code className="font-mono">messages/contents</code> 会被忽略。
+            </p>
+          </div>
+        )}
         
         <div className={`flex gap-3 ${inline ? 'pt-3' : 'pt-4 border-t border-gray-200'}`}>
           <button
@@ -1151,85 +1227,6 @@ function ApiProviderForm({ provider, onSave, onCancel, inline = false }: {
           </button>
         </div>
       </form>
-    </div>
-  )
-}
-
-// AI设置面板
-export function AISettings({ config, onConfigChange, onClose, isOpen }: {
-  config: AIConfig
-  onConfigChange: (config: AIConfig) => void
-  onClose: () => void
-  isOpen: boolean
-}) {
-  return (
-    <div className={`fixed top-0 left-0 h-full w-80 bg-white z-50 border-r border-slate-200 transition-transform duration-300 ${
-      isOpen ? 'translate-x-0' : '-translate-x-full'
-    }`}>
-      <div className="flex flex-col h-full">
-        <div className="flex h-16 items-center justify-between p-4 border-b border-slate-200">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-2xl bg-indigo-600 flex items-center justify-center">
-              <Icon name="settings" className="w-5 h-5 text-white" />
-            </div>
-            <h2 className="text-lg font-semibold text-gray-900">模型设置</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors"
-          >
-            <Icon name="close" className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-6 space-y-8">
-          {/* API配置管理 */}
-          <ApiProviderManager config={config} onConfigChange={onConfigChange} />
-
-          {/* 对话设置 */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gray-900">对话设置</h3>
-            
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">系统提示</label>
-              <textarea
-                value={config.systemPrompt}
-                onChange={(e) => onConfigChange({ ...config, systemPrompt: e.target.value })}
-                placeholder="设置AI的角色和行为..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm min-h-[80px] resize-none"
-                rows={3}
-              />
-              <p className="text-xs text-gray-500">定义AI的角色定位和回答风格</p>
-            </div>
-            
-            <Slider
-              label="历史消息保留数量"
-              value={config.historyLimit}
-              onChange={(historyLimit) => onConfigChange({
-                ...config,
-                historyLimit
-              })}
-              min={4}
-              max={80}
-              step={2}
-              marks={['4条', '40条 推荐', '80条']}
-              formatValue={(v) => `${v}条消息 (${Math.floor(v/2)}次对话)`}
-            />
-            <p className="text-xs text-gray-500">为节约tokens，只保留最近的消息发送给AI</p>
-          </div>
-
-          {/* 已废除的精细参数控制移除 */}
-        </div>
-
-        <div className="p-6 border-t border-slate-200">
-          <button
-            onClick={() => onConfigChange(DEFAULT_CONFIG)}
-            className="w-full px-4 py-3 text-slate-600 border border-gray-300 rounded-xl hover:bg-slate-50 transition-colors font-medium"
-          >
-            重置为默认设置
-          </button>
-        </div>
-      </div>
     </div>
   )
 }
