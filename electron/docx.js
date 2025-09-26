@@ -68,24 +68,8 @@ class DocxHandler {
    * @returns {string} 处理后的HTML内容
    */
   postProcessHtml(html) {
-    // 添加基础CSS样式
-    const styles = `
-      <style>
-        /* 确保基础样式可见 */
-        ul { list-style-type: disc; padding-left: 1.5rem; margin: 0.5rem 0; }
-        ol { list-style-type: decimal; padding-left: 1.5rem; margin: 0.5rem 0; }
-        li { margin: 0.25rem 0; }
-        strong { font-weight: bold; }
-        em { font-style: italic; }
-        h1 { font-size: 2em; font-weight: bold; margin: 0.67em 0; }
-        h2 { font-size: 1.5em; font-weight: bold; margin: 0.75em 0; }
-        h3 { font-size: 1.17em; font-weight: bold; margin: 0.83em 0; }
-        p { margin: 0.5em 0; }
-      </style>
-    `
-    
-    // 直接返回样式 + HTML内容，不进行复杂转换
-    return styles + html
+    // 包裹统一主题类，便于在渲染层应用一致样式
+    return `<div class="content-theme">${html}</div>`
   }
 
 

@@ -106,12 +106,12 @@ export const MarkdownRenderer = memo<MarkdownRendererProps>(function MarkdownRen
     
     // 列表
     ul: ({ children }: any) => (
-      <ul className="list-disc list-inside mb-4 space-y-1 text-gray-800">
+      <ul className="list-disc list-outside pl-6 mb-4 space-y-1 text-gray-800">
         {children}
       </ul>
     ),
     ol: ({ children }: any) => (
-      <ol className="list-decimal list-inside mb-4 space-y-1 text-gray-800">
+      <ol className="list-decimal list-outside pl-6 mb-4 space-y-1 text-gray-800">
         {children}
       </ol>
     ),
@@ -195,7 +195,7 @@ export const MarkdownRenderer = memo<MarkdownRendererProps>(function MarkdownRen
   }), [theme])
   
   return (
-    <div className={`markdown-content ${className}`}>
+    <div className={`markdown-content content-theme ${className}`}>
       <ReactMarkdown
         remarkPlugins={remarkPlugins}
         rehypePlugins={rehypePlugins}

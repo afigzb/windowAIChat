@@ -68,7 +68,7 @@ export function DocxEditor({
         onInput={handleInput}
         onPaste={handlePaste}
 
-        className="flex-1 p-4 overflow-y-auto focus:outline-none"
+        className="flex-1 p-4 overflow-y-auto focus:outline-none content-theme"
         style={{ 
           fontFamily: 'system-ui, -apple-system, sans-serif', 
           lineHeight: '1.6',
