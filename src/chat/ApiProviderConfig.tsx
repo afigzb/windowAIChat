@@ -8,7 +8,7 @@ const Icon = ({ name, className = "w-4 h-4" }: { name: 'close' | 'edit'; classNa
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       {name === 'close' && (
-        <path className='scale-110' strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" />
+        <path className='scale-110' strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" />
       )}
       {name === 'edit' && (
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -281,7 +281,15 @@ function ApiProviderForm({ provider, onSave, onCancel, inline = false }: {
           </div>
         )}
         
-        <div className={`flex gap-3 ${inline ? 'pt-3' : 'pt-4 border-t border-gray-200'}`}>
+        <div className={`flex gap-3 ${inline ? 'pt-3 justify-end' : 'pt-4 border-t border-gray-200'}`}>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="px-6 py-3 bg-gray-100 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            取消
+          </button>
           <button
             type="submit"
             disabled={isSubmitting}
@@ -295,14 +303,6 @@ function ApiProviderForm({ provider, onSave, onCancel, inline = false }: {
             ) : (
               provider ? '保存修改' : '添加配置'
             )}
-          </button>
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isSubmitting}
-            className="px-6 py-3 bg-gray-100 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            取消
           </button>
         </div>
       </form>
@@ -382,7 +382,10 @@ export function ApiProviderManager({ config, onConfigChange }: {
           <p className="text-base text-gray-600 mt-2">管理你的AI服务提供商配置</p>
         </div>
         <button
-          onClick={() => setShowAddForm(true)}
+          onClick={() => {
+            setEditingProvider(null) // 自动取消编辑配置
+            setShowAddForm(true)
+          }}
           className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-semibold rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-md hover:shadow-xl transform hover:scale-105"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -398,7 +401,7 @@ export function ApiProviderManager({ config, onConfigChange }: {
           provider={null}
           onSave={handleSaveProvider}
           onCancel={() => setShowAddForm(false)}
-          inline={false}
+          inline={true}
         />
       )}
       

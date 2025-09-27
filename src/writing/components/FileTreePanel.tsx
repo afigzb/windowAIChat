@@ -83,7 +83,7 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
             )}
           </div>
           {/* 固定高度的文件列表区域 */}
-          <div className="h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-blue-100 bg-white rounded-lg p-1 mt-2">
+          <div className="h-24 overflow-y-auto scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-blue-100 bg-white rounded-lg p-1 mt-2">
             <div className="space-y-1">
               {selectedFiles && Array.from(selectedFiles).map(filePath => (
                 <div key={filePath} className="flex items-center justify-between text-sm py-1 px-1.5 rounded hover:bg-blue-100 transition-all duration-200 group min-w-0">

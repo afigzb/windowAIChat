@@ -200,7 +200,7 @@ export function ChatPanel({
     <div className="bg-gradient-to-br from-gray-50 to-slate-50 border-l-2 border-gray-200 flex flex-col h-full min-w-0">
 
       {/* AI区域标题 - 固定高度，不换行 */}
-      <header className="flex-shrink-0 px-6 py-4 h-20 border-b-2 border-gray-200 bg-white shadow-sm">
+      <header className="flex-shrink-0 px-6 py-4 h-16 border-b-2 border-gray-200 bg-white shadow-sm">
         <div className="flex items-center justify-between h-full min-w-0 gap-3">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className="w-3 h-3 bg-blue-500 rounded-full flex-shrink-0 animate-pulse shadow-lg shadow-blue-500/30"></div>
@@ -226,9 +226,9 @@ export function ChatPanel({
               
               {/* 对话历史抽屉 */}
               {showHistoryDrawer && (
-                <div className="fixed top-16 right-10 w-[420px] bg-white border-2 border-gray-200 rounded-2xl shadow-2xl z-50 max-h-[480px] flex flex-col">
+                <div className="fixed top-8 right-18 w-[420px] bg-white border-2 border-gray-200 rounded-xl shadow-2xl z-50 max-h-[480px] flex flex-col">
                     {/* 抽屉头部 */}
-                    <div className="flex items-center justify-between p-5 border-b-2 border-gray-200 bg-gradient-to-r from-gray-50 to-slate-50">
+                    <div className="flex items-center h-16 rounded-t-xl justify-between p-5 border-b-2 border-gray-200 bg-gradient-to-r from-gray-50 to-slate-50">
                       <div className="flex items-center gap-3">
                         <div className="w-3 h-3 bg-blue-500 rounded-full shadow-sm"></div>
                         <h3 className="text-base font-bold text-gray-900">对话历史</h3>
