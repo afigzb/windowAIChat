@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import type { AIConfig, ApiProviderConfig, ProviderType } from './types'
+import { ConfirmDialog } from '../writing/components/ConfirmDialog'
+import { useConfirm } from '../writing/hooks/useConfirm'
 
 // 图标组件（局部版本）
 const Icon = ({ name, className = "w-4 h-4" }: { name: 'close' | 'edit'; className?: string }) => {
@@ -315,7 +317,7 @@ export function ApiProviderManager({ config, onConfigChange }: {
 }) {
   const [editingProvider, setEditingProvider] = useState<ApiProviderConfig | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
-  const [deletingProvider, setDeletingProvider] = useState<string | null>(null)
+  const { confirm, confirmProps } = useConfirm()
   
   const handleSaveProvider = (provider: ApiProviderConfig) => {
     const newProviders = editingProvider
@@ -333,10 +335,23 @@ export function ApiProviderManager({ config, onConfigChange }: {
     setShowAddForm(false)
   }
   
-  const handleDeleteProvider = (providerId: string) => {
+  const handleDeleteProvider = async (providerId: string) => {
     if (config.providers.length <= 1) {
       return
     }
+    
+    const providerToDelete = config.providers.find(p => p.id === providerId)
+    if (!providerToDelete) return
+    
+    const shouldDelete = await confirm({
+      title: '确认删除',
+      message: `确定要删除配置 "${providerToDelete.name}" 吗？`,
+      confirmText: '删除',
+      cancelText: '取消',
+      type: 'danger'
+    })
+    
+    if (!shouldDelete) return
     
     const newProviders = config.providers.filter(p => p.id !== providerId)
     const newCurrentId = config.currentProviderId === providerId 
@@ -348,8 +363,6 @@ export function ApiProviderManager({ config, onConfigChange }: {
       providers: newProviders,
       currentProviderId: newCurrentId
     })
-    
-    setDeletingProvider(null)
   }
 
   const handleSwitchProvider = (providerId: string) => {
@@ -482,7 +495,7 @@ export function ApiProviderManager({ config, onConfigChange }: {
                   
                   {config.providers.length > 1 && (
                     <button
-                      onClick={() => setDeletingProvider(provider.id)}
+                      onClick={() => handleDeleteProvider(provider.id)}
                       className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 hover:shadow-sm"
                       title="删除配置"
                     >
@@ -530,41 +543,8 @@ export function ApiProviderManager({ config, onConfigChange }: {
       )}
       
 
-      {/* 删除确认对话框 */}
-      {deletingProvider && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl border-2 border-gray-200 transform transition-all duration-300 scale-100">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center shadow-md">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">确认删除</h3>
-                <p className="text-sm text-gray-600 mt-1">此操作无法撤销</p>
-              </div>
-            </div>
-            <p className="text-base text-gray-700 mb-8 leading-relaxed">
-              确定要删除配置 <span className="font-semibold text-gray-900">"{config.providers.find(p => p.id === deletingProvider)?.name}"</span> 吗？
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => handleDeleteProvider(deletingProvider)}
-                className="flex-1 px-5 py-3 bg-red-500 text-white text-sm font-semibold rounded-xl hover:bg-red-600 transition-all duration-200 shadow-md hover:shadow-lg"
-              >
-                删除
-              </button>
-              <button
-                onClick={() => setDeletingProvider(null)}
-                className="flex-1 px-5 py-3 bg-gray-100 text-gray-800 text-sm font-semibold rounded-xl hover:bg-gray-200 transition-all duration-200"
-              >
-                取消
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 统一的确认对话框 */}
+      <ConfirmDialog {...confirmProps} />
     </div>
   )
 }

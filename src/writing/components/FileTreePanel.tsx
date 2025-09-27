@@ -61,8 +61,8 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
   return (
     <div className="h-full flex flex-col">
       {/* 选中文件显示区域 - 始终显示，固定高度 */}
-      <div className="flex-shrink-0 p-5 border-b-2 border-gray-200 bg-gradient-to-r from-gray-50 to-slate-50">
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-4 min-w-0 shadow-sm">
+      <div className="flex-shrink-0 p-3 border-b-2 border-gray-200 bg-gradient-to-r from-gray-50 to-slate-50">
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-3 min-w-0 shadow-sm">
           <div className="flex items-center justify-between mb-2 min-w-0 gap-2">
             <div className="flex items-center min-w-0 flex-1">
               <h3 className="text-sm font-semibold text-blue-700 whitespace-nowrap flex-shrink-0">
@@ -83,24 +83,24 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
             )}
           </div>
           {/* 固定高度的文件列表区域 */}
-          <div className="h-20 overflow-y-auto scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-blue-100 bg-white rounded-lg p-2 mt-2">
-            <div className="space-y-1 pr-1">
+          <div className="h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-blue-100 bg-white rounded-lg p-1 mt-2">
+            <div className="space-y-1">
               {selectedFiles && Array.from(selectedFiles).map(filePath => (
-                <div key={filePath} className="flex items-center justify-between text-sm py-1.5 px-2 rounded-lg hover:bg-blue-100 transition-all duration-200 group min-w-0">
-                  <div className="text-blue-800 flex items-center flex-1 mr-2 min-w-0" title={filePath}>
-                    <svg className="w-4 h-4 text-blue-600 flex-shrink-0 mr-1.5" viewBox="0 0 24 24" fill="currentColor">
+                <div key={filePath} className="flex items-center justify-between text-sm py-1 px-1.5 rounded hover:bg-blue-100 transition-all duration-200 group min-w-0">
+                  <div className="text-blue-800 flex items-center flex-1 mr-1 min-w-0" title={filePath}>
+                    <svg className="w-3.5 h-3.5 text-blue-600 flex-shrink-0 mr-1" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M4 22V2h10l6 6v6h-2V9h-5V4H6v16h9v2zm17.95.375L19 19.425v2.225h-2V16h5.65v2H20.4l2.95 2.95zM6 20V4z"/>
                     </svg>
-                    <span className="truncate flex-1 min-w-0 font-medium">{getFileName(filePath)}</span>
+                    <span className="truncate flex-1 min-w-0 text-xs font-medium">{getFileName(filePath)}</span>
                   </div>
                   {onFileSelect && (
                     <button
                       onClick={() => onFileSelect(filePath, false)}
-                      className="text-blue-400 hover:text-red-500 p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 flex-shrink-0 hover:bg-red-50"
+                      className="text-gray-400 hover:text-red-500 p-0.5 rounded opacity-0 group-hover:opacity-100 transition-all duration-150 flex-shrink-0"
                       title="移除此文件"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
                   )}
@@ -120,9 +120,9 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
               )}
             </div>
           </div>
-          <div className="mt-3 text-sm font-medium text-blue-700 border-t-2 border-blue-200 pt-3 whitespace-nowrap overflow-hidden text-ellipsis">
+          {/* <div className="mt-3 text-sm font-medium text-blue-700 border-t-2 border-blue-200 pt-3 whitespace-nowrap overflow-hidden text-ellipsis">
             📄 文件将自动作为上下文发送
-          </div>
+          </div> */}
         </div>
       </div>
 

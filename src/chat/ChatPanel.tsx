@@ -5,6 +5,7 @@ import { useConversationManager } from './conversation-manager'
 import { useBranchManager } from './branch-manager'
 import { useConversationHistory } from './conversation-history'
 import { ConfirmDialog } from '../writing/components/ConfirmDialog'
+import { useConfirm } from '../writing/hooks/useConfirm'
 
 interface ChatPanelProps {
   config: AIConfig
@@ -18,12 +19,10 @@ export function ChatPanel({
   additionalContent
 }: ChatPanelProps) {
   const [showHistoryDrawer, setShowHistoryDrawer] = useState(false)
-  const [showClearConfirm, setShowClearConfirm] = useState(false)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [conversationToDelete, setConversationToDelete] = useState<{id: string, title: string} | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatInputRef = useRef<{ focus: () => void }>(null)
   const historyDrawerRef = useRef<HTMLDivElement>(null)
+  const { confirm, confirmProps } = useConfirm()
   
   // 对话历史管理
   const conversationHistory = useConversationHistory()
@@ -86,7 +85,7 @@ export function ChatPanel({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       // 如果有确认对话框打开，不处理外部点击
-      if (showClearConfirm || showDeleteConfirm) {
+      if (confirmProps.isOpen) {
         return
       }
       
@@ -99,7 +98,7 @@ export function ChatPanel({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [showHistoryDrawer, showClearConfirm, showDeleteConfirm])
+  }, [showHistoryDrawer, confirmProps.isOpen])
 
   // 处理发送
   const handleSendMessage = async () => {
@@ -122,18 +121,32 @@ export function ChatPanel({
   }
 
   // 处理删除对话
-  const handleDeleteConversation = () => {
-    if (!conversationToDelete) return
+  const handleDeleteConversation = async (conversationId: string, conversationTitle: string) => {
+    const shouldDelete = await confirm({
+      title: '确认删除',
+      message: `确定要删除对话"${conversationTitle}"吗？此操作不可恢复。`,
+      confirmText: '删除',
+      cancelText: '取消',
+      type: 'danger'
+    })
+    
+    if (!shouldDelete) {
+      // 恢复输入区域焦点
+      setTimeout(() => {
+        chatInputRef.current?.focus()
+      }, 100)
+      return
+    }
     
     // 删除对话，conversation-history会自动处理活跃对话的选择
-    conversationHistory.deleteConversation(conversationToDelete.id)
+    conversationHistory.deleteConversation(conversationId)
     
     // 同步更新本地的currentConversationId
     setCurrentConversationId(conversationHistory.currentConversationId)
     
     // 如果删除后没有对话了，创建新对话
     if (conversationHistory.conversations.length === 0) {
-          const newId = conversationHistory.createNewConversation()
+      const newId = conversationHistory.createNewConversation()
       setCurrentConversationId(newId)
     } else {
       // 加载新的活跃对话
@@ -148,8 +161,35 @@ export function ChatPanel({
       }
     }
     
-    setShowDeleteConfirm(false)
-    setConversationToDelete(null)
+    // 恢复输入区域焦点
+    setTimeout(() => {
+      chatInputRef.current?.focus()
+    }, 100)
+  }
+  
+  // 处理清空所有对话
+  const handleClearConversations = async () => {
+    const shouldClear = await confirm({
+      title: '确认清空',
+      message: '确定要清空所有对话历史吗？此操作不可恢复。',
+      confirmText: '清空',
+      cancelText: '取消',
+      type: 'danger'
+    })
+    
+    if (!shouldClear) {
+      // 恢复输入区域焦点
+      setTimeout(() => {
+        chatInputRef.current?.focus()
+      }, 100)
+      return
+    }
+    
+    conversationHistory.clearAllConversations()
+    const newId = conversationHistory.createNewConversation()
+    setCurrentConversationId(newId)
+    conversationActions.updateConversationTree(new Map(), [])
+    
     // 恢复输入区域焦点
     setTimeout(() => {
       chatInputRef.current?.focus()
@@ -208,9 +248,7 @@ export function ChatPanel({
                           </svg>
                         </button>
                         <button 
-                          onClick={() => {
-                            setShowClearConfirm(true)
-                          }}
+                          onClick={handleClearConversations}
                           className="text-sm text-gray-600 hover:text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-all duration-200 whitespace-nowrap font-medium"
                           title="清空所有对话"
                         >
@@ -270,10 +308,7 @@ export function ChatPanel({
                                   </div>
                                   <div className="flex items-center gap-1 flex-shrink-0 ml-2">
                                     <button
-                                      onClick={() => {
-                                        setConversationToDelete({ id: conv.id, title: conv.title })
-                                        setShowDeleteConfirm(true)
-                                      }}
+                                      onClick={() => handleDeleteConversation(conv.id, conv.title)}
                                       className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all duration-200 rounded-lg flex items-center justify-center"
                                       title="删除对话"
                                     >
@@ -376,52 +411,8 @@ export function ChatPanel({
         </div>
       </div>
 
-      {/* 清空确认对话框 */}
-      <ConfirmDialog
-        isOpen={showClearConfirm}
-        title="确认清空"
-        message="确定要清空所有对话历史吗？此操作不可恢复。"
-        confirmText="清空"
-        cancelText="取消"
-        type="danger"
-        onConfirm={() => {
-          conversationHistory.clearAllConversations()
-          const newId = conversationHistory.createNewConversation()
-          setCurrentConversationId(newId)
-          conversationActions.updateConversationTree(new Map(), [])
-          setShowClearConfirm(false)
-          // 恢复输入区域焦点
-          setTimeout(() => {
-            chatInputRef.current?.focus()
-          }, 100)
-        }}
-        onCancel={() => {
-          setShowClearConfirm(false)
-          // 恢复输入区域焦点
-          setTimeout(() => {
-            chatInputRef.current?.focus()
-          }, 100)
-        }}
-      />
-
-      {/* 删除确认对话框 */}
-      <ConfirmDialog
-        isOpen={showDeleteConfirm}
-        title="确认删除"
-        message={conversationToDelete ? `确定要删除对话"${conversationToDelete.title}"吗？此操作不可恢复。` : ''}
-        confirmText="删除"
-        cancelText="取消"
-        type="danger"
-        onConfirm={handleDeleteConversation}
-        onCancel={() => {
-          setShowDeleteConfirm(false)
-          setConversationToDelete(null)
-          // 恢复输入区域焦点
-          setTimeout(() => {
-            chatInputRef.current?.focus()
-          }, 100)
-        }}
-      />
+      {/* 统一的确认对话框 */}
+      <ConfirmDialog {...confirmProps} />
     </div>
   )
 }

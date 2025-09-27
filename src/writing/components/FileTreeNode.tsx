@@ -117,7 +117,7 @@ export function FileTreeNode({
     <div>
       <div 
         data-file-node
-        className={`group flex items-center gap-2 py-2 px-3 cursor-pointer rounded-lg transition-all duration-200 ${
+        className={`group flex items-center gap-2 py-2 px-3 cursor-pointer transition-all duration-100 ${
           isSelected 
             ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border-l-4 border-blue-500 shadow-sm' 
             : 'hover:bg-gray-50 hover:shadow-sm'
@@ -134,7 +134,7 @@ export function FileTreeNode({
           </div>
         )}
         {!node.isDirectory && (
-          <div className="relative group/checkbox">
+          <div className="relative group/checkbox flex items-center">
             <input
               type="checkbox"
               checked={isFileSelected}
@@ -155,8 +155,10 @@ export function FileTreeNode({
             )}
           </div>
         )}
-        <FileIcon node={node} />
-        <span className="text-sm font-medium truncate flex-1">{node.name}</span>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <FileIcon node={node} />
+          <span className="text-sm font-medium truncate">{node.name}</span>
+        </div>
 
       </div>
       

@@ -231,7 +231,7 @@ export function useDocxEditor() {
       const shouldClose = await confirm({
         title: '关闭文件',
         message: '文件已修改但未保存，确定要关闭吗？',
-        confirmText: '关闭',
+        confirmText: '确认',
         cancelText: '取消',
         type: 'warning'
       })
