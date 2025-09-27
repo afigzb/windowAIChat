@@ -1,8 +1,8 @@
 // DOCX文件编辑器状态管理 Hook
 
 import { useState, useCallback } from 'react'
-import type { WordCountResult } from '../utils/wordCount'
-import { detectFileType, getSupportedFormats } from '../utils/fileTypeDetector'
+import type { WordCountResult } from '../../md-html-dock/types'
+import { detectFileType, getSupportedFormats } from '../../md-html-dock/utils/fileTypeDetector'
 import { useConfirm } from './useConfirm'
 import { fileContentCache } from '../utils/fileContentCache'
 

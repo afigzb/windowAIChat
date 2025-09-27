@@ -1,7 +1,8 @@
 // DOCX格式的富文本编辑器组件
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { countWords, type WordCountResult } from '../utils/wordCount'
+import { countWords } from '../../md-html-dock/utils/wordCount'
+import type { WordCountResult } from '../../md-html-dock/types'
 
 interface DocxEditorProps {
   content: string // HTML内容

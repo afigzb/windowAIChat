@@ -13,7 +13,7 @@ export * from './branch-manager'
 
 // 导出UI组件
 export * from './components'
-export { MarkdownRenderer } from './MarkdownRenderer'
+export { MarkdownRenderer } from '../md-html-dock/renderers/MarkdownRenderer'
 export { ChatPanel } from './ChatPanel'
 
 // 导出对话历史管理

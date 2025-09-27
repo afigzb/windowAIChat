@@ -1,14 +1,13 @@
 // 字数统计工具函数
+import type { WordCountResult } from '../types'
+
+export type { WordCountResult }
 
 /**
  * 从HTML内容中提取纯文本并统计字数
  * @param htmlContent HTML内容
  * @returns 字数统计信息
  */
-export interface WordCountResult {
-  characters: number // 总字符数（包括空格）
-  words: number // 单词数
-}
 
 export function countWords(htmlContent: string): WordCountResult {
   if (!htmlContent.trim()) {

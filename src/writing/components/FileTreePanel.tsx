@@ -5,7 +5,7 @@ import { FileTreeNode } from './FileTreeNode'
 import { InlineEdit } from './InlineEdit'
 import { useFileTree } from './useFileTree'
 import type { FileSystemNode } from '../../storage/file-system'
-import { getFileName } from '../utils/fileContentReader'
+import { getFileName } from '../../md-html-dock/utils/fileContentReader'
 
 interface FileTreePanelProps {
   selectedFile?: string | null

@@ -2,7 +2,7 @@ const { app, BrowserWindow, Menu, shell, ipcMain, dialog } = require('electron')
 const fs = require('fs').promises
 const path = require('path')
 const GlobalContextMenuManager = require('./GlobalContextMenu')
-const DocxHandler = require('./docx')
+const DocxHandler = require('../src/md-html-dock/converters/docx')
 // 使用 app.isPackaged 更可靠地判断是否为开发环境
 const isDev = !app.isPackaged
 

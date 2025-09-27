@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import type { MessageNode, MessageBubbleProps } from './types'
-import { MarkdownRenderer } from './MarkdownRenderer'
+import { MarkdownRenderer } from '../md-html-dock/renderers/MarkdownRenderer'
 
 // 动画点组件
 const AnimatedDots = ({ size = 'sm', color = 'slate' }: { size?: 'sm' | 'md'; color?: 'teal' | 'slate' }) => {

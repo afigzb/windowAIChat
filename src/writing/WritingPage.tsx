@@ -10,8 +10,8 @@ import { DocsPage } from './components/DocsPage'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import storage from '../storage'
 import { useDocxEditor } from './hooks/useDocxEditor'
-import { readFileContent, readMultipleFiles, extractTextFromHTML, formatFileContent } from './utils/fileContentReader'
-import { detectFileType } from './utils/fileTypeDetector'
+import { readFileContent, readMultipleFiles, extractTextFromHTML, formatFileContent } from '../md-html-dock/utils/fileContentReader'
+import { detectFileType } from '../md-html-dock/utils/fileTypeDetector'
 
 
 

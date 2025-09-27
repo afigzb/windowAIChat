@@ -1,11 +1,5 @@
 // 文件类型检测工具
-
-export interface FileTypeInfo {
-  isSupported: boolean // 是否支持编辑
-  isSafeToRead: boolean // 是否安全读取（不会卡顿）
-  readMethod: 'html' | 'text' | 'image' | 'none' // 读取方式
-  reason?: string // 不支持的原因
-}
+import type { FileTypeInfo } from '../types'
 
 // 明确支持的文档格式
 const DOCUMENT_FORMATS = new Set([
