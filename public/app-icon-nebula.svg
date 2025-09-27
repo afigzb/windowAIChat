@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <!-- 深蓝渐变背景 - 左上到右下 -->
+    <linearGradient id="spaceBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a1628;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#1a2332;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#000810;stop-opacity:1" />
+    </linearGradient>
+    <!-- 星光效果 -->
+    <filter id="starGlow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- 深蓝背景 -->
+  <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#spaceBg)"/>
+  
+  <!-- 中心亮星 - 更大 -->
+  <g filter="url(#starGlow)">
+    <circle cx="64" cy="64" r="24" fill="#ffffff" opacity="0.9"/>
+    <circle cx="64" cy="64" r="12" fill="#4facfe" opacity="0.8"/>
+    <!-- 十字星芒 - 更长更粗 -->
+    <line x1="64" y1="20" x2="64" y2="108" stroke="#ffffff" stroke-width="4" opacity="0.7"/>
+    <line x1="20" y1="64" x2="108" y2="64" stroke="#ffffff" stroke-width="4" opacity="0.7"/>
+  </g>
+</svg>

@@ -414,7 +414,7 @@ export default function WritingPage() {
                             value={config.systemPrompt}
                             onChange={(e) => handleConfigChange({ ...config, systemPrompt: e.target.value })}
                             placeholder="设置AI的角色和行为..."
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm min-h-[80px] resize-none"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-blue-50/30 focus:shadow-lg "
                             rows={3}
                           />
                           <p className="text-xs text-gray-500">定义AI的角色定位和回答风格</p>

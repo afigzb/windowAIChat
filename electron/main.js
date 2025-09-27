@@ -24,7 +24,7 @@ function createWindow() {
       enableRemoteModule: false, // 禁用远程模块
       preload: path.join(__dirname, 'preload.js') // 预加载脚本
     },
-    // icon: path.join(__dirname, '../public/chat-icon.svg'), // 应用图标（暂时禁用）
+    icon: path.join(__dirname, '../public/app-icon-nebula.ico'), // 应用图标
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     autoHideMenuBar: true, // 自动隐藏菜单栏
     show: false // 先隐藏窗口，加载完成后再显示

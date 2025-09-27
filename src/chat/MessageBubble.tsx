@@ -76,7 +76,7 @@ function BranchNavigation({ navigation, onNavigate }: {
         <Icon name="chevronLeft" className="w-3 h-3" />
       </button>
       
-      <span className="px-3 py-1 text-gray-600 font-medium bg-gray-100 rounded-lg min-w-[3rem] text-center">
+      <span className="px-3 py-1 text-gray-600 font-medium bg-gray-100 rounded-lg min-w-[2rem] max-w-[4rem] text-center whitespace-nowrap overflow-hidden text-ellipsis">
         {navigation.currentIndex + 1}/{navigation.totalBranches}
       </span>
       
@@ -103,15 +103,15 @@ function ThinkingContent({ content, isExpanded, onToggle }: {
   onToggle: () => void
 }) {
   return (
-    <div className="mb-6 w-full bg-gradient-to-br from-gray-50 to-slate-50 border-2 border-gray-200 rounded-2xl p-6 shadow-sm">
+    <div className="mb-6 w-full min-w-[8rem] bg-gradient-to-br from-gray-50 to-slate-50 border-2 border-gray-200 rounded-2xl p-6 shadow-sm">
       <button
         onClick={onToggle}
         className="flex items-center gap-3 mb-4 w-full text-left"
       >
         <div className="w-3 h-3 bg-blue-500 rounded-full shadow-sm animate-pulse" />
-        <span className="text-base font-semibold text-gray-800">💭 思考过程</span>
+        <span className="text-base font-semibold text-gray-800 whitespace-nowrap">💭 思考过程</span>
         <div className="ml-auto flex items-center gap-2 text-sm text-gray-600">
-          <span>{isExpanded ? '收起' : '展开'}</span>
+          <span className="whitespace-nowrap">{isExpanded ? '收起' : '展开'}</span>
           <div className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
             <Icon name="chevronDown" className="w-4 h-4" />
           </div>
@@ -119,7 +119,7 @@ function ThinkingContent({ content, isExpanded, onToggle }: {
       </button>
       
       {isExpanded && (
-        <div className="text-sm text-gray-700 font-mono leading-relaxed whitespace-pre-wrap bg-white rounded-xl p-6 border-2 border-gray-200 shadow-md">
+        <div className="text-sm text-gray-700 font-mono leading-relaxed whitespace-pre-wrap bg-white rounded-xl p-6 border-2 border-gray-200 shadow-md min-w-[4rem] break-words">
           {content}
         </div>
       )}
@@ -179,16 +179,16 @@ export function MessageBubble({
           </div>
         )}
 
-        <div className={`flex-1 max-w-[80%] ${isUser ? 'items-end' : 'items-start'} flex flex-col`}>
+        <div className={`flex-1 min-w-[10rem] max-w-[80%] ${isUser ? 'items-end' : 'items-start'} flex flex-col`}>
           {/* 用户标识和状态 */}
           <div className={`flex items-center mb-4 gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
             <div className="flex items-center gap-3">
-              <span className={`text-base font-semibold ${isUser ? 'text-blue-600' : 'text-gray-800'}`}>
+              <span className={`text-base font-semibold min-w-[2rem] max-w-[6rem] whitespace-nowrap overflow-hidden text-ellipsis ${isUser ? 'text-blue-600' : 'text-gray-800'}`}>
                 {isUser ? 'You' : 'AI Assistant'}
               </span>
               {!isUser && isGenerating && (
-                <div className="flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 text-sm rounded-full border-2 border-blue-200 shadow-sm">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse shadow-lg shadow-blue-500/50" />
+                    <div className="flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 text-sm rounded-full border-2 border-blue-200 shadow-sm min-w-[4rem] whitespace-nowrap">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse shadow-lg shadow-blue-500/50 flex-shrink-0" />
                   <span className="font-medium">正在回复</span>
                 </div>
               )}
@@ -196,7 +196,7 @@ export function MessageBubble({
             
             {/* 时间戳 - 只在hover时显示 */}
             {node.content !== '正在生成...' && (
-              <div className={`text-sm text-gray-500 transition-opacity duration-300 ${
+              <div className={`text-sm text-gray-500 transition-opacity duration-300 min-w-[2rem] whitespace-nowrap ${
                 isHovered ? 'opacity-100' : 'opacity-0'
               }`}>
                 {node.timestamp.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
@@ -208,19 +208,19 @@ export function MessageBubble({
           {!isUser && (
             <>
               {isGenerating && currentThinking && (
-                <div className="mb-6 w-full bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-6 shadow-md animate-pulse">
+                <div className="mb-6 w-full min-w-[8rem] bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-6 shadow-md">
                   <div className="flex items-center gap-4 mb-4">
                     <AnimatedDots color="teal" />
-                    <span className="text-base font-semibold text-blue-700">💭 正在思考</span>
+                    <span className="text-base font-semibold text-blue-700 whitespace-nowrap">💭 正在思考</span>
                   </div>
-                  <div className="text-sm text-gray-700 font-mono leading-relaxed whitespace-pre-wrap bg-white rounded-xl p-5 border-2 border-blue-200 shadow-sm">
+                  <div className="text-sm text-gray-700 font-mono leading-relaxed whitespace-pre-wrap bg-white rounded-xl p-5 border-2 border-blue-200 shadow-sm min-w-[4rem] break-words">
                     {currentThinking}
                   </div>
                 </div>
               )}
               
               {!isGenerating && node.reasoning_content && (
-                <div className="mb-6 w-full">
+                <div className="mb-6 w-full min-w-[8rem]">
                   <ThinkingContent
                     content={node.reasoning_content}
                     isExpanded={showThinkingExpanded}
@@ -234,7 +234,7 @@ export function MessageBubble({
           {/* 消息内容容器 */}
           {isUser ? (
             /* 用户消息 - 简洁样式 */
-            <div className={`${isEditing ? 'w-full' : ''}`}>
+            <div className={`${isEditing ? 'w-full min-w-[8rem]' : ''}`}>
               <div className={`${
                 isEditing 
                   ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-2xl p-6 shadow-md' 
@@ -258,43 +258,43 @@ export function MessageBubble({
                       rows={Math.max(2, editContent.split('\n').length)}
                       autoFocus
                     />
-                    <div className="flex gap-3 justify-end">
+                    <div className="flex gap-3 justify-end min-w-[6rem]">
                       <button 
                         onClick={handleEditCancel} 
-                        className="px-5 py-2.5 text-gray-600 hover:text-gray-800 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-100"
+                        className="px-5 py-2.5 text-gray-600 hover:text-gray-800 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-100 min-w-[2rem] whitespace-nowrap"
                       >
                         取消
                       </button>
                       <button 
                         onClick={handleEditSave} 
-                        className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-semibold rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+                        className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-semibold rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 min-w-[6rem] whitespace-nowrap"
                       >
                         保存并重新生成
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="whitespace-pre-wrap leading-relaxed text-base">{node.content}</div>
+                  <div className="whitespace-pre-wrap leading-relaxed text-base break-words">{node.content}</div>
                 )}
               </div>
             </div>
           ) : (
             /* AI消息 - 卡片样式 */
-            <div className="w-full bg-white border-2 border-gray-200 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="w-full min-w-[8rem] bg-white border-2 border-gray-200 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
               <div className="p-8">
                 {isGenerating ? (
                   currentAnswer ? (
-                    <div ref={contentRef} className="text-gray-800 leading-relaxed">
+                    <div ref={contentRef} className="text-gray-800 leading-relaxed min-w-[4rem] break-words">
                       <MarkdownRenderer content={currentAnswer} />
                     </div>
                   ) : (
                     <div className="flex items-center gap-5 p-10 bg-gradient-to-br from-gray-50 to-slate-50 rounded-2xl border-2 border-gray-200">
                       <AnimatedDots size="md" color="teal" />
-                      <span className="text-lg text-gray-700 font-medium">正在准备回复...</span>
+                      <span className="text-lg text-gray-700 font-medium whitespace-nowrap">正在准备回复...</span>
                     </div>
                   )
                 ) : (
-                  <div ref={contentRef}>
+                  <div ref={contentRef} className="min-w-[4rem] break-words">
                     <MarkdownRenderer 
                       content={node.content} 
                       className="text-gray-800 leading-relaxed text-base" 
@@ -306,7 +306,7 @@ export function MessageBubble({
           )}
           
           {/* 底部操作控件 */}
-          <div className={`flex items-center gap-4 mt-5 transition-opacity duration-300 ${
+          <div className={`flex items-center gap-4 mt-5 min-w-[4rem] transition-opacity duration-300 ${
             isHovered || showBranchControls ? 'opacity-100' : 'opacity-0'
           } ${isUser ? 'justify-end' : 'justify-start'}`}>
             {/* 分支导航 */}
@@ -316,14 +316,14 @@ export function MessageBubble({
             
             {/* 操作按钮 */}
             {!isUser && !isGenerating && (
-              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-w-[4rem]">
                 {onRegenerate && (
                   <button
                     onClick={() => onRegenerate(node.id)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md transform hover:scale-105"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md transform hover:scale-105 min-w-[3rem] whitespace-nowrap"
                     title="重新生成回答"
                   >
-                    <Icon name="regenerate" className="w-3 h-3" />
+                    <Icon name="regenerate" className="w-3 h-3 flex-shrink-0" />
                     <span>重新生成</span>
                   </button>
                 )}
@@ -359,14 +359,14 @@ export function MessageBubble({
                       }
                     }
                   }}
-                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-all duration-300 shadow-sm hover:shadow-md transform hover:scale-105 ${
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-all duration-300 shadow-sm hover:shadow-md transform hover:scale-105 min-w-[3rem] whitespace-nowrap ${
                     copySuccess 
                       ? 'text-green-600 bg-green-50' 
                       : 'text-gray-600 hover:text-green-600 hover:bg-green-50'
                   }`}
                   title="复制内容"
                 >
-                  <Icon name="copy" className="w-3 h-3" />
+                  <Icon name="copy" className="w-3 h-3 flex-shrink-0" />
                   <span>{copySuccess ? '已复制' : '复制'}</span>
                 </button>
               </div>
@@ -378,10 +378,10 @@ export function MessageBubble({
                   setEditContent(node.content)
                   setIsEditing(true)
                 }}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md transform hover:scale-105"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md transform hover:scale-105 min-w-[3rem] whitespace-nowrap"
                 title="修改消息并重新生成"
               >
-                <Icon name="edit" className="w-3 h-3" />
+                <Icon name="edit" className="w-3 h-3 flex-shrink-0" />
                 <span>修改</span>
               </button>
             )}

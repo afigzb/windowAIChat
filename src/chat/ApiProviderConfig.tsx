@@ -418,7 +418,7 @@ export function ApiProviderManager({ config, onConfigChange }: {
                 isActive 
                   ? 'border-blue-400 bg-gradient-to-br from-blue-50 via-white to-indigo-50 shadow-md' 
                   : 'border-gray-200 bg-white hover:border-gray-300'
-              } ${isEditing ? 'ring-2 ring-blue-300 ring-offset-2' : ''}`}
+              }`}
             >
               {/* 状态指示器 */}
               <div className={`absolute top-6 right-6 w-3 h-3 rounded-full ${

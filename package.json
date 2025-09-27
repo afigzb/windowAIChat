@@ -57,11 +57,12 @@
     "files": [
       "build/web/**/*",
       "electron/**/*",
-      "public/chat-icon.svg",
+      "public/app-icon-nebula.ico",
       "node_modules/**/*"
     ],
     "mac": {
       "category": "public.app-category.productivity",
+      "icon": "public/app-icon-nebula.ico",
       "target": [
         {
           "target": "dmg",
@@ -73,6 +74,7 @@
       ]
     },
     "win": {
+      "icon": "public/app-icon-nebula.ico",
       "target": [
         {
           "target": "dir",
@@ -83,6 +85,7 @@
       ]
     },
     "linux": {
+      "icon": "public/app-icon-nebula.ico",
       "target": [
         {
           "target": "AppImage",
