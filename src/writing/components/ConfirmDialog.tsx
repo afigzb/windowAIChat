@@ -57,11 +57,11 @@ export function ConfirmDialog({
   const getConfirmButtonStyle = () => {
     switch (type) {
       case 'danger':
-        return 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
+        return 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 focus:ring-red-400 shadow-md hover:shadow-lg'
       case 'info':
-        return 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+        return 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 focus:ring-blue-400 shadow-md hover:shadow-lg'
       default: // warning
-        return 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500'
+        return 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 focus:ring-amber-400 shadow-md hover:shadow-lg'
     }
   }
 
@@ -69,7 +69,7 @@ export function ConfirmDialog({
 
   return (
     <div 
-      className="fixed inset-0 z-50 overflow-y-auto"
+      className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 backdrop-blur-sm"
       onClick={(e) => {
         // 点击背景区域时取消对话框
         if (e.target === e.currentTarget) {
@@ -78,9 +78,9 @@ export function ConfirmDialog({
       }}
     >
       {/* 对话框容器 */}
-      <div className="flex min-h-full items-center justify-center p-4">
+      <div className="flex min-h-full items-center justify-center p-6 animate-fade-in">
         <div 
-          className="relative bg-white rounded-lg shadow-xl border-2 border-slate-300 max-w-md w-full mx-auto transform transition-all"
+          className="relative bg-white rounded-2xl shadow-2xl border-2 border-gray-200 max-w-md w-full mx-auto transform transition-all duration-300 scale-100 hover:scale-[1.02]"
           role="dialog"
           aria-modal="true"
           aria-labelledby="dialog-title"
@@ -91,29 +91,29 @@ export function ConfirmDialog({
           }}
         >
           {/* 对话框内容 */}
-          <div className="p-6">
+          <div className="p-8">
             <div className="text-center">
-              <h3 id="dialog-title" className="text-lg font-medium text-gray-900 mb-3">
+              <h3 id="dialog-title" className="text-xl font-bold text-gray-900 mb-4">
                 {title}
               </h3>
-              <p id="dialog-description" className="text-sm text-gray-600 leading-relaxed">
+              <p id="dialog-description" className="text-base text-gray-700 leading-relaxed">
                 {message}
               </p>
             </div>
           </div>
           
           {/* 按钮区域 */}
-          <div className="px-6 py-4 bg-gray-50 flex justify-end space-x-3 rounded-b-lg">
+          <div className="px-8 py-5 bg-gradient-to-r from-gray-50 to-slate-50 flex justify-end space-x-4 rounded-b-2xl border-t-2 border-gray-200">
             <button
               onClick={onCancel}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
+              className="px-6 py-3 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-100 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow-md"
             >
               {cancelText}
             </button>
             <button
               ref={confirmButtonRef}
               onClick={onConfirm}
-              className={`px-4 py-2 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors ${confirmBg}`}
+              className={`px-6 py-3 text-sm font-semibold text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 transform hover:scale-105 ${confirmBg}`}
             >
               {confirmText}
             </button>

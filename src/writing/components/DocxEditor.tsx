@@ -61,7 +61,7 @@ export function DocxEditor({
   // 右键菜单由Electron层自动处理，无需额外处理
 
   return (
-    <div className="h-full w-full flex flex-col border border-slate-200 rounded-lg">
+    <div className="h-full w-full flex flex-col border-2 border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300">
       {/* 编辑区域 */}
       <div 
         ref={editorRef}
@@ -69,11 +69,12 @@ export function DocxEditor({
         onInput={handleInput}
         onPaste={handlePaste}
 
-        className="flex-1 p-4 overflow-y-auto focus:outline-none content-theme"
+        className="flex-1 p-6 overflow-y-auto focus:outline-none content-theme bg-white rounded-xl"
         style={{ 
           fontFamily: 'system-ui, -apple-system, sans-serif', 
-          lineHeight: '1.6',
-          minHeight: '300px'
+          fontSize: '16px',
+          lineHeight: '1.8',
+          minHeight: '320px'
         }}
         data-placeholder={placeholder}
         suppressContentEditableWarning={true}
@@ -83,7 +84,8 @@ export function DocxEditor({
       <style>{`
         [contenteditable]:empty:before {
           content: attr(data-placeholder);
-          color: #94a3b8;
+          color: #9ca3af;
+          font-style: italic;
           pointer-events: none;
         }
       `}</style>

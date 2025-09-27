@@ -157,14 +157,14 @@ export function ChatPanel({
   }
 
   return (
-    <div className="bg-slate-50 border-l border-slate-300 flex flex-col h-full min-w-0">
+    <div className="bg-gradient-to-br from-gray-50 to-slate-50 border-l-2 border-gray-200 flex flex-col h-full min-w-0">
 
       {/* AI区域标题 - 固定高度，不换行 */}
-      <header className="flex-shrink-0 px-3 py-2 h-16 border-b border-slate-200 bg-white">
-        <div className="flex items-center justify-between h-full min-w-0 gap-2">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <div className="w-2 h-2 bg-indigo-600 rounded-full flex-shrink-0"></div>
-            <h2 className="font-semibold text-slate-900 text-sm whitespace-nowrap overflow-hidden text-ellipsis" title="AI写作助手">
+      <header className="flex-shrink-0 px-6 py-4 h-20 border-b-2 border-gray-200 bg-white shadow-sm">
+        <div className="flex items-center justify-between h-full min-w-0 gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="w-3 h-3 bg-blue-500 rounded-full flex-shrink-0 animate-pulse shadow-lg shadow-blue-500/30"></div>
+            <h2 className="font-bold text-gray-900 text-lg whitespace-nowrap overflow-hidden text-ellipsis" title="AI写作助手">
               AI写作助手
             </h2>
           </div>
@@ -172,26 +172,26 @@ export function ChatPanel({
             <div className="relative" ref={historyDrawerRef}>
               <button
                 onClick={() => setShowHistoryDrawer(!showHistoryDrawer)}
-                className={`p-1.5 rounded-md transition-all duration-200 flex-shrink-0 ${
+                className={`p-2.5 rounded-xl transition-all duration-300 flex-shrink-0 ${
                   showHistoryDrawer 
-                    ? 'bg-indigo-600 text-white shadow-sm' 
-                    : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg transform scale-110' 
+                    : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50 hover:shadow-md hover:scale-105'
                 }`}
                 title="对话历史"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </button>
               
               {/* 对话历史抽屉 */}
               {showHistoryDrawer && (
-                <div className="fixed top-14 right-8 w-96 bg-white border border-slate-200 rounded-lg shadow-xl z-50 max-h-96 flex flex-col">
+                <div className="fixed top-16 right-10 w-[420px] bg-white border-2 border-gray-200 rounded-2xl shadow-2xl z-50 max-h-[480px] flex flex-col">
                     {/* 抽屉头部 */}
-                    <div className="flex items-center justify-between p-3 border-b border-slate-200">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-slate-600 rounded-full"></div>
-                        <h3 className="text-sm font-semibold text-slate-900">对话历史</h3>
+                    <div className="flex items-center justify-between p-5 border-b-2 border-gray-200 bg-gradient-to-r from-gray-50 to-slate-50">
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-blue-500 rounded-full shadow-sm"></div>
+                        <h3 className="text-base font-bold text-gray-900">对话历史</h3>
                       </div>
                       <div className="flex items-center gap-1">
                         <button 
@@ -200,18 +200,18 @@ export function ChatPanel({
                             setCurrentConversationId(newId)
                             conversationActions.updateConversationTree(new Map(), [])
                           }}
-                          className="p-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors" 
+                          className="p-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-sm hover:shadow-md" 
                           title="新建对话"
                         >
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
                           </svg>
                         </button>
                         <button 
                           onClick={() => {
                             setShowClearConfirm(true)
                           }}
-                          className="text-xs text-slate-600 hover:text-slate-900 px-1.5 py-1 rounded hover:bg-white transition-colors whitespace-nowrap"
+                          className="text-sm text-gray-600 hover:text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-all duration-200 whitespace-nowrap font-medium"
                           title="清空所有对话"
                         >
                           清空
@@ -220,13 +220,16 @@ export function ChatPanel({
                     </div>
                     
                     {/* 抽屉内容 - 可滚动的对话列表 */}
-                    <div className="flex-1 overflow-y-auto p-2">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-2">
                       {conversationHistory.conversations.length === 0 ? (
-                        <div className="text-center py-8 text-slate-500 text-sm">
-                          暂无对话历史
+                        <div className="text-center py-12 text-gray-400">
+                          <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
+                          <p className="text-base font-medium">暂无对话历史</p>
                         </div>
                       ) : (
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                           {conversationHistory.conversations.map((conv) => {
                             const isActive = conv.id === currentConversationId
                             const timeStr = new Date(conv.timestamp).toLocaleString('zh-CN', {
@@ -248,20 +251,20 @@ export function ChatPanel({
                                     }
                                   }
                                 }}
-                                className={`group rounded-md border transition-all duration-200 cursor-pointer p-2 ${
+                                className={`group rounded-xl border-2 transition-all duration-300 cursor-pointer p-4 transform hover:scale-[1.02] ${
                                   isActive 
-                                    ? 'bg-indigo-50 border-indigo-300 shadow-sm' 
-                                    : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-sm hover:bg-slate-50'
+                                    ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-300 shadow-md' 
+                                    : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-lg hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50'
                                 }`}
                               >
                                 <div className="flex items-start justify-between min-w-0">
                                   <div className="flex-1 min-w-0">
-                                    <h4 className={`text-sm font-medium truncate mb-1 ${
-                                      isActive ? 'text-indigo-700' : 'text-slate-900 group-hover:text-indigo-700'
+                                    <h4 className={`text-base font-semibold truncate mb-2 ${
+                                      isActive ? 'text-blue-700' : 'text-gray-900 group-hover:text-blue-700'
                                     }`} title={conv.title}>
                                       {conv.title}
                                     </h4>
-                                    <time className="text-xs text-slate-500 whitespace-nowrap block" dateTime={new Date(conv.timestamp).toISOString()}>
+                                    <time className="text-sm text-gray-500 whitespace-nowrap block" dateTime={new Date(conv.timestamp).toISOString()}>
                                       {timeStr}
                                     </time>
                                   </div>
@@ -271,16 +274,16 @@ export function ChatPanel({
                                         setConversationToDelete({ id: conv.id, title: conv.title })
                                         setShowDeleteConfirm(true)
                                       }}
-                                      className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-600 transition-all duration-200 rounded flex items-center justify-center"
+                                      className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all duration-200 rounded-lg flex items-center justify-center"
                                       title="删除对话"
                                     >
-                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                       </svg>
                                     </button>
-                                    <div className="w-2 h-2 flex items-center justify-center">
+                                    <div className="w-3 h-3 flex items-center justify-center">
                                       {isActive && (
-                                        <div className="w-2 h-2 bg-indigo-600 rounded-full"></div>
+                                        <div className="w-3 h-3 bg-blue-500 rounded-full shadow-sm animate-pulse"></div>
                                       )}
                                     </div>
                                   </div>
@@ -302,7 +305,7 @@ export function ChatPanel({
       
       {/* 当前对话区域 - 占据全部空间 */}
       <div className="flex-1 flex flex-col min-h-0">
-        <div className="flex-1 overflow-y-auto bg-white min-h-0">
+        <div className="flex-1 overflow-y-auto bg-gradient-to-b from-white to-gray-50 min-h-0">
           <div className="space-y-0">
             {activeNodes.map((node) => {
                   const branchNavigation = branchManager.getBranchNavigationForNode(node.id)
@@ -356,7 +359,7 @@ export function ChatPanel({
             </div>
 
             {/* AI输入区域 */}
-            <div className="bg-white border-t border-slate-200 flex-shrink-0">
+            <div className="bg-white border-t-2 border-gray-200 flex-shrink-0 shadow-lg">
               <ChatInputArea
                 ref={chatInputRef}
                 value={conversationState.inputValue}

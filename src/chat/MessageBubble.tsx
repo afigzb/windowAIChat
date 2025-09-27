@@ -4,9 +4,9 @@ import { MarkdownRenderer } from '../md-html-dock/renderers/MarkdownRenderer'
 
 // 动画点组件
 const AnimatedDots = ({ size = 'sm', color = 'slate' }: { size?: 'sm' | 'md'; color?: 'teal' | 'slate' }) => {
-  const dotSize = size === 'sm' ? 'w-1.5 h-1.5' : 'w-2 h-2'
+  const dotSize = size === 'sm' ? 'w-2 h-2' : 'w-2.5 h-2.5'
   const colorClasses = {
-    teal: 'bg-blue-600',
+    teal: 'bg-blue-500',
     slate: 'bg-gray-400'
   }
   
@@ -103,14 +103,14 @@ function ThinkingContent({ content, isExpanded, onToggle }: {
   onToggle: () => void
 }) {
   return (
-    <div className="mb-6 w-full bg-gray-50 border border-gray-200 rounded-2xl p-5">
+    <div className="mb-6 w-full bg-gradient-to-br from-gray-50 to-slate-50 border-2 border-gray-200 rounded-2xl p-6 shadow-sm">
       <button
         onClick={onToggle}
         className="flex items-center gap-3 mb-4 w-full text-left"
       >
-        <div className="w-2 h-2 bg-blue-600 rounded-full" />
-        <span className="text-sm font-medium text-gray-700">💭 思考过程</span>
-        <div className="ml-auto flex items-center gap-2 text-xs text-gray-500">
+        <div className="w-3 h-3 bg-blue-500 rounded-full shadow-sm animate-pulse" />
+        <span className="text-base font-semibold text-gray-800">💭 思考过程</span>
+        <div className="ml-auto flex items-center gap-2 text-sm text-gray-600">
           <span>{isExpanded ? '收起' : '展开'}</span>
           <div className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
             <Icon name="chevronDown" className="w-4 h-4" />
@@ -119,7 +119,7 @@ function ThinkingContent({ content, isExpanded, onToggle }: {
       </button>
       
       {isExpanded && (
-        <div className="text-sm text-gray-700 font-mono leading-relaxed whitespace-pre-wrap bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+        <div className="text-sm text-gray-700 font-mono leading-relaxed whitespace-pre-wrap bg-white rounded-xl p-6 border-2 border-gray-200 shadow-md">
           {content}
         </div>
       )}
@@ -163,8 +163,8 @@ export function MessageBubble({
   
   return (
     <div 
-      className={`w-full max-w-4xl mx-auto px-6 py-6 transition-opacity duration-200 ${
-        isInActivePath ? '' : 'opacity-40 pointer-events-none'
+      className={`w-full max-w-4xl mx-auto px-8 py-8 transition-opacity duration-300 ${
+        isInActivePath ? '' : 'opacity-30 pointer-events-none'
       }`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -173,30 +173,30 @@ export function MessageBubble({
         {/* AI头像 */}
         {!isUser && (
           <div className="flex-shrink-0 mt-1">
-            <div className="w-9 h-9 bg-indigo-600 rounded-2xl flex items-center justify-center">
-              <span className="text-white text-sm font-medium">AI</span>
+            <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <span className="text-white text-base font-bold">AI</span>
             </div>
           </div>
         )}
 
         <div className={`flex-1 max-w-[80%] ${isUser ? 'items-end' : 'items-start'} flex flex-col`}>
           {/* 用户标识和状态 */}
-          <div className={`flex items-center mb-3 gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
-            <div className="flex items-center gap-2">
-              <span className={`text-sm font-medium ${isUser ? 'text-blue-700' : 'text-gray-700'}`}>
-                {isUser ? 'You' : 'AI'}
+          <div className={`flex items-center mb-4 gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
+            <div className="flex items-center gap-3">
+              <span className={`text-base font-semibold ${isUser ? 'text-blue-600' : 'text-gray-800'}`}>
+                {isUser ? 'You' : 'AI Assistant'}
               </span>
               {!isUser && isGenerating && (
-                <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-800 text-xs rounded-full border border-blue-200">
-                  <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse" />
-                  <span>正在回复</span>
+                <div className="flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 text-sm rounded-full border-2 border-blue-200 shadow-sm">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse shadow-lg shadow-blue-500/50" />
+                  <span className="font-medium">正在回复</span>
                 </div>
               )}
             </div>
             
             {/* 时间戳 - 只在hover时显示 */}
             {node.content !== '正在生成...' && (
-              <div className={`text-xs text-gray-400 transition-opacity duration-200 ${
+              <div className={`text-sm text-gray-500 transition-opacity duration-300 ${
                 isHovered ? 'opacity-100' : 'opacity-0'
               }`}>
                 {node.timestamp.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
@@ -208,12 +208,12 @@ export function MessageBubble({
           {!isUser && (
             <>
               {isGenerating && currentThinking && (
-                <div className="mb-6 w-full bg-gray-50 border border-gray-200 rounded-2xl p-5">
-                  <div className="flex items-center gap-3 mb-4">
+                <div className="mb-6 w-full bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-6 shadow-md animate-pulse">
+                  <div className="flex items-center gap-4 mb-4">
                     <AnimatedDots color="teal" />
-                    <span className="text-sm font-medium text-gray-700">💭 正在思考</span>
+                    <span className="text-base font-semibold text-blue-700">💭 正在思考</span>
                   </div>
-                  <div className="text-xs text-slate-600 font-mono leading-relaxed whitespace-pre-wrap bg-white rounded-xl p-4 border border-slate-200">
+                  <div className="text-sm text-gray-700 font-mono leading-relaxed whitespace-pre-wrap bg-white rounded-xl p-5 border-2 border-blue-200 shadow-sm">
                     {currentThinking}
                   </div>
                 </div>
@@ -237,8 +237,8 @@ export function MessageBubble({
             <div className={`${isEditing ? 'w-full' : ''}`}>
               <div className={`${
                 isEditing 
-                  ? 'bg-blue-50 border border-blue-200 rounded-2xl p-4' 
-                  : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl px-5 py-3 shadow-md'
+                  ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-2xl p-6 shadow-md' 
+                  : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl px-6 py-4 shadow-lg hover:shadow-xl transition-all duration-300'
               }`}>
                 {isEditing ? (
                   <div className="space-y-4">
@@ -253,7 +253,7 @@ export function MessageBubble({
                           handleEditCancel()
                         }
                       }}
-                      className="w-full bg-white text-gray-900 placeholder-gray-500 border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                      className="w-full bg-white text-gray-900 placeholder-gray-400 border-2 border-gray-300 rounded-xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none text-base leading-relaxed"
                       placeholder="修改消息内容..."
                       rows={Math.max(2, editContent.split('\n').length)}
                       autoFocus
@@ -261,43 +261,43 @@ export function MessageBubble({
                     <div className="flex gap-3 justify-end">
                       <button 
                         onClick={handleEditCancel} 
-                        className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm rounded-lg transition-colors"
+                        className="px-5 py-2.5 text-gray-600 hover:text-gray-800 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-100"
                       >
                         取消
                       </button>
                       <button 
                         onClick={handleEditSave} 
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors shadow-sm"
+                        className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-semibold rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
                       >
                         保存并重新生成
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="whitespace-pre-wrap leading-relaxed">{node.content}</div>
+                  <div className="whitespace-pre-wrap leading-relaxed text-base">{node.content}</div>
                 )}
               </div>
             </div>
           ) : (
             /* AI消息 - 卡片样式 */
-            <div className="w-full bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-              <div className="p-6">
+            <div className="w-full bg-white border-2 border-gray-200 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
+              <div className="p-8">
                 {isGenerating ? (
                   currentAnswer ? (
                     <div ref={contentRef} className="text-gray-800 leading-relaxed">
                       <MarkdownRenderer content={currentAnswer} />
                     </div>
                   ) : (
-                    <div className="flex items-center gap-4 p-8 bg-gray-50 rounded-xl">
+                    <div className="flex items-center gap-5 p-10 bg-gradient-to-br from-gray-50 to-slate-50 rounded-2xl border-2 border-gray-200">
                       <AnimatedDots size="md" color="teal" />
-                      <span className="text-gray-600">正在准备回复...</span>
+                      <span className="text-lg text-gray-700 font-medium">正在准备回复...</span>
                     </div>
                   )
                 ) : (
                   <div ref={contentRef}>
                     <MarkdownRenderer 
                       content={node.content} 
-                      className="text-gray-800 leading-relaxed text-[15px]" 
+                      className="text-gray-800 leading-relaxed text-base" 
                     />
                   </div>
                 )}
@@ -306,7 +306,7 @@ export function MessageBubble({
           )}
           
           {/* 底部操作控件 */}
-          <div className={`flex items-center gap-4 mt-4 transition-opacity duration-200 ${
+          <div className={`flex items-center gap-4 mt-5 transition-opacity duration-300 ${
             isHovered || showBranchControls ? 'opacity-100' : 'opacity-0'
           } ${isUser ? 'justify-end' : 'justify-start'}`}>
             {/* 分支导航 */}
@@ -320,7 +320,7 @@ export function MessageBubble({
                 {onRegenerate && (
                   <button
                     onClick={() => onRegenerate(node.id)}
-                    className="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md transform hover:scale-105"
                     title="重新生成回答"
                   >
                     <Icon name="regenerate" className="w-3 h-3" />
@@ -359,10 +359,10 @@ export function MessageBubble({
                       }
                     }
                   }}
-                  className={`flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg transition-all duration-200 shadow-sm hover:shadow-md ${
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-all duration-300 shadow-sm hover:shadow-md transform hover:scale-105 ${
                     copySuccess 
-                      ? 'text-green-700 bg-green-50' 
-                      : 'text-gray-500 hover:text-green-700 hover:bg-green-50'
+                      ? 'text-green-600 bg-green-50' 
+                      : 'text-gray-600 hover:text-green-600 hover:bg-green-50'
                   }`}
                   title="复制内容"
                 >
@@ -378,7 +378,7 @@ export function MessageBubble({
                   setEditContent(node.content)
                   setIsEditing(true)
                 }}
-                className="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md transform hover:scale-105"
                 title="修改消息并重新生成"
               >
                 <Icon name="edit" className="w-3 h-3" />
@@ -391,8 +391,8 @@ export function MessageBubble({
         {/* 用户头像 */}
         {isUser && (
           <div className="flex-shrink-0 mt-1">
-            <div className="w-9 h-9 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center shadow-md">
-              <span className="text-white text-sm font-medium">U</span>
+            <div className="w-11 h-11 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <span className="text-white text-base font-bold">U</span>
             </div>
           </div>
         )}

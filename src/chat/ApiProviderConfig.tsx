@@ -6,10 +6,10 @@ const Icon = ({ name, className = "w-4 h-4" }: { name: 'close' | 'edit'; classNa
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       {name === 'close' && (
-        <path className='scale-125' strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" />
+        <path className='scale-110' strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" />
       )}
       {name === 'edit' && (
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
       )}
     </svg>
   )
@@ -92,16 +92,16 @@ function ApiProviderForm({ provider, onSave, onCancel, inline = false }: {
   }
 
   const getFieldClass = (fieldName: string) => {
-    const baseClass = "w-full px-3 py-2 border rounded-lg text-sm transition-colors focus:outline-none focus:ring-2"
+    const baseClass = "w-full px-4 py-3 border-2 rounded-xl text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1"
     if (errors[fieldName]) {
-      return `${baseClass} border-red-300 focus:border-red-500 focus:ring-red-200`
+      return `${baseClass} border-red-300 focus:border-red-500 focus:ring-red-200 bg-red-50`
     }
-    return `${baseClass} border-gray-300 focus:border-blue-500 focus:ring-blue-200`
+    return `${baseClass} border-gray-200 hover:border-gray-300 focus:border-blue-500 focus:ring-blue-200 bg-white`
   }
 
   const containerClass = inline 
-    ? "bg-gray-50 border border-gray-200 rounded-lg p-4" 
-    : "bg-white border border-gray-200 rounded-xl p-6 shadow-sm"
+    ? "bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 rounded-xl p-5" 
+    : "bg-white border border-gray-200 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow duration-300"
     
   return (
     <div className={containerClass}>
@@ -121,8 +121,8 @@ function ApiProviderForm({ provider, onSave, onCancel, inline = false }: {
       <form onSubmit={handleSubmit} className={inline ? "space-y-3" : "space-y-5"}>
         <div className={inline ? "space-y-3" : "grid grid-cols-1 md:grid-cols-2 gap-4"}>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              配置名称 <span className="text-red-500">*</span>
+            <label className="block text-sm font-semibold text-gray-800 mb-3">
+              配置名称 <span className="text-red-500 text-xs">*</span>
             </label>
             <input
               type="text"
@@ -136,8 +136,8 @@ function ApiProviderForm({ provider, onSave, onCancel, inline = false }: {
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              提供商类型 <span className="text-red-500">*</span>
+            <label className="block text-sm font-semibold text-gray-800 mb-3">
+              提供商类型 <span className="text-red-500 text-xs">*</span>
             </label>
             <select
               value={formData.type}
@@ -159,8 +159,8 @@ function ApiProviderForm({ provider, onSave, onCancel, inline = false }: {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            API URL <span className="text-red-500">*</span>
+          <label className="block text-sm font-semibold text-gray-800 mb-3">
+            API URL <span className="text-red-500 text-xs">*</span>
           </label>
           <input
             type="url"
@@ -179,7 +179,7 @@ function ApiProviderForm({ provider, onSave, onCancel, inline = false }: {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-semibold text-gray-800 mb-3">
             API Key
           </label>
           <input
@@ -198,8 +198,8 @@ function ApiProviderForm({ provider, onSave, onCancel, inline = false }: {
         
         {!formData.enableCodeConfig && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              模型名称 <span className="text-red-500">*</span>
+            <label className="block text-sm font-semibold text-gray-800 mb-3">
+              模型名称 <span className="text-red-500 text-xs">*</span>
             </label>
             <input
               type="text"
@@ -220,7 +220,7 @@ function ApiProviderForm({ provider, onSave, onCancel, inline = false }: {
         
         {!formData.enableCodeConfig && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-800 mb-3">
               最大输出Tokens
             </label>
             <input
@@ -252,15 +252,15 @@ function ApiProviderForm({ provider, onSave, onCancel, inline = false }: {
               onChange={(e) => setFormData({ ...formData, enableCodeConfig: e.target.checked })}
               className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
             />
-            <span className="text-sm font-medium text-gray-700">启用代码配置模式</span>
+            <span className="text-sm font-semibold text-gray-800">启用代码配置模式</span>
           </label>
-          <p className="text-xs text-gray-500 mt-1">使用你自己的JSON作为请求体。我们会自动拼接对话历史。</p>
+          <p className="text-sm text-gray-600 mt-2">使用你自己的JSON作为请求体。我们会自动拼接对话历史。</p>
         </div>
 
         {/* 代码配置JSON编辑器 */}
         {formData.enableCodeConfig && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-800 mb-3">
               代码配置 JSON
             </label>
             <textarea
@@ -283,7 +283,7 @@ function ApiProviderForm({ provider, onSave, onCancel, inline = false }: {
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`${inline ? '' : 'flex-1'} inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm font-medium rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed`}
+            className={`${inline ? '' : 'flex-1'} inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-semibold rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-md hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none`}
           >
             {isSubmitting ? (
               <>
@@ -298,7 +298,7 @@ function ApiProviderForm({ provider, onSave, onCancel, inline = false }: {
             type="button"
             onClick={onCancel}
             disabled={isSubmitting}
-            className="px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-3 bg-gray-100 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             取消
           </button>
@@ -365,12 +365,12 @@ export function ApiProviderManager({ config, onConfigChange }: {
       {/* 头部 */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">API 配置管理</h3>
-          <p className="text-sm text-gray-500 mt-1">管理你的AI服务提供商配置</p>
+          <h3 className="text-xl font-bold text-gray-900">API 配置管理</h3>
+          <p className="text-base text-gray-600 mt-2">管理你的AI服务提供商配置</p>
         </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm font-medium rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-sm hover:shadow-md"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-semibold rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-md hover:shadow-xl transform hover:scale-105"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -398,45 +398,45 @@ export function ApiProviderManager({ config, onConfigChange }: {
           return (
             <div
               key={provider.id}
-              className={`relative p-4 border rounded-xl transition-all duration-200 hover:shadow-md ${
+              className={`relative p-6 border-2 rounded-2xl transition-all duration-300 hover:shadow-lg ${
                 isActive 
-                  ? 'border-blue-300 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-sm' 
+                  ? 'border-blue-400 bg-gradient-to-br from-blue-50 via-white to-indigo-50 shadow-md' 
                   : 'border-gray-200 bg-white hover:border-gray-300'
-              } ${isEditing ? 'ring-2 ring-blue-200' : ''}`}
+              } ${isEditing ? 'ring-2 ring-blue-300 ring-offset-2' : ''}`}
             >
               {/* 状态指示器 */}
-              <div className={`absolute top-4 right-4 w-3 h-3 rounded-full ${
-                isActive ? 'bg-green-500' : 'bg-gray-300'
+              <div className={`absolute top-6 right-6 w-3 h-3 rounded-full ${
+                isActive ? 'bg-green-500 animate-pulse shadow-lg shadow-green-500/50' : 'bg-gray-300'
               }`} />
               
               <div className="flex items-start justify-between pr-6">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-semibold text-gray-900">{provider.name}</h4>
-                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                      <div className="flex items-center gap-3">
+                        <h4 className="font-bold text-lg text-gray-900">{provider.name}</h4>
+                        <span className="text-xs font-medium text-blue-700 bg-blue-100 px-3 py-1 rounded-full">
                           {provider.type === 'openai' || !provider.type ? 'OpenAI 兼容' : 'Google Gemini'}
                         </span>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="space-y-1 text-sm">
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <span className="w-12 text-gray-500">模型:</span>
-                      <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">{provider.model}</span>
+                  <div className="space-y-2 mt-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-gray-600 w-14">模型:</span>
+                      <span className="font-mono text-sm bg-gray-100 px-3 py-1 rounded-lg text-gray-800">{provider.model}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <span className="w-12 text-gray-500">URL:</span>
-                      <span className="font-mono text-xs truncate max-w-xs">{provider.baseUrl}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-gray-600 w-14">URL:</span>
+                      <span className="font-mono text-sm truncate max-w-xs text-gray-700">{provider.baseUrl}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <span className="w-12 text-gray-500">密钥:</span>
-                      <span className="text-xs">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-gray-600 w-14">密钥:</span>
+                      <span className="text-sm font-medium">
                         {provider.apiKey ? 
-                          <span className="text-green-600">已设置</span> : 
-                          <span className="text-amber-600">未设置</span>
+                          <span className="text-green-600 bg-green-50 px-2 py-1 rounded">✓ 已设置</span> : 
+                          <span className="text-amber-600 bg-amber-50 px-2 py-1 rounded">○ 未设置</span>
                         }
                       </span>
                     </div>
@@ -447,10 +447,10 @@ export function ApiProviderManager({ config, onConfigChange }: {
                 <div className="flex items-center gap-1 ml-4">
                   <button
                     onClick={() => handleSwitchProvider(provider.id)}
-                    className={`p-2 rounded-lg transition-colors ${
+                    className={`p-2.5 rounded-xl transition-all duration-200 ${
                       isActive 
-                        ? 'text-green-600 bg-green-50 cursor-default' 
-                        : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
+                        ? 'text-green-600 bg-green-100 cursor-default shadow-sm' 
+                        : 'text-gray-400 hover:text-green-600 hover:bg-green-50 hover:shadow-sm'
                     }`}
                     title={isActive ? '当前使用的配置' : '切换到此配置'}
                     disabled={isActive}
@@ -470,10 +470,10 @@ export function ApiProviderManager({ config, onConfigChange }: {
                         setEditingProvider(isEditing ? null : provider)
                       }
                     }}
-                    className={`p-2 transition-colors rounded-lg ${
+                    className={`p-2.5 transition-all duration-200 rounded-xl ${
                       isEditing 
-                        ? 'text-blue-600 bg-blue-50' 
-                        : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
+                        ? 'text-blue-600 bg-blue-100 shadow-sm' 
+                        : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50 hover:shadow-sm'
                     }`}
                     title={isEditing ? "取消编辑" : "编辑配置"}
                   >
@@ -483,7 +483,7 @@ export function ApiProviderManager({ config, onConfigChange }: {
                   {config.providers.length > 1 && (
                     <button
                       onClick={() => setDeletingProvider(provider.id)}
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 hover:shadow-sm"
                       title="删除配置"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -514,12 +514,12 @@ export function ApiProviderManager({ config, onConfigChange }: {
       </div>
       
       {config.providers.length === 0 && (
-        <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">还没有API配置</h3>
-          <p className="text-gray-500 mb-4">添加你的第一个AI服务提供商配置开始使用</p>
+        <div className="text-center py-16 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border-2 border-dashed border-gray-300">
+          <h3 className="text-xl font-bold text-gray-900 mb-3">还没有API配置</h3>
+          <p className="text-base text-gray-600 mb-6">添加你的第一个AI服务提供商配置开始使用</p>
           <button
             onClick={() => setShowAddForm(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-3 bg-blue-500 text-white text-sm font-semibold rounded-xl hover:bg-blue-600 transition-all duration-300 shadow-md hover:shadow-xl transform hover:scale-105"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -532,32 +532,32 @@ export function ApiProviderManager({ config, onConfigChange }: {
 
       {/* 删除确认对话框 */}
       {deletingProvider && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-200">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl border-2 border-gray-200 transform transition-all duration-300 scale-100">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center shadow-md">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">确认删除</h3>
-                <p className="text-sm text-gray-500">此操作无法撤销</p>
+                <h3 className="text-xl font-bold text-gray-900">确认删除</h3>
+                <p className="text-sm text-gray-600 mt-1">此操作无法撤销</p>
               </div>
             </div>
-            <p className="text-gray-700 mb-6">
-              确定要删除配置 "{config.providers.find(p => p.id === deletingProvider)?.name}" 吗？
+            <p className="text-base text-gray-700 mb-8 leading-relaxed">
+              确定要删除配置 <span className="font-semibold text-gray-900">"{config.providers.find(p => p.id === deletingProvider)?.name}"</span> 吗？
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => handleDeleteProvider(deletingProvider)}
-                className="flex-1 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+                className="flex-1 px-5 py-3 bg-red-500 text-white text-sm font-semibold rounded-xl hover:bg-red-600 transition-all duration-200 shadow-md hover:shadow-lg"
               >
                 删除
               </button>
               <button
                 onClick={() => setDeletingProvider(null)}
-                className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors"
+                className="flex-1 px-5 py-3 bg-gray-100 text-gray-800 text-sm font-semibold rounded-xl hover:bg-gray-200 transition-all duration-200"
               >
                 取消
               </button>
