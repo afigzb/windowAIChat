@@ -2,7 +2,7 @@ const { app, BrowserWindow, Menu, shell, ipcMain, dialog } = require('electron')
 const fs = require('fs').promises
 const path = require('path')
 const GlobalContextMenuManager = require('./GlobalContextMenu')
-const DocxHandler = require('../src/md-html-dock/converters/docx')
+const DocxHandler = require('./converters/docx')
 // 使用 app.isPackaged 更可靠地判断是否为开发环境
 const isDev = !app.isPackaged
 
@@ -24,7 +24,7 @@ function createWindow() {
       enableRemoteModule: false, // 禁用远程模块
       preload: path.join(__dirname, 'preload.js') // 预加载脚本
     },
-    icon: path.join(__dirname, '../public/app-icon-nebula.ico'), // 应用图标
+    icon: path.join(__dirname, '../public/app-icon-nebula-256.ico'), // 应用图标
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     autoHideMenuBar: true, // 自动隐藏菜单栏
     show: false // 先隐藏窗口，加载完成后再显示

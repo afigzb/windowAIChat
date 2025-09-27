@@ -57,12 +57,12 @@
     "files": [
       "build/web/**/*",
       "electron/**/*",
-      "public/app-icon-nebula.ico",
+      "public/app-icon-nebula-256.ico",
       "node_modules/**/*"
     ],
     "mac": {
       "category": "public.app-category.productivity",
-      "icon": "public/app-icon-nebula.ico",
+      "icon": "public/app-icon-nebula-256.ico",
       "target": [
         {
           "target": "dmg",
@@ -74,7 +74,7 @@
       ]
     },
     "win": {
-      "icon": "public/app-icon-nebula.ico",
+      "icon": "public/app-icon-nebula-256.ico",
       "target": [
         {
           "target": "dir",
@@ -85,7 +85,7 @@
       ]
     },
     "linux": {
-      "icon": "public/app-icon-nebula.ico",
+      "icon": "public/app-icon-nebula-256.ico",
       "target": [
         {
           "target": "AppImage",
