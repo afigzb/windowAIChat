@@ -1,0 +1,16 @@
+{
+  "id": "gemini-pro",
+  "name": "Google Gemini 2.5 Pro",
+  "type": "gemini",
+  "apiKey": "",
+  "baseUrl": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent",
+  "model": "gemini-2.5-pro",
+  "maxTokens": 8192,
+  "extraHeaders": {
+    "X-Client": "windowAIChat"
+  },
+  "extraParams": {},
+  "enableCodeConfig": true,
+  "codeConfigJson": "{\n  \"systemInstruction\": {\n    \"parts\": [ { \"text\": \"你是AI写作助手，帮助用户完成小说写作。\" } ]\n  },\n  \"generationConfig\": {\n    \"temperature\": 0.7,\n    \"topK\": 40,\n    \"topP\": 0.95\n  },\n  \"safetySettings\": [\n    { \"category\": \"HARM_CATEGORY_HATE_SPEECH\", \"threshold\": \"BLOCK_NONE\" },\n    { \"category\": \"HARM_CATEGORY_HARASSMENT\", \"threshold\": \"BLOCK_NONE\" },\n    { \"category\": \"HARM_CATEGORY_SEXUAL\", \"threshold\": \"BLOCK_NONE\" },\n    { \"category\": \"HARM_CATEGORY_DANGEROUS_CONTENT\", \"threshold\": \"BLOCK_NONE\" }\n  ],\n  \"responseMimeType\": \"text/markdown\"\n}"
+}
+

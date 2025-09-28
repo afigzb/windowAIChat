@@ -6,6 +6,7 @@ export type * from './types'
 
 // 导出核心API配置和调用
 export * from './core/api'
+export * from './core/defaults'
 
 // 导出对话管理器
 export * from './core/conversation-manager'
