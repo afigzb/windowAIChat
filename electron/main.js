@@ -1,5 +1,6 @@
 const { app, BrowserWindow, Menu, shell, ipcMain, dialog } = require('electron')
 const fs = require('fs').promises
+const fsRaw = require('fs')
 const path = require('path')
 const GlobalContextMenuManager = require('./GlobalContextMenu')
 const DocxHandler = require('./converters/docx')
@@ -10,6 +11,58 @@ const isDev = !app.isPackaged
 let mainWindow
 let contextMenuManager
 let docxHandler
+let storageDir
+
+function ensureDirSync(dirPath) {
+  try {
+    if (!fsRaw.existsSync(dirPath)) {
+      fsRaw.mkdirSync(dirPath, { recursive: true })
+    }
+  } catch (e) {
+    console.error('创建存储目录失败:', e)
+  }
+}
+
+function keyToFilename(key) {
+  const safe = String(key).replace(/[^a-zA-Z0-9-_\.]/g, '_')
+  return `${safe}.json`
+}
+
+function getKeyFilePath(key) {
+  return path.join(storageDir, keyToFilename(key))
+}
+
+// 提前初始化存储目录，避免渲染进程调用前未初始化
+function resolveStorageDir() {
+  try {
+    // 优先项目目录
+    const projectRoot = path.join(__dirname, '..')
+    const primary = path.join(projectRoot, 'app_data')
+    ensureDirSync(primary)
+    // 试写
+    const probeFile = path.join(primary, '.writable_probe')
+    fsRaw.writeFileSync(probeFile, 'ok')
+    fsRaw.unlinkSync(probeFile)
+    return primary
+  } catch (e) {
+    try {
+      // 回退到用户数据目录（打包环境更安全可写）
+      const fallback = path.join(app.getPath('userData'), 'app_data')
+      ensureDirSync(fallback)
+      const probeFile2 = path.join(fallback, '.writable_probe')
+      fsRaw.writeFileSync(probeFile2, 'ok')
+      fsRaw.unlinkSync(probeFile2)
+      return fallback
+    } catch (e2) {
+      console.error('无法初始化任何存储目录:', e2)
+      return null
+    }
+  }
+}
+
+(function initStorageDirEarly() {
+  storageDir = resolveStorageDir()
+})()
 
 function createWindow() {
   // 创建浏览器窗口
@@ -94,6 +147,101 @@ function createWindow() {
 }
 
 // === 文件系统API处理程序 ===
+// 初始化持久化数据存储目录（位于项目文件夹下）
+ipcMain.handle('init-storage-dir', async () => {
+  try {
+    storageDir = resolveStorageDir()
+    return storageDir
+  } catch (error) {
+    console.error('初始化存储目录失败:', error)
+    throw error
+  }
+})
+
+// 键值存储：异步读取
+ipcMain.handle('kv-get', async (event, key) => {
+  try {
+    const filePath = getKeyFilePath(key)
+    const exists = fsRaw.existsSync(filePath)
+    if (!exists) return null
+    const text = await fs.readFile(filePath, 'utf-8')
+    return JSON.parse(text)
+  } catch (error) {
+    console.error('kv-get 失败:', error)
+    return null
+  }
+})
+
+// 键值存储：异步写入
+ipcMain.handle('kv-set', async (event, key, value) => {
+  try {
+    ensureDirSync(storageDir)
+    const filePath = getKeyFilePath(key)
+    await fs.writeFile(filePath, JSON.stringify(value), 'utf-8')
+    return true
+  } catch (error) {
+    console.error('kv-set 失败:', error)
+    throw error
+  }
+})
+
+// 键值存储：异步删除
+ipcMain.handle('kv-remove', async (event, key) => {
+  try {
+    const filePath = getKeyFilePath(key)
+    if (fsRaw.existsSync(filePath)) {
+      await fs.unlink(filePath)
+    }
+    return true
+  } catch (error) {
+    console.error('kv-remove 失败:', error)
+    throw error
+  }
+})
+
+// 键值存储：同步读取（用于保持现有同步接口）
+ipcMain.on('kv-get-sync', (event, key) => {
+  try {
+    const filePath = getKeyFilePath(key)
+    if (!fsRaw.existsSync(filePath)) {
+      event.returnValue = null
+      return
+    }
+    const text = fsRaw.readFileSync(filePath, 'utf-8')
+    event.returnValue = JSON.parse(text)
+  } catch (error) {
+    console.error('kv-get-sync 失败:', error)
+    event.returnValue = null
+  }
+})
+
+// 键值存储：同步写入
+ipcMain.on('kv-set-sync', (event, key, value) => {
+  try {
+    ensureDirSync(storageDir)
+    const filePath = getKeyFilePath(key)
+    fsRaw.writeFileSync(filePath, JSON.stringify(value), 'utf-8')
+    event.returnValue = true
+  } catch (error) {
+    console.error('kv-set-sync 失败:', error)
+    event.returnValue = false
+  }
+})
+
+// 键值存储：同步删除
+ipcMain.on('kv-remove-sync', (event, key) => {
+  try {
+    const filePath = getKeyFilePath(key)
+    if (fsRaw.existsSync(filePath)) {
+      fsRaw.unlinkSync(filePath)
+    }
+    event.returnValue = true
+  } catch (error) {
+    console.error('kv-remove-sync 失败:', error)
+    event.returnValue = false
+  }
+})
+
 
 // 选择工作目录
 ipcMain.handle('select-directory', async () => {

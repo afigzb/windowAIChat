@@ -11,11 +11,21 @@ const STORAGE_KEYS = {
 
 // 简化的存储管理器
 class StorageManager {
+  private get electron() {
+    return (window as any).electronAPI
+  }
+
+  constructor() {
+    // 尝试初始化存储目录（幂等）
+    try {
+      this.electron?.initStorageDir?.()
+    } catch {}
+  }
   // 通用的存储方法
   private saveData<T>(key: string, data: T): void {
     try {
-      const serialized = JSON.stringify(data)
-      localStorage.setItem(key, serialized)
+      // 使用同步写入，保持现有同步接口
+      this.electron?.kvSetSync?.(key, data)
     } catch (error) {
       console.error(`保存数据失败 [${key}]:`, error)
     }
@@ -24,11 +34,9 @@ class StorageManager {
   // 通用的读取方法
   private loadData<T>(key: string, defaultValue: T): T {
     try {
-      const stored = localStorage.getItem(key)
-      if (stored === null) {
-        return defaultValue
-      }
-      return JSON.parse(stored) as T
+      const value = this.electron?.kvGetSync?.(key)
+      if (value === null || value === undefined) return defaultValue
+      return value as T
     } catch (error) {
       console.warn(`读取数据失败 [${key}]:`, error)
       return defaultValue
@@ -102,7 +110,9 @@ class StorageManager {
    * 清除AI配置
    */
   clearAIConfig(): void {
-    localStorage.removeItem(STORAGE_KEYS.AI_CONFIG)
+    try {
+      this.electron?.kvRemoveSync?.(STORAGE_KEYS.AI_CONFIG)
+    } catch {}
     this.currentConfig = null
   }
 
@@ -128,9 +138,9 @@ class StorageManager {
   isAvailable(): boolean {
     try {
       const testKey = '__storage_test__'
-      localStorage.setItem(testKey, 'test')
-      localStorage.removeItem(testKey)
-      return true
+      const ok = this.electron?.kvSetSync?.(testKey, 'test')
+      this.electron?.kvRemoveSync?.(testKey)
+      return !!ok
     } catch {
       return false
     }

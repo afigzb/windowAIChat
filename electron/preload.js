@@ -36,6 +36,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 图片文件处理
   readImageAsBase64: (filePath) => ipcRenderer.invoke('read-image-as-base64', filePath),
   
+  // === 应用数据键值存储（项目文件夹下） ===
+  initStorageDir: () => ipcRenderer.invoke('init-storage-dir'),
+  kvGet: (key) => ipcRenderer.invoke('kv-get', key),
+  kvSet: (key, value) => ipcRenderer.invoke('kv-set', key, value),
+  kvRemove: (key) => ipcRenderer.invoke('kv-remove', key),
+  kvGetSync: (key) => ipcRenderer.sendSync('kv-get-sync', key),
+  kvSetSync: (key, value) => ipcRenderer.sendSync('kv-set-sync', key, value),
+  kvRemoveSync: (key) => ipcRenderer.sendSync('kv-remove-sync', key),
+
   // === 右键菜单API ===
   
   // 设置工作区路径

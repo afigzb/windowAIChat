@@ -139,3 +139,6 @@ bower_components
 
 # TernJS port file
 .tern-port
+
+# Application data storage (local user data)
+app_data/

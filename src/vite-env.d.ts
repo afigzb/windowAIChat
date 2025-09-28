@@ -58,6 +58,15 @@ declare global {
       // DOCX文件处理
       readDocxAsHtml: (filePath: string) => Promise<string>
       saveHtmlAsDocx: (filePath: string, htmlContent: string) => Promise<boolean>
+
+      // === 应用数据键值存储（项目文件夹下） ===
+      initStorageDir: () => Promise<string>
+      kvGet: (key: string) => Promise<any>
+      kvSet: (key: string, value: any) => Promise<boolean>
+      kvRemove: (key: string) => Promise<boolean>
+      kvGetSync: (key: string) => any
+      kvSetSync: (key: string, value: any) => boolean
+      kvRemoveSync: (key: string) => boolean
     }
   }
 }
