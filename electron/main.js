@@ -35,9 +35,12 @@ function getKeyFilePath(key) {
 // 提前初始化存储目录，避免渲染进程调用前未初始化
 function resolveStorageDir() {
   try {
-    // 优先项目目录
-    const projectRoot = path.join(__dirname, '..')
-    const primary = path.join(projectRoot, 'app_data')
+    // 获取可执行文件所在目录（打包后和开发环境都适用）
+    const executableDir = app.isPackaged 
+      ? path.dirname(process.execPath)  // 打包后：可执行文件所在目录
+      : path.join(__dirname, '..')      // 开发环境：项目根目录
+    
+    const primary = path.join(executableDir, 'app_data')
     ensureDirSync(primary)
     // 试写
     const probeFile = path.join(primary, '.writable_probe')
@@ -46,7 +49,7 @@ function resolveStorageDir() {
     return primary
   } catch (e) {
     try {
-      // 回退到用户数据目录（打包环境更安全可写）
+      // 回退到用户数据目录（如果项目目录不可写）
       const fallback = path.join(app.getPath('userData'), 'app_data')
       ensureDirSync(fallback)
       const probeFile2 = path.join(fallback, '.writable_probe')

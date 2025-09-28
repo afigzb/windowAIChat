@@ -54,11 +54,15 @@
     "directories": {
       "output": "build/desktop"
     },
+    "compression": "maximum",
+    "electronLanguages": [
+      "zh-CN",
+      "en-US"
+    ],
     "files": [
       "build/web/**/*",
       "electron/**/*",
-      "public/app-icon-nebula-256.ico",
-      "node_modules/**/*"
+      "public/app-icon-nebula-256.ico"
     ],
     "mac": {
       "category": "public.app-category.productivity",
