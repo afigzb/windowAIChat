@@ -1,4 +1,5 @@
 import type { FlatMessage, ChatStreamResponse, AIConfig, ApiProviderConfig } from './types'
+import { composeMessages } from './request-composer'
 
 /**
  * OpenAI 系适配器 - 处理 OpenAI 兼容的 API (DeepSeek、Kimi 等)
@@ -10,43 +11,17 @@ export class OpenAIAdapter {
     this.provider = provider
   }
 
-  /**
-   * 构建通用消息列表
-   */
-  private buildMessages(messages: FlatMessage[], config: AIConfig): Array<{ role: string; content: string }> {
-    const currentDate = new Date().toLocaleDateString('zh-CN', {
-      month: 'long',
-      day: 'numeric',
-      weekday: 'long'
-    })
-    
-    // 使用配置中的系统提示
-    const systemPrompt = `${config.systemPrompt}\n今天是${currentDate}。`
-    
-    // 处理消息，仅保留用户和助手消息
-    const allProcessedMessages = messages
-      .filter(m => m.role === 'user' || m.role === 'assistant')
-      .map(m => ({ role: m.role, content: m.content }))
-    
-    // 根据配置限制保留的历史消息数量
-    const recentMessages = allProcessedMessages.slice(-config.historyLimit)
-    
-    const finalMessages = [
-      { role: 'system', content: systemPrompt },
-      ...recentMessages
-    ]
-    
-    return finalMessages
-  }
+  // 统一由 RequestComposer 负责消息组装
 
   /**
    * 构建 OpenAI 格式的请求体
    */
   private buildRequestBody(
     messages: FlatMessage[],
-    config: AIConfig
+    config: AIConfig,
+    extraContextText?: string
   ): Record<string, any> {
-    const commonMessages = this.buildMessages(messages, config)
+    const commonMessages = composeMessages({ history: messages, config, extraContextText })
     
     const base: Record<string, any> = {
       model: this.provider.model,
@@ -109,9 +84,10 @@ export class OpenAIAdapter {
     config: AIConfig,
     abortSignal: AbortSignal,
     onThinkingUpdate: (thinking: string) => void,
-    onAnswerUpdate: (answer: string) => void
+    onAnswerUpdate: (answer: string) => void,
+    extraContextText?: string
   ): Promise<{ reasoning_content?: string; content: string }> {
-    const requestBody = this.buildRequestBody(messages, config)
+    const requestBody = this.buildRequestBody(messages, config, extraContextText)
     
     // 构建请求头
     const headers: Record<string, string> = {

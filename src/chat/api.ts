@@ -67,7 +67,8 @@ interface ChatAdapter {
     config: AIConfig,
     abortSignal: AbortSignal,
     onThinkingUpdate: (thinking: string) => void,
-    onAnswerUpdate: (answer: string) => void
+    onAnswerUpdate: (answer: string) => void,
+    extraContextText?: string
   ): Promise<{ reasoning_content?: string; content: string }>
 }
 
@@ -85,7 +86,8 @@ export async function callAIAPI(
   config: AIConfig,
   abortSignal: AbortSignal,
   onThinkingUpdate: (thinking: string) => void,
-  onAnswerUpdate: (answer: string) => void
+  onAnswerUpdate: (answer: string) => void,
+  extraContextText?: string
 ): Promise<{ reasoning_content?: string; content: string }> {
   const currentProvider = config.providers.find(p => p.id === config.currentProviderId)
   if (!currentProvider) {
@@ -99,6 +101,7 @@ export async function callAIAPI(
     config,
     abortSignal,
     onThinkingUpdate,
-    onAnswerUpdate
+    onAnswerUpdate,
+    extraContextText
   )
 } 

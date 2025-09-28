@@ -26,8 +26,8 @@ export interface ConversationState {
 
 // 对话管理器的操作接口
 export interface ConversationActions {
-  sendMessage: (content: string, parentNodeId?: string | null, tempContent?: string) => Promise<void>
-  editUserMessage: (nodeId: string, newContent: string, tempContent?: string) => Promise<void>
+  sendMessage: (content: string, parentNodeId?: string | null, tempContent?: string, tempPlacement?: 'append' | 'after_system') => Promise<void>
+  editUserMessage: (nodeId: string, newContent: string, tempContent?: string, tempPlacement?: 'append' | 'after_system') => Promise<void>
   updateInputValue: (value: string) => void
   abortRequest: () => void
   clearStreamState: () => void
@@ -46,21 +46,31 @@ async function generateAIMessage(
   abortController: AbortController,
   onThinkingUpdate: (thinking: string) => void,
   onAnswerUpdate: (answer: string) => void,
-  tempContent?: string
+  tempContent?: string,
+  tempPlacement: 'append' | 'after_system' = 'append'
 ): Promise<FlatMessage> {
   let currentGeneratedContent = ''
   let currentReasoningContent = ''
   
   try {
-    // 如果有临时内容，需要修改最后一条用户消息
+    // 决定临时上下文的注入方式
     let modifiedHistory = conversationHistory
-    if (tempContent && conversationHistory.length > 0) {
-      modifiedHistory = [...conversationHistory]
-      const lastMessage = modifiedHistory[modifiedHistory.length - 1]
-      if (lastMessage.role === 'user') {
-        modifiedHistory[modifiedHistory.length - 1] = {
-          ...lastMessage,
-          content: lastMessage.content + tempContent
+    let extraContextForComposer: string | undefined = undefined
+    if (tempContent && tempContent.trim()) {
+      if (tempPlacement === 'after_system') {
+        // 不改动历史，由 composer 在 system 后插入独立上下文消息
+        extraContextForComposer = tempContent
+      } else {
+        // 默认：拼接到最后一条用户消息末尾（仅本次调用，不入库）
+        if (conversationHistory.length > 0) {
+          modifiedHistory = [...conversationHistory]
+          const lastMessage = modifiedHistory[modifiedHistory.length - 1]
+          if (lastMessage.role === 'user') {
+            modifiedHistory[modifiedHistory.length - 1] = {
+              ...lastMessage,
+              content: lastMessage.content + tempContent
+            }
+          }
         }
       }
     }
@@ -77,6 +87,7 @@ async function generateAIMessage(
         currentGeneratedContent = answer
         onAnswerUpdate(answer)
       },
+      extraContextForComposer
     )
 
     return {
@@ -164,7 +175,8 @@ export function useConversationManager(
     userMessage: FlatMessage,
     currentFlatMessages?: Map<string, FlatMessage>,
     currentActivePath?: string[],
-    tempContent?: string
+    tempContent?: string,
+    tempPlacement: 'append' | 'after_system' = 'append'
   ) => {
     const flatMessages = currentFlatMessages || conversationTree.flatMessages
     const activePath = currentActivePath || conversationTree.activePath
@@ -191,7 +203,8 @@ export function useConversationManager(
         abortControllerRef.current,
         setCurrentThinking,
         setCurrentAnswer,
-        tempContent
+        tempContent,
+        tempPlacement
       )
       
 
@@ -221,7 +234,7 @@ export function useConversationManager(
    * @param content 消息内容
    * @param parentNodeId 父节点ID，为空时添加到当前路径末尾
    */
-  const sendMessage = useCallback(async (content: string, parentNodeId: string | null = null, tempContent?: string) => {
+  const sendMessage = useCallback(async (content: string, parentNodeId: string | null = null, tempContent?: string, tempPlacement: 'append' | 'after_system' = 'append') => {
     if (isLoading || !content.trim()) return
 
     // 确定父节点ID
@@ -240,7 +253,7 @@ export function useConversationManager(
     )
 
     updateConversationTree(newFlatMessages, newActivePath)
-    await generateAIReply(userMessage, newFlatMessages, newActivePath, tempContent)
+    await generateAIReply(userMessage, newFlatMessages, newActivePath, tempContent, tempPlacement)
   }, [conversationTree, isLoading, generateAIReply, updateConversationTree])
 
   /**
@@ -248,7 +261,7 @@ export function useConversationManager(
    * @param nodeId 要编辑的消息ID
    * @param newContent 新的消息内容
    */
-  const handleEditUserMessage = useCallback(async (nodeId: string, newContent: string, tempContent?: string) => {
+  const handleEditUserMessage = useCallback(async (nodeId: string, newContent: string, tempContent?: string, tempPlacement: 'append' | 'after_system' = 'append') => {
     if (isLoading) return
 
     const result = editUserMessage(
@@ -265,7 +278,7 @@ export function useConversationManager(
       const editedMessage = result.newFlatMessages.get(editedMessageId)
       
       if (editedMessage) {
-        await generateAIReply(editedMessage, result.newFlatMessages, result.newActivePath, tempContent)
+        await generateAIReply(editedMessage, result.newFlatMessages, result.newActivePath, tempContent, tempPlacement)
       }
     }
   }, [conversationTree, isLoading, updateConversationTree, generateAIReply])
