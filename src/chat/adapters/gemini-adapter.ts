@@ -41,7 +41,7 @@ export class GeminiAdapter {
     // 构建生成配置，优先使用provider配置的maxTokens
     const generationConfig: Record<string, any> = { 
       temperature: 0.9, 
-      maxOutputTokens: this.provider.maxTokens || 2048 
+      maxOutputTokens: this.provider.maxTokens || 8192 
     }
     
     let base: Record<string, any> = {
