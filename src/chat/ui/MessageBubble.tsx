@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
-import type { MessageNode, MessageBubbleProps } from './types'
-import { MarkdownRenderer } from '../md-html-dock/renderers/MarkdownRenderer'
+import type { MessageNode, MessageBubbleProps } from '../types'
+import { MarkdownRenderer } from '../../md-html-dock/renderers/MarkdownRenderer'
 
 // 动画点组件
 const AnimatedDots = ({ size = 'sm', color = 'slate' }: { size?: 'sm' | 'md'; color?: 'teal' | 'slate' }) => {
@@ -56,7 +56,7 @@ const Icon = ({ name, className = "w-4 h-4" }: { name: IconName; className?: str
 
 // 分支导航控件
 function BranchNavigation({ navigation, onNavigate }: {
-  navigation: import('./types').BranchNavigation
+  navigation: import('../types').BranchNavigation
   onNavigate: (direction: 'left' | 'right') => void
 }) {
   if (navigation.totalBranches <= 1) return null

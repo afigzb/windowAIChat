@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
-import type { AIConfig } from './types'
+import type { AIConfig } from '../types'
 import { MessageBubble, ChatInputArea } from './components'
-import { useConversationManager } from './conversation-manager'
-import { useBranchManager } from './branch-manager'
-import { useConversationHistory } from './conversation-history'
-import { ConfirmDialog } from '../writing/components/ConfirmDialog'
-import { useConfirm } from '../writing/hooks/useConfirm'
+import { useConversationManager } from '../core/conversation-manager'
+import { useBranchManager } from '../core/branch-manager'
+import { useConversationHistory } from '../core/conversation-history'
+import { ConfirmDialog } from '../../writing/components/ConfirmDialog'
+import { useConfirm } from '../../writing/hooks/useConfirm'
 
 interface ChatPanelProps {
   config: AIConfig

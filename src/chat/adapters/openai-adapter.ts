@@ -1,5 +1,5 @@
-import type { FlatMessage, ChatStreamResponse, AIConfig, ApiProviderConfig } from './types'
-import { composeMessages } from './request-composer'
+import type { FlatMessage, ChatStreamResponse, AIConfig, ApiProviderConfig } from '../types'
+import { composeMessages } from '../core/request-composer'
 
 /**
  * OpenAI 系适配器 - 处理 OpenAI 兼容的 API (DeepSeek、Kimi 等)

@@ -3,7 +3,7 @@ import type {
   MessageNode, 
   ConversationTree, 
   BranchNavigation 
-} from './types'
+} from '../types'
 
 // ===== 工具函数 =====
 

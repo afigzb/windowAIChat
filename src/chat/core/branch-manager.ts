@@ -1,7 +1,7 @@
 import type { 
   ConversationTree, 
   BranchNavigation 
-} from './types'
+} from '../types'
 import {
   getBranchNavigation,
   navigateBranch

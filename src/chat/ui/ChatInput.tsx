@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
-import type { AIConfig } from './types'
+import type { AIConfig } from '../types'
 
 // API提供方选择器
 function ApiProviderToggle({ config, onProviderChange, disabled }: {

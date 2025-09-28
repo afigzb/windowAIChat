@@ -1,7 +1,7 @@
 // 统一数据存储模块
 // 提供本地数据存储和AI配置管理
 
-import type { AIConfig } from '../chat/types'
+import type { AIConfig } from '../chat'
 
 // 存储键名常量
 const STORAGE_KEYS = {

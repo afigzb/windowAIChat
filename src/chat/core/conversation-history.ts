@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
-import storage from '../storage'
-import type { ConversationTree, FlatMessage } from './types'
+import storage from '../../storage'
+import type { ConversationTree, FlatMessage } from '../types'
 import { createInitialConversationTree } from './tree-utils'
 
 // 对话历史项的元数据

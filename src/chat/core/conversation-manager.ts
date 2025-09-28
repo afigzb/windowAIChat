@@ -3,7 +3,7 @@ import type {
   FlatMessage, 
   ConversationTree, 
   AIConfig
-} from './types'
+} from '../types'
 import { callAIAPI } from './api'
 import {
   createInitialConversationTree,

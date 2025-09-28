@@ -1,4 +1,4 @@
-import type { FlatMessage, AIConfig } from './types'
+import type { FlatMessage, AIConfig } from '../types'
 
 interface ComposeOptions {
   history: FlatMessage[]

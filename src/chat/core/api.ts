@@ -1,6 +1,6 @@
-import type { FlatMessage, AIConfig, ApiProviderConfig, ProviderType } from './types'
-import { OpenAIAdapter } from './openai-adapter'
-import { GeminiAdapter } from './gemini-adapter'
+import type { FlatMessage, AIConfig, ApiProviderConfig, ProviderType } from '../types'
+import { OpenAIAdapter } from '../adapters/openai-adapter'
+import { GeminiAdapter } from '../adapters/gemini-adapter'
 
 // 默认API提供方配置
 const DEFAULT_PROVIDERS: ApiProviderConfig[] = [

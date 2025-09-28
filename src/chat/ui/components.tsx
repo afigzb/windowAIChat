@@ -4,7 +4,7 @@ export { ApiProviderManager } from './ApiProviderConfig'
 export { ChatInputArea } from './ChatInput'
 
 import { useState } from 'react'
-import type { AIConfig } from './types'
+import type { AIConfig } from '../types'
 
 // ===== 保留的公共组件 =====
 

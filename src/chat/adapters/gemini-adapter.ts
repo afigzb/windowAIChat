@@ -1,5 +1,5 @@
-import type { FlatMessage, AIConfig, ApiProviderConfig } from './types'
-import { composeMessages } from './request-composer'
+import type { FlatMessage, AIConfig, ApiProviderConfig } from '../types'
+import { composeMessages } from '../core/request-composer'
 
 /**
  * Gemini 系适配器 - 专门处理 Google Gemini API

@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import type { AIConfig, ApiProviderConfig, ProviderType } from './types'
-import { ConfirmDialog } from '../writing/components/ConfirmDialog'
-import { useConfirm } from '../writing/hooks/useConfirm'
+import type { AIConfig, ApiProviderConfig, ProviderType } from '../types'
+import { ConfirmDialog } from '../../writing/components/ConfirmDialog'
+import { useConfirm } from '../../writing/hooks/useConfirm'
 
 // 图标组件（局部版本）
 const Icon = ({ name, className = "w-4 h-4" }: { name: 'close' | 'edit'; className?: string }) => {
