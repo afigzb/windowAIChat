@@ -4,14 +4,13 @@ const fsRaw = require('fs')
 const path = require('path')
 const GlobalContextMenuManager = require('./GlobalContextMenu')
 const DocxHandler = require('./converters/docx')
-// 使用 app.isPackaged 更可靠地判断是否为开发环境
-const isDev = !app.isPackaged
 
 // 保持窗口对象的全局引用
 let mainWindow
 let contextMenuManager
 let docxHandler
 let storageDir
+
 
 function ensureDirSync(dirPath) {
   try {
@@ -35,11 +34,8 @@ function getKeyFilePath(key) {
 // 提前初始化存储目录，避免渲染进程调用前未初始化
 function resolveStorageDir() {
   try {
-    // 获取可执行文件所在目录（打包后和开发环境都适用）
-    const executableDir = app.isPackaged 
-      ? path.dirname(process.execPath)  // 打包后：可执行文件所在目录
-      : path.join(__dirname, '..')      // 开发环境：项目根目录
-    
+    // 获取可执行文件所在目录
+    const executableDir = path.dirname(process.execPath)
     const primary = path.join(executableDir, 'app_data')
     ensureDirSync(primary)
     // 试写
@@ -87,27 +83,12 @@ function createWindow() {
   })
 
   // 加载应用
-  let startUrl
-  if (isDev) {
-    startUrl = 'http://localhost:5173'
-  } else {
-    // 在打包后的环境中，使用统一的构建目录
-    startUrl = app.isPackaged 
-      ? path.join(__dirname, '../build/web/index.html')
-      : path.join(__dirname, '../build/web/index.html')
-    startUrl = `file://${startUrl}`
-  }
-  
-  mainWindow.loadURL(startUrl)
+  const indexHtmlPath = path.join(__dirname, '../build/web/index.html')
+  mainWindow.loadFile(indexHtmlPath)
 
   // 窗口准备显示时显示窗口
   mainWindow.once('ready-to-show', () => {
     mainWindow.show()
-    
-    // 开发环境下打开开发者工具
-    if (isDev) {
-      mainWindow.webContents.openDevTools()
-    }
   })
 
   // 窗口被关闭时清除引用
@@ -123,9 +104,13 @@ function createWindow() {
 
   // 阻止导航到外部URL
   mainWindow.webContents.on('will-navigate', (event, navigationUrl) => {
-    const parsedUrl = new URL(navigationUrl)
-    
-    if (parsedUrl.origin !== 'http://localhost:5173' && !isDev) {
+    try {
+      const parsedUrl = new URL(navigationUrl)
+      if (parsedUrl.protocol !== 'file:') {
+        event.preventDefault()
+      }
+    } catch (_) {
+      // 如果URL无法解析，谨慎起见阻止导航
       event.preventDefault()
     }
   })
