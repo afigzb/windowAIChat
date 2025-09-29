@@ -7,7 +7,7 @@
   "description": "AI写作助手桌面应用 - 文档编辑与AI对话集成",
   "author": "Your Name",
   "scripts": {
-    "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
     "build": "tsc -b && vite build",
     "pack": "npm run build && electron-builder --win",
     "pack-all": "npm run build && electron-builder",
@@ -21,7 +21,6 @@
     "mammoth": "^1.9.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-
     "react-markdown": "^10.1.0",
     "react-resizable-panels": "^3.0.4",
     "react-syntax-highlighter": "^15.6.1",
@@ -37,6 +36,7 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "@vitejs/plugin-react": "^4.4.1",
     "concurrently": "^9.2.0",
+    "cross-env": "^10.0.0",
     "electron": "^37.2.4",
     "electron-builder": "^26.0.12",
     "eslint": "^9.25.0",

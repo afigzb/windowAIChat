@@ -12,6 +12,7 @@ export * from './core/defaults'
 export * from './core/conversation-manager'
 export * from './core/conversation-history'
 export * from './core/branch-manager'
+export { systemPrompt, setSystemPrompt, clearSystemPrompt, addSystemPromptTransformer } from './core/system-prompt'
 
 // 导出树形数据工具（供高级用户使用）
 export * from './core/tree-utils'

@@ -83,8 +83,21 @@ function createWindow() {
   })
 
   // 加载应用
-  const indexHtmlPath = path.join(__dirname, '../build/web/index.html')
-  mainWindow.loadFile(indexHtmlPath)
+  // 判断是否为开发环境
+  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
+  
+  if (isDev) {
+    // 开发环境：连接到 Vite 开发服务器
+    const devServerUrl = 'http://localhost:5173'
+    mainWindow.loadURL(devServerUrl)
+    
+    // 开发环境下打开开发者工具
+    mainWindow.webContents.openDevTools()
+  } else {
+    // 生产环境：加载打包后的静态文件
+    const indexHtmlPath = path.join(__dirname, '../build/web/index.html')
+    mainWindow.loadFile(indexHtmlPath)
+  }
 
   // 窗口准备显示时显示窗口
   mainWindow.once('ready-to-show', () => {

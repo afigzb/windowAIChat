@@ -2,7 +2,7 @@ import type { FlatMessage, ChatStreamResponse, AIConfig, ApiProviderConfig } fro
 import { composeMessages } from '../core/request-composer'
 
 /**
- * OpenAI 系适配器 - 处理 OpenAI 兼容的 API (DeepSeek、Kimi 等)
+ * OpenAI 系适配器 - 处理 OpenAI 兼容的 API
  */
 export class OpenAIAdapter {
   private provider: ApiProviderConfig

@@ -1,4 +1,5 @@
 import type { FlatMessage, AIConfig } from '../types'
+import { systemPrompt } from './system-prompt'
 
 interface ComposeOptions {
   history: FlatMessage[]
@@ -11,16 +12,11 @@ interface ComposeOptions {
  * 输出仅包含 role/content 字段，供各适配器转换为目标供应商格式
  */
 export function composeMessages({ history, config, extraContextText }: ComposeOptions): Array<{ role: 'system' | 'user' | 'assistant'; content: string }> {
-  // 1) 系统提示 + 日期
-  const currentDate = new Date().toLocaleDateString('zh-CN', {
-    month: 'long',
-    day: 'numeric',
-    weekday: 'long'
-  })
-  const systemPrompt = `${config.systemPrompt}\n今天是${currentDate}。`
+  // 1) 系统提示：交由 systemPrompt 控制器汇总（支持运行时覆盖与转换器）
+  const finalSystemPrompt = systemPrompt.getPrompt(config)
 
   const result: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = []
-  result.push({ role: 'system', content: systemPrompt })
+  result.push({ role: 'system', content: finalSystemPrompt })
 
   // 2) 额外上下文作为独立消息（不入库，仅本次调用可见）
   if (extraContextText && extraContextText.trim()) {

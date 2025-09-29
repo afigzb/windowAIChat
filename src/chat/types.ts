@@ -99,6 +99,8 @@ export interface MessageBubbleProps {
   isGenerating?: boolean
   currentThinking?: string
   currentAnswer?: string
+  // 是否计入本次上下文（基于 historyLimit 计算）
+  isInContext?: boolean
 }
 
 // ===== 工具函数类型 =====

@@ -140,6 +140,7 @@ export function MessageBubble({
   isGenerating = false,
   currentThinking = '',
   currentAnswer = '',
+  isInContext
 }: MessageBubbleProps) {
   const [showThinkingExpanded, setShowThinkingExpanded] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -186,6 +187,13 @@ export function MessageBubble({
               <span className={`text-base font-semibold min-w-[2rem] max-w-[6rem] whitespace-nowrap overflow-hidden text-ellipsis ${isUser ? 'text-blue-600' : 'text-gray-800'}`}>
                 {isUser ? 'You' : 'AI Assistant'}
               </span>
+              {(node.role === 'user' || node.role === 'assistant') && typeof isInContext === 'boolean' && (
+                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                  isInContext
+                    ? 'bg-blue-500 shadow-sm shadow-blue-500/30'
+                    : 'bg-gray-400'
+                }`} title={isInContext ? '计入上下文' : '未计入上下文'} />
+              )}
               {!isUser && isGenerating && (
                     <div className="flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 text-sm rounded-full border-2 border-blue-200 shadow-sm min-w-[4rem] whitespace-nowrap">
                   <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse shadow-lg shadow-blue-500/50 flex-shrink-0" />

@@ -54,7 +54,7 @@ function ApiProviderToggle({ config, onProviderChange, disabled }: {
                   setIsOpen(false)
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 hover:bg-blue-50 min-w-0 ${
-                  provider.id === config.currentProviderId ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 font-bold border-l-4 border-blue-500' : 'text-gray-700 hover:pl-5'
+                  provider.id === config.currentProviderId ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 font-bold ' : 'text-gray-700 hover:pl-5'
                 }`}
               >
                 <div className={`w-2.5 h-2.5 rounded-full ${getProviderColor(provider.id)} shadow-sm`} />

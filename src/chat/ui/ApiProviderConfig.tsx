@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import type { AIConfig, ApiProviderConfig, ProviderType } from '../types'
 import { ConfirmDialog } from '../../writing/components/ConfirmDialog'
 import { useConfirm } from '../../writing/hooks/useConfirm'
 
 // 图标组件（局部版本）
-const Icon = ({ name, className = "w-4 h-4" }: { name: 'close' | 'edit'; className?: string }) => {
+const Icon = ({ name, className = "w-4 h-4" }: { name: 'close' | 'edit' | 'chevron-down'; className?: string }) => {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       {name === 'close' && (
@@ -13,7 +13,84 @@ const Icon = ({ name, className = "w-4 h-4" }: { name: 'close' | 'edit'; classNa
       {name === 'edit' && (
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
       )}
+      {name === 'chevron-down' && (
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m19 9-7 7-7-7" />
+      )}
     </svg>
+  )
+}
+
+// 自定义下拉选择器组件
+interface SelectOption {
+  value: string
+  label: string
+}
+
+interface CustomSelectProps {
+  value: string
+  onChange: (value: string) => void
+  options: SelectOption[]
+  className?: string
+  placeholder?: string
+}
+
+const CustomSelect = ({ value, onChange, options, className, placeholder }: CustomSelectProps) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const selectRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (selectRef.current && !selectRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const selectedOption = options.find(option => option.value === value)
+
+  return (
+    <div ref={selectRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`${className} flex items-center justify-between cursor-pointer`}
+      >
+        <span className={selectedOption ? 'text-gray-900' : 'text-gray-500'}>
+          {selectedOption?.label || placeholder || '请选择...'}
+        </span>
+        <Icon 
+          name="chevron-down" 
+          className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
+            isOpen ? 'rotate-180' : ''
+          }`} 
+        />
+      </button>
+      
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-white border-2 border-gray-200 rounded-xl shadow-xl overflow-hidden">
+          {options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => {
+                onChange(option.value)
+                setIsOpen(false)
+              }}
+              className={`w-full px-4 py-3 text-left text-sm transition-all duration-200 ${
+                value === option.value 
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold shadow-md' 
+                  : 'text-gray-900 hover:bg-blue-50 hover:text-blue-700 hover:shadow-sm'
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -141,22 +218,22 @@ function ApiProviderForm({ provider, onSave, onCancel, inline = false }: {
             <label className="block text-sm font-semibold text-gray-800 mb-3">
               提供商类型 <span className="text-red-500 text-xs">*</span>
             </label>
-            <select
+            <CustomSelect
               value={formData.type}
-              onChange={(e) => {
-                const newType = e.target.value as ProviderType
+              onChange={(newType) => {
                 setFormData({ 
                   ...formData, 
-                  type: newType,
+                  type: newType as ProviderType,
                   model: '' // 清空模型选择
                 })
               }}
+              options={[
+                { value: 'openai', label: 'OpenAI 兼容 (ChatGPT, Claude, DeepSeek 等)' },
+                { value: 'gemini', label: 'Google Gemini' }
+              ]}
               className={getFieldClass('type')}
-              required
-            >
-              <option value="openai">OpenAI 兼容 (Kimi, Claude, DeepSeek 等)</option>
-              <option value="gemini">Google Gemini</option>
-            </select>
+              placeholder="请选择提供商类型"
+            />
           </div>
         </div>
 
@@ -451,8 +528,8 @@ export function ApiProviderManager({ config, onConfigChange }: {
                       <span className="text-sm font-medium text-gray-600 w-14">密钥:</span>
                       <span className="text-sm font-medium">
                         {provider.apiKey ? 
-                          <span className="text-green-600 bg-green-50 px-2 py-1 rounded">✓ 已设置</span> : 
-                          <span className="text-amber-600 bg-amber-50 px-2 py-1 rounded">○ 未设置</span>
+                          <span className="text-green-600 bg-green-50 px-2 py-1 rounded">已设置</span> : 
+                          <span className="text-amber-600 bg-amber-50 px-2 py-1 rounded">未设置</span>
                         }
                       </span>
                     </div>
