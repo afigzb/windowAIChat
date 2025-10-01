@@ -1,4 +1,4 @@
-import type { AIConfig } from '../types'
+import type { AIConfig } from '../../types'
 
 // 系统提示词转换器：用于在基础提示词上进行追加/裁剪/重写等操作
 export type SystemPromptTransformer = (prompt: string) => string

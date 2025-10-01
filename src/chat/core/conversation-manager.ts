@@ -5,6 +5,7 @@ import type {
   AIConfig
 } from '../types'
 import { callAIAPI } from './api'
+import { contextEngine } from './context'
 import {
   createInitialConversationTree,
   createFlatMessage,
@@ -53,30 +54,10 @@ async function generateAIMessage(
   let currentReasoningContent = ''
   
   try {
-    // 决定临时上下文的注入方式
-    let modifiedHistory = conversationHistory
-    let extraContextForComposer: string | undefined = undefined
-    if (tempContent && tempContent.trim()) {
-      if (tempPlacement === 'after_system') {
-        // 不改动历史，由 composer 在 system 后插入独立上下文消息
-        extraContextForComposer = tempContent
-      } else {
-        // 默认：拼接到最后一条用户消息末尾（仅本次调用，不入库）
-        if (conversationHistory.length > 0) {
-          modifiedHistory = [...conversationHistory]
-          const lastMessage = modifiedHistory[modifiedHistory.length - 1]
-          if (lastMessage.role === 'user') {
-            modifiedHistory[modifiedHistory.length - 1] = {
-              ...lastMessage,
-              content: lastMessage.content + tempContent
-            }
-          }
-        }
-      }
-    }
-
+    // 新架构：直接传递conversationHistory和tempContent到API层
+    // API层内部会通过ContextEngine处理消息编辑
     const result = await callAIAPI(
-      modifiedHistory,
+      conversationHistory,
       config,
       abortController.signal,
       (thinking) => {
@@ -87,7 +68,8 @@ async function generateAIMessage(
         currentGeneratedContent = answer
         onAnswerUpdate(answer)
       },
-      extraContextForComposer
+      tempContent,
+      tempPlacement
     )
 
     return {

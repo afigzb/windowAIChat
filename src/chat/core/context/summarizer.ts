@@ -18,15 +18,36 @@ function buildSystemPrompt(): string {
   ].join('\n')
 }
 
+/**
+ * 构建概括计划
+ * @param inputResidual 用户额外输入的概括指令
+ * @param conversationHistoryText 当前对话的历史上下文（已根据 historyLimit 截断）
+ * @param filesText 选中的文件内容
+ */
 export function buildSummarizePlan(
   inputResidual?: string,
+  conversationHistoryText?: string,
   filesText?: string
 ): SummarizePlan {
   const trimmedInput = (inputResidual || '').trim()
   const userMessageContent = trimmedInput || '请对以下内容进行高质量概括'
 
+  // 组装额外上下文：对话历史 + 文件内容
+  const contextParts: string[] = []
+  
+  const trimmedHistory = (conversationHistoryText || '').trim()
+  if (trimmedHistory) {
+    contextParts.push('【对话历史】\n' + trimmedHistory)
+  }
+
   const trimmedFiles = (filesText || '').trim()
-  const extraContext = trimmedFiles ? `\n\n${trimmedFiles}` : ''
+  if (trimmedFiles) {
+    contextParts.push('【文件内容】\n' + trimmedFiles)
+  }
+
+  const extraContext = contextParts.length > 0 
+    ? '\n\n' + contextParts.join('\n\n') 
+    : ''
 
   const systemPrompt = buildSystemPrompt()
 

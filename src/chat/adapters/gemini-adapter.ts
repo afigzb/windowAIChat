@@ -1,5 +1,5 @@
 import type { FlatMessage, AIConfig, ApiProviderConfig } from '../types'
-import { composeMessages } from '../core/request-composer'
+import { contextEngine } from '../core/context'
 
 /**
  * Gemini 系适配器 - 专门处理 Google Gemini API
@@ -11,7 +11,7 @@ export class GeminiAdapter {
     this.provider = provider
   }
 
-  // 统一由 RequestComposer 负责消息组装
+  // 统一由 ContextEngine 负责消息组装
 
   /**
    * 构建 Gemini 格式的请求体
@@ -19,9 +19,10 @@ export class GeminiAdapter {
   private buildRequestBody(
     messages: FlatMessage[],
     config: AIConfig,
-    extraContextText?: string
+    tempContent?: string,
+    tempPlacement: 'append' | 'after_system' = 'append'
   ): Record<string, any> {
-    const commonMessages = composeMessages({ history: messages, config, extraContextText })
+    const commonMessages = contextEngine.buildRequestMessages(messages, config, tempContent, tempPlacement)
     
     // 转换为 Gemini 格式
     const contents = []
@@ -87,9 +88,10 @@ export class GeminiAdapter {
     abortSignal: AbortSignal,
     onThinkingUpdate: (thinking: string) => void,
     onAnswerUpdate: (answer: string) => void,
-    extraContextText?: string
+    tempContent?: string,
+    tempPlacement: 'append' | 'after_system' = 'append'
   ): Promise<{ reasoning_content?: string; content: string }> {
-    const requestBody = this.buildRequestBody(messages, config, extraContextText)
+    const requestBody = this.buildRequestBody(messages, config, tempContent, tempPlacement)
     
     // 构建请求URL（包含API Key）
     const fetchUrl = `${this.provider.baseUrl}?key=${this.provider.apiKey}`

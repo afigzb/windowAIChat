@@ -1,18 +1,49 @@
 import { useState, useRef, useEffect } from 'react'
-import type { AIConfig } from '../types'
+import type { AIConfig, ConversationTree, FlatMessage } from '../types'
 import { MessageBubble, ChatInputArea } from './components'
 import { useConversationManager } from '../core/conversation-manager'
 import { useBranchManager } from '../core/branch-manager'
 import { useConversationHistory } from '../core/conversation-history'
 import { ConfirmDialog } from '../../writing/components/ConfirmDialog'
 import { useConfirm } from '../../writing/hooks/useConfirm'
-import { setSystemPrompt, clearSystemPrompt } from '../core/system-prompt'
-import { buildSummarizePlan } from '../core/summarizer'
+import { contextEngine, setSystemPrompt, clearSystemPrompt, buildSummarizePlan } from '../core/context'
 
 interface ChatPanelProps {
   config: AIConfig
   onConfigChange: (config: AIConfig) => void
   additionalContent?: (() => Promise<string>) | string // 额外的上下文内容（如选中的文件内容）
+}
+
+/**
+ * 将对话树的有效历史消息转换为文本格式
+ * 根据 historyLimit 配置限制消息数量
+ */
+function getConversationHistoryText(tree: ConversationTree, config: AIConfig): string {
+  const pathIds = tree.activePath
+  const flat = tree.flatMessages
+
+  // 获取活跃路径上的所有用户和助手消息
+  const history = pathIds
+    .map(id => flat.get(id))
+    .filter((m): m is NonNullable<typeof m> => !!m)
+    .filter(m => m.role === 'user' || m.role === 'assistant')
+
+  // 根据 historyLimit 限制消息数量
+  const limit = Math.max(0, config.historyLimit || 0)
+  const includedMessages = limit > 0 ? history.slice(-limit) : history
+
+  // 如果没有历史消息，返回空字符串
+  if (includedMessages.length === 0) {
+    return ''
+  }
+
+  // 将消息格式化为文本
+  const lines = includedMessages.map(msg => {
+    const roleLabel = msg.role === 'user' ? '用户' : '助手'
+    return `${roleLabel}：${msg.content}`
+  })
+
+  return lines.join('\n\n')
 }
 
 export function ChatPanel({
@@ -139,20 +170,40 @@ export function ChatPanel({
       const doSummarize = async () => {
         try {
           setSystemPrompt(systemPrompt)
-          await conversationActions.sendMessage(userMessageContent, null, extraContext, 'append')
+          // 计算当前激活路径的对话摘录（仅 user/assistant），用于提供更完整上下文
+          const pathIds = conversationState.conversationTree.activePath
+          const flat = conversationState.conversationTree.flatMessages
+          const transcriptParts: string[] = []
+          for (const id of pathIds) {
+            const m = flat.get(id)
+            if (m && (m.role === 'user' || m.role === 'assistant')) {
+              const prefix = m.role === 'user' ? '用户' : '助手'
+              transcriptParts.push(`${prefix}: ${m.content}`)
+            }
+          }
+          const transcript = transcriptParts.length > 0 ? `\n\n【过往对话】\n${transcriptParts.join('\n')}` : ''
+          const mergedExtra = `${extraContext || ''}${transcript}`
+          // 将上下文放置于 system 之后，避免被拼接到最后一条用户消息
+          await conversationActions.sendMessage(userMessageContent, null, mergedExtra, 'after_system')
         } finally {
           clearSystemPrompt()
         }
       }
       doSummarize()
     }
-  }, [pendingSummarize, currentConversationId, conversationState.conversationTree.flatMessages.size, conversationActions])
+  }, [pendingSummarize, currentConversationId, conversationState.conversationTree.flatMessages.size, conversationActions, conversationState.conversationTree.activePath, conversationState.conversationTree.flatMessages])
 
   // 概括：新建对话 -> 使用输入为主体，文件内容拼接到尾部 -> 一次性系统提示
   const handleSummarize = async () => {
     if (conversationState.isLoading) return
 
-    // 1) 收集已选文件内容
+    // 1) 获取当前对话的有效历史上下文（根据 historyLimit 限制）
+    const conversationHistoryText = getConversationHistoryText(
+      conversationState.conversationTree,
+      config
+    )
+
+    // 2) 收集已选文件内容
     let filesText = ''
     if (additionalContent) {
       filesText = typeof additionalContent === 'function' 
@@ -161,20 +212,21 @@ export function ChatPanel({
       filesText = filesText?.trim() || ''
     }
 
-    // 使用与聊天系统解耦的概括构建器
+    // 3) 使用与聊天系统解耦的概括构建器，包含对话历史
     const plan = buildSummarizePlan(
       conversationState.inputValue?.trim(),
+      conversationHistoryText,
       filesText
     )
 
-    // 5) 设置挂起状态，然后新建对话
+    // 4) 设置挂起状态，然后新建对话
     setPendingSummarize({
       userMessageContent: plan.userMessageContent,
       extraContext: plan.extraContext,
       systemPrompt: plan.systemPrompt
     })
 
-    // 6) 新建对话并切换
+    // 5) 新建对话并切换
     const newId = conversationHistory.createNewConversation()
     setCurrentConversationId(newId)
     conversationActions.updateConversationTree(new Map(), [])
@@ -401,32 +453,21 @@ export function ChatPanel({
       {/* 当前对话区域 - 占据全部空间 */}
       <div className="flex-1 flex flex-col min-h-0">
         <div className="flex-1 overflow-y-auto bg-gradient-to-b from-white to-gray-50 min-h-0">
-          {/* 上下文统计条 */}
+          {/* 上下文统计条（由 ContextEngine 提供数据）*/}
           {(() => {
-            const pathIds = conversationState.conversationTree.activePath
-            const flat = conversationState.conversationTree.flatMessages
-            // 仅统计 user/assistant
-            const history = pathIds
-              .map(id => flat.get(id))
-              .filter((m): m is NonNullable<typeof m> => !!m)
-              .filter(m => m.role === 'user' || m.role === 'assistant')
-
-            const total = history.length
+            const meta = contextEngine.getContextMetadataFromTree(conversationState.conversationTree, config)
+            if (meta.totalMessages === 0) return null
             const limit = Math.max(0, config.historyLimit || 0)
-            const included = limit > 0 ? Math.min(limit, total) : total
-            const excluded = Math.max(0, total - included)
-            if (total === 0) return null
-
             return (
               <div className="sticky top-0 z-10 px-6 py-2 bg-gradient-to-r from-blue-50/70 to-indigo-50/70 border-b-2 border-blue-200 backdrop-blur-sm">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 text-sm">
                     <span className="text-blue-700 font-semibold">上下文</span>
-                    <span className="px-2 py-0.5 rounded-lg bg-blue-100 text-blue-700 font-medium">计入 {included}</span>
-                    {excluded > 0 && (
-                      <span className="px-2 py-0.5 rounded-lg bg-gray-100 text-gray-700">未计入 {excluded}</span>
+                    <span className="px-2 py-0.5 rounded-lg bg-blue-100 text-blue-700 font-medium">计入 {meta.includedMessages}</span>
+                    {meta.excludedMessages > 0 && (
+                      <span className="px-2 py-0.5 rounded-lg bg-gray-100 text-gray-700">未计入 {meta.excludedMessages}</span>
                     )}
-                    <span className="text-gray-500">(历史消息共 {total} 条，保留上限 {limit || '∞'})</span>
+                    <span className="text-gray-500">(历史消息共 {meta.totalMessages} 条，保留上限 {limit || '∞'})</span>
                   </div>
                   {/* 概括按钮 */}
                   <button
@@ -449,18 +490,11 @@ export function ChatPanel({
                   const isInActivePath = conversationState.conversationTree.activePath.includes(node.id)
                   const isGeneratingNode = conversationState.isLoading && node.content === '正在生成...'
                   
-                  // 计算是否计入上下文：仅对 user/assistant 生效
+                  // 计算是否计入上下文：由 ContextEngine 提供
                   let isInContext: boolean | undefined = undefined
                   if (node.role === 'user' || node.role === 'assistant') {
-                    const pathIds = conversationState.conversationTree.activePath
-                    const flat = conversationState.conversationTree.flatMessages
-                    const history = pathIds
-                      .map(id => flat.get(id))
-                      .filter((m): m is NonNullable<typeof m> => !!m)
-                      .filter(m => m.role === 'user' || m.role === 'assistant')
-                    const limit = Math.max(0, config.historyLimit || 0)
-                    const includedSlice = limit > 0 ? history.slice(-limit) : history
-                    isInContext = includedSlice.some(m => m.id === node.id)
+                    const meta = contextEngine.getContextMetadataFromTree(conversationState.conversationTree, config)
+                    isInContext = !!meta.inclusionMap.get(node.id)
                   }
                   
                   // 创建包装函数以传递临时内容

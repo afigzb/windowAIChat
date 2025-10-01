@@ -17,7 +17,8 @@ interface ChatAdapter {
     abortSignal: AbortSignal,
     onThinkingUpdate: (thinking: string) => void,
     onAnswerUpdate: (answer: string) => void,
-    extraContextText?: string
+    tempContent?: string,
+    tempPlacement?: 'append' | 'after_system'
   ): Promise<{ reasoning_content?: string; content: string }>
 }
 
@@ -36,7 +37,8 @@ export async function callAIAPI(
   abortSignal: AbortSignal,
   onThinkingUpdate: (thinking: string) => void,
   onAnswerUpdate: (answer: string) => void,
-  extraContextText?: string
+  tempContent?: string,
+  tempPlacement: 'append' | 'after_system' = 'append'
 ): Promise<{ reasoning_content?: string; content: string }> {
   const currentProvider = config.providers.find(p => p.id === config.currentProviderId)
   if (!currentProvider) {
@@ -51,6 +53,7 @@ export async function callAIAPI(
     abortSignal,
     onThinkingUpdate,
     onAnswerUpdate,
-    extraContextText
+    tempContent,
+    tempPlacement
   )
 } 

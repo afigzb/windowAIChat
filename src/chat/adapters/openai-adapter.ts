@@ -1,5 +1,5 @@
 import type { FlatMessage, ChatStreamResponse, AIConfig, ApiProviderConfig } from '../types'
-import { composeMessages } from '../core/request-composer'
+import { contextEngine } from '../core/context'
 
 /**
  * OpenAI 系适配器 - 处理 OpenAI 兼容的 API
@@ -11,7 +11,7 @@ export class OpenAIAdapter {
     this.provider = provider
   }
 
-  // 统一由 RequestComposer 负责消息组装
+  // 统一由 ContextEngine 负责消息组装
 
   /**
    * 构建 OpenAI 格式的请求体
@@ -19,9 +19,10 @@ export class OpenAIAdapter {
   private buildRequestBody(
     messages: FlatMessage[],
     config: AIConfig,
-    extraContextText?: string
+    tempContent?: string,
+    tempPlacement: 'append' | 'after_system' = 'append'
   ): Record<string, any> {
-    const commonMessages = composeMessages({ history: messages, config, extraContextText })
+    const commonMessages = contextEngine.buildRequestMessages(messages, config, tempContent, tempPlacement)
     
     const base: Record<string, any> = {
       model: this.provider.model,
@@ -85,9 +86,10 @@ export class OpenAIAdapter {
     abortSignal: AbortSignal,
     onThinkingUpdate: (thinking: string) => void,
     onAnswerUpdate: (answer: string) => void,
-    extraContextText?: string
+    tempContent?: string,
+    tempPlacement: 'append' | 'after_system' = 'append'
   ): Promise<{ reasoning_content?: string; content: string }> {
-    const requestBody = this.buildRequestBody(messages, config, extraContextText)
+    const requestBody = this.buildRequestBody(messages, config, tempContent, tempPlacement)
     
     // 构建请求头
     const headers: Record<string, string> = {
