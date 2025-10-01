@@ -13,7 +13,6 @@ function buildSystemPrompt(): string {
     '要求：',
     '- 保留关键信息、结论与决策，删除冗余与重复。',
     '- 用分点或小节组织结果，语言简洁清晰。',
-    '- 若上下文包含多个文件或主题，请归类整理。',
     '- 不臆测缺失信息，必要时标注"信息不足"。'
   ].join('\n')
 }
@@ -30,7 +29,7 @@ export function buildSummarizePlan(
   filesText?: string
 ): SummarizePlan {
   const trimmedInput = (inputResidual || '').trim()
-  const userMessageContent = trimmedInput || '请对以下内容进行高质量概括'
+  const userMessageContent = trimmedInput || '请对上述内容进行高质量概括'
 
   // 组装额外上下文：对话历史 + 文件内容
   const contextParts: string[] = []
