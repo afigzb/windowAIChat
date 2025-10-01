@@ -7,6 +7,9 @@ import { useConversationHistory } from '../core/conversation-history'
 import { ConfirmDialog } from '../../writing/components/ConfirmDialog'
 import { useConfirm } from '../../writing/hooks/useConfirm'
 import { contextEngine, setSystemPrompt, clearSystemPrompt, buildSummarizePlan } from '../core/context'
+import { MessagePreviewDialog } from './MessagePreviewDialog'
+import { getPreviewData } from '../core/api'
+import { getConversationHistory, createFlatMessage } from '../core/tree-utils'
 
 interface ChatPanelProps {
   config: AIConfig
@@ -52,6 +55,12 @@ export function ChatPanel({
   additionalContent
 }: ChatPanelProps) {
   const [showHistoryDrawer, setShowHistoryDrawer] = useState(false)
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false)
+  const [previewData, setPreviewData] = useState<{
+    requestBody: Record<string, any>
+    headers: Record<string, string>
+    url: string
+  } | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatInputRef = useRef<{ focus: () => void }>(null)
   const historyDrawerRef = useRef<HTMLDivElement>(null)
@@ -151,6 +160,68 @@ export function ChatPanel({
     }
     
     conversationActions.sendMessage(content, null, extraContent)
+  }
+
+  // 处理预览
+  const handlePreview = async () => {
+    if (!conversationState.inputValue.trim()) {
+      alert('请先输入消息内容')
+      return
+    }
+
+    try {
+      // 获取额外内容（与实际发送时的逻辑完全一致）
+      let extraContent = ''
+      if (additionalContent) {
+        if (typeof additionalContent === 'function') {
+          extraContent = await additionalContent()
+        } else {
+          extraContent = additionalContent
+        }
+      }
+
+      // 获取对话历史（与实际发送时的逻辑完全一致）
+      // 从活跃路径获取最后一个节点ID，如果没有则使用null
+      const lastNodeId = conversationState.conversationTree.activePath.length > 0
+        ? conversationState.conversationTree.activePath[conversationState.conversationTree.activePath.length - 1]
+        : null
+
+      let history: FlatMessage[] = []
+      if (lastNodeId) {
+        history = getConversationHistory(
+          lastNodeId,
+          conversationState.conversationTree.flatMessages
+        )
+      }
+
+      // 创建临时的用户消息（不添加到树中）
+      const tempUserMessage = createFlatMessage(
+        conversationState.inputValue,
+        'user',
+        null
+      )
+
+      // 将临时消息添加到历史中用于预览
+      const historyWithCurrentMessage = [...history, tempUserMessage]
+
+      // 使用与实际发送完全相同的逻辑获取预览数据
+      // tempPlacement 参数默认为 'append'，与 sendMessage 保持一致
+      const { url, headers, body } = getPreviewData(
+        historyWithCurrentMessage,
+        config,
+        extraContent,
+        'append'  // 这里需要与实际发送时的参数保持一致
+      )
+
+      setPreviewData({ 
+        requestBody: body, 
+        headers, 
+        url 
+      })
+      setShowPreviewDialog(true)
+    } catch (error: any) {
+      alert(`预览失败: ${error.message || '未知错误'}`)
+    }
   }
 
   // 概括状态
@@ -320,7 +391,24 @@ export function ChatPanel({
               AI写作助手
             </h2>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
+            {/* 预览按钮 */}
+            <button
+              onClick={handlePreview}
+              disabled={!conversationState.inputValue.trim() || conversationState.isLoading}
+              className={`p-2.5 rounded-xl transition-all duration-300 flex-shrink-0 ${
+                conversationState.inputValue.trim() && !conversationState.isLoading
+                  ? 'text-gray-600 hover:text-purple-600 hover:bg-purple-50 hover:shadow-md hover:scale-105'
+                  : 'text-gray-300 cursor-not-allowed'
+              }`}
+              title="预览消息"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            </button>
+
             <div className="relative" ref={historyDrawerRef}>
               <button
                 onClick={() => setShowHistoryDrawer(!showHistoryDrawer)}
@@ -564,6 +652,13 @@ export function ChatPanel({
 
       {/* 统一的确认对话框 */}
       <ConfirmDialog {...confirmProps} />
+      
+      {/* 消息预览对话框 */}
+      <MessagePreviewDialog
+        isOpen={showPreviewDialog}
+        onClose={() => setShowPreviewDialog(false)}
+        previewData={previewData}
+      />
     </div>
   )
 }

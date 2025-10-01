@@ -20,6 +20,12 @@ interface ChatAdapter {
     tempContent?: string,
     tempPlacement?: 'append' | 'after_system'
   ): Promise<{ reasoning_content?: string; content: string }>
+  buildRequestData(
+    messages: FlatMessage[],
+    config: AIConfig,
+    tempContent?: string,
+    tempPlacement?: 'append' | 'after_system'
+  ): { url: string; headers: Record<string, string>; body: Record<string, any> }
 }
 
 function createAdapter(provider: ApiProviderConfig): ChatAdapter {
@@ -56,4 +62,24 @@ export async function callAIAPI(
     tempContent,
     tempPlacement
   )
+}
+
+/**
+ * 获取预览数据 - 不实际发送请求
+ * 用于预览即将发送的请求内容
+ */
+export function getPreviewData(
+  messages: FlatMessage[],
+  config: AIConfig = DEFAULT_CONFIG,
+  tempContent?: string,
+  tempPlacement: 'append' | 'after_system' = 'append'
+): { url: string; headers: Record<string, string>; body: Record<string, any> } {
+  const currentProvider = config.providers.find(p => p.id === config.currentProviderId)
+  if (!currentProvider) {
+    throw new Error(`找不到API配置: ${config.currentProviderId}`)
+  }
+
+  const adapter = createAdapter(currentProvider)
+
+  return adapter.buildRequestData(messages, config, tempContent, tempPlacement)
 } 

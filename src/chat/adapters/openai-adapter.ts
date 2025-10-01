@@ -14,6 +14,33 @@ export class OpenAIAdapter {
   // 统一由 ContextEngine 负责消息组装
 
   /**
+   * 构建完整的请求数据（用于预览和实际请求）
+   */
+  buildRequestData(
+    messages: FlatMessage[],
+    config: AIConfig,
+    tempContent?: string,
+    tempPlacement: 'append' | 'after_system' = 'append'
+  ): { url: string; headers: Record<string, string>; body: Record<string, any> } {
+    const body = this.buildRequestBody(messages, config, tempContent, tempPlacement)
+    
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${this.provider.apiKey}`
+    }
+
+    if (this.provider.extraHeaders) {
+      Object.assign(headers, this.provider.extraHeaders)
+    }
+
+    return {
+      url: this.provider.baseUrl,
+      headers,
+      body
+    }
+  }
+
+  /**
    * 构建 OpenAI 格式的请求体
    */
   private buildRequestBody(
@@ -89,22 +116,12 @@ export class OpenAIAdapter {
     tempContent?: string,
     tempPlacement: 'append' | 'after_system' = 'append'
   ): Promise<{ reasoning_content?: string; content: string }> {
-    const requestBody = this.buildRequestBody(messages, config, tempContent, tempPlacement)
-    
-    // 构建请求头
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.provider.apiKey}`
-    }
+    const { url, headers, body } = this.buildRequestData(messages, config, tempContent, tempPlacement)
 
-    if (this.provider.extraHeaders) {
-      Object.assign(headers, this.provider.extraHeaders)
-    }
-
-    const response = await fetch(this.provider.baseUrl, {
+    const response = await fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify(body),
       signal: abortSignal
     })
 
