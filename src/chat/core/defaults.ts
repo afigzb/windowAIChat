@@ -19,6 +19,14 @@ export const DEFAULT_PROVIDERS: ApiProviderConfig[] = [
     apiKey: '',
     model: 'gemini-2.5-flash'
   },
+  {
+    id: 'gemini-2.5-pro',
+    name: 'Google Gemini 2.5 Pro',
+    type: 'gemini',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent',
+    apiKey: '',
+    model: 'gemini-2.5-pro'
+  },
   geminiProPreset as ApiProviderConfig,
   {
     id: 'kimi-thinking',
