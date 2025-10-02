@@ -40,8 +40,14 @@ class PromptCardManager {
     
     // 如果存储为空，保持当前卡片不变（避免意外清空）
     if (storedCards.length > 0) {
-      this.cards = storedCards
-      console.log('[PromptCardManager] 重新加载提示词卡片，数量:', this.cards.length)
+      // 简单对比：检查数据是否真的变化了（避免不必要的更新）
+      const hasChanged = JSON.stringify(this.cards) !== JSON.stringify(storedCards)
+      if (hasChanged) {
+        this.cards = storedCards
+        console.log('[PromptCardManager] 重新加载提示词卡片，数量:', this.cards.length)
+      } else {
+        console.log('[PromptCardManager] 数据未变化，跳过重载')
+      }
     }
   }
 

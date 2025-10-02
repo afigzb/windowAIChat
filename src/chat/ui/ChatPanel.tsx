@@ -66,6 +66,13 @@ export function ChatPanel({
   const historyDrawerRef = useRef<HTMLDivElement>(null)
   const { confirm, confirmProps } = useConfirm()
   
+  // 记录预览时的依赖快照，用于检测是否需要自动刷新
+  const previewDepsRef = useRef<{
+    inputValue: string
+    configHash: string
+    activePath: string[]
+  } | null>(null)
+  
   // 对话历史管理
   const conversationHistory = useConversationHistory()
   
@@ -164,11 +171,6 @@ export function ChatPanel({
 
   // 处理预览
   const handlePreview = async () => {
-    if (!conversationState.inputValue.trim()) {
-      alert('请先输入消息内容')
-      return
-    }
-
     try {
       // 获取额外内容（与实际发送时的逻辑完全一致）
       let extraContent = ''
@@ -218,6 +220,14 @@ export function ChatPanel({
         headers, 
         url 
       })
+      
+      // 记录当前预览的依赖快照
+      previewDepsRef.current = {
+        inputValue: conversationState.inputValue,
+        configHash: JSON.stringify(config),
+        activePath: [...conversationState.conversationTree.activePath]
+      }
+      
       setShowPreviewDialog(true)
     } catch (error: any) {
       alert(`预览失败: ${error.message || '未知错误'}`)
@@ -230,6 +240,31 @@ export function ChatPanel({
     extraContext: string
     systemPrompt: string
   } | null>(null)
+
+  // 自动刷新预览：当预览对话框打开时，监听关键数据变化
+  useEffect(() => {
+    if (!showPreviewDialog || !previewDepsRef.current) return
+
+    const currentDeps = {
+      inputValue: conversationState.inputValue,
+      configHash: JSON.stringify(config),
+      activePath: conversationState.conversationTree.activePath
+    }
+
+    // 检测是否有变化
+    const hasInputChanged = currentDeps.inputValue !== previewDepsRef.current.inputValue
+    const hasConfigChanged = currentDeps.configHash !== previewDepsRef.current.configHash
+    const hasPathChanged = JSON.stringify(currentDeps.activePath) !== JSON.stringify(previewDepsRef.current.activePath)
+
+    if (hasInputChanged || hasConfigChanged || hasPathChanged) {
+      console.log('[ChatPanel] 检测到预览相关数据变化，自动刷新预览', {
+        inputChanged: hasInputChanged,
+        configChanged: hasConfigChanged,
+        pathChanged: hasPathChanged
+      })
+      handlePreview()
+    }
+  }, [showPreviewDialog, conversationState.inputValue, config, conversationState.conversationTree.activePath])
 
   // 处理挂起的概括请求
   useEffect(() => {
@@ -397,9 +432,9 @@ export function ChatPanel({
             {/* 预览按钮 */}
             <button
               onClick={handlePreview}
-              disabled={!conversationState.inputValue.trim() || conversationState.isLoading}
+              disabled={conversationState.isLoading}
               className={`p-2.5 rounded-xl transition-all duration-300 flex-shrink-0 ${
-                conversationState.inputValue.trim() && !conversationState.isLoading
+                !conversationState.isLoading
                   ? 'text-gray-600 hover:text-purple-600 hover:bg-purple-50 hover:shadow-md hover:scale-105'
                   : 'text-gray-300 cursor-not-allowed'
               }`}
@@ -660,6 +695,7 @@ export function ChatPanel({
         isOpen={showPreviewDialog}
         onClose={() => setShowPreviewDialog(false)}
         previewData={previewData}
+        onRefreshPreview={handlePreview}
       />
     </div>
   )

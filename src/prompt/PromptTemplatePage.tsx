@@ -23,6 +23,19 @@ export function PromptTemplatePage() {
 
   useEffect(() => {
     loadCards()
+
+    // 监听其他窗口的数据更新
+    const handleCardsChanged = () => {
+      console.log('[PromptTemplatePage] 收到数据更新通知，刷新UI')
+      loadCards()
+    }
+
+    // 注册监听器
+    if (typeof window !== 'undefined' && (window as any).electronAPI?.onPromptCardsChanged) {
+      (window as any).electronAPI.onPromptCardsChanged(handleCardsChanged)
+    }
+
+    // 清理函数（如果需要的话，Electron IPC 通常不需要手动清理）
   }, [])
 
   // 创建新卡片

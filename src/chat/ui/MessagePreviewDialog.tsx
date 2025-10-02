@@ -9,11 +9,13 @@ interface MessagePreviewDialogProps {
     headers: Record<string, string>
     url: string
   } | null
+  // 新增：当提示词更新时重新生成预览数据的回调
+  onRefreshPreview?: () => void
 }
 
 const STORAGE_KEY_VIEW_MODE = 'message_preview_view_mode'
 
-export function MessagePreviewDialog({ isOpen, onClose, previewData }: MessagePreviewDialogProps) {
+export function MessagePreviewDialog({ isOpen, onClose, previewData, onRefreshPreview }: MessagePreviewDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const [viewMode, setViewMode] = useState<'friendly' | 'technical'>(() => {
     // 从缓存中读取上次的视图模式
@@ -65,6 +67,23 @@ export function MessagePreviewDialog({ isOpen, onClose, previewData }: MessagePr
       setShowContext(false)
     }
   }, [isOpen])
+
+  // 监听数据更新（提示词卡片变化等）
+  useEffect(() => {
+    if (!isOpen || !onRefreshPreview) return
+
+    const handleDataChanged = () => {
+      console.log('[MessagePreviewDialog] 检测到数据更新，刷新预览')
+      onRefreshPreview()
+    }
+
+    // 监听提示词卡片更新（窗口间同步）
+    if (typeof window !== 'undefined' && (window as any).electronAPI?.onPromptCardsChanged) {
+      (window as any).electronAPI.onPromptCardsChanged(handleDataChanged)
+    }
+
+    // 可以在这里添加更多监听器，例如配置变化等
+  }, [isOpen, onRefreshPreview])
 
   if (!isOpen || !previewData) return null
 
