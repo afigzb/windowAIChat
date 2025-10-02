@@ -50,33 +50,22 @@ class StorageManager {
 
   /**
    * 解析存储目录路径
+   * 使用用户数据目录，确保软件更新时数据不会丢失
    */
   _resolveStorageDir() {
     try {
-      // 优先使用可执行文件所在目录
-      const executableDir = path.dirname(process.execPath)
-      const primary = path.join(executableDir, 'app_data')
-      this._ensureDirSync(primary)
+      const storageDir = path.join(app.getPath('userData'), 'app_data')
+      this._ensureDirSync(storageDir)
       
       // 测试写入权限
-      const probeFile = path.join(primary, '.writable_probe')
+      const probeFile = path.join(storageDir, '.writable_probe')
       fsRaw.writeFileSync(probeFile, 'ok')
       fsRaw.unlinkSync(probeFile)
-      return primary
+      
+      return storageDir
     } catch (e) {
-      try {
-        // 回退到用户数据目录
-        const fallback = path.join(app.getPath('userData'), 'app_data')
-        this._ensureDirSync(fallback)
-        
-        const probeFile = path.join(fallback, '.writable_probe')
-        fsRaw.writeFileSync(probeFile, 'ok')
-        fsRaw.unlinkSync(probeFile)
-        return fallback
-      } catch (e2) {
-        console.error('无法初始化任何存储目录:', e2)
-        return null
-      }
+      console.error('无法初始化存储目录:', e)
+      throw new Error('存储目录初始化失败，请检查磁盘权限')
     }
   }
 
