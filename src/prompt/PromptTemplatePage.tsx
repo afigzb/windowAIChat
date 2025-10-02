@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { promptCardManager } from './prompt-manager'
 import type { PromptCard, PromptCardPlacement } from './types'
+import { ConfirmDialog } from '../writing/components/ConfirmDialog'
 
 /**
  * 提示词模板页面
@@ -9,6 +10,12 @@ export function PromptTemplatePage() {
   const [cards, setCards] = useState<PromptCard[]>([])
   const [editingCard, setEditingCard] = useState<PromptCard | null>(null)
   const [isCreating, setIsCreating] = useState(false)
+  const [editorKey, setEditorKey] = useState(0)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string; isOpen: boolean }>({
+    id: '',
+    title: '',
+    isOpen: false
+  })
 
   // 加载卡片
   const loadCards = () => {
@@ -22,6 +29,7 @@ export function PromptTemplatePage() {
   // 创建新卡片
   const handleCreate = () => {
     setIsCreating(true)
+    setEditorKey(prev => prev + 1) // 每次创建时更新key，确保组件重新挂载
     setEditingCard({
       id: '',
       title: '',
@@ -69,14 +77,26 @@ export function PromptTemplatePage() {
   const handleEdit = (card: PromptCard) => {
     setEditingCard({ ...card })
     setIsCreating(false)
+    setEditorKey(prev => prev + 1) // 每次编辑时更新key，确保组件重新挂载
   }
 
-  // 删除卡片
-  const handleDelete = (id: string) => {
-    if (confirm('确定要删除这张卡片吗？')) {
-      promptCardManager.deleteCard(id)
+  // 删除卡片 - 显示确认对话框
+  const handleDeleteClick = (card: PromptCard) => {
+    setDeleteConfirm({ id: card.id, title: card.title, isOpen: true })
+  }
+
+  // 确认删除
+  const handleConfirmDelete = () => {
+    if (deleteConfirm.id) {
+      promptCardManager.deleteCard(deleteConfirm.id)
       loadCards()
     }
+    setDeleteConfirm({ id: '', title: '', isOpen: false })
+  }
+
+  // 取消删除
+  const handleCancelDelete = () => {
+    setDeleteConfirm({ id: '', title: '', isOpen: false })
   }
 
   // 切换启用状态
@@ -116,7 +136,7 @@ export function PromptTemplatePage() {
                 key={card.id}
                 card={card}
                 onEdit={() => handleEdit(card)}
-                onDelete={() => handleDelete(card.id)}
+                onDelete={() => handleDeleteClick(card)}
                 onToggle={() => handleToggle(card.id)}
               />
             ))}
@@ -126,6 +146,7 @@ export function PromptTemplatePage() {
         {/* 编辑对话框 */}
         {editingCard && (
           <PromptCardEditor
+            key={editorKey}
             card={editingCard}
             isCreating={isCreating}
             onChange={setEditingCard}
@@ -133,6 +154,18 @@ export function PromptTemplatePage() {
             onCancel={handleCancel}
           />
         )}
+
+        {/* 删除确认对话框 */}
+        <ConfirmDialog
+          isOpen={deleteConfirm.isOpen}
+          title="删除提示词卡片"
+          message={`确定要删除卡片"${deleteConfirm.title}"吗？删除后将无法恢复。`}
+          confirmText="确定删除"
+          cancelText="取消"
+          type="danger"
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+        />
       </div>
     </div>
   )
@@ -227,7 +260,15 @@ function PromptCardEditor({ card, isCreating, onChange, onSave, onCancel }: Prom
   const canSave = card.title.trim() && card.content.trim()
 
   return (
-    <div className="fixed inset-0 bg-gray-100 bg-opacity-75 flex items-center justify-center z-50 p-4">
+    <div 
+      className="fixed inset-0 bg-gray-100 bg-opacity-75 flex items-center justify-center z-[9999] p-4"
+      onClick={(e) => {
+        // 点击背景时关闭
+        if (e.target === e.currentTarget) {
+          onCancel()
+        }
+      }}
+    >
       <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-gray-200">
         {/* 头部 */}
         <div className="border-b border-gray-200 px-6 py-4">
@@ -249,6 +290,7 @@ function PromptCardEditor({ card, isCreating, onChange, onSave, onCancel }: Prom
               onChange={e => onChange({ ...card, title: e.target.value })}
               placeholder="例如：角色设定"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              autoFocus
             />
           </div>
 

@@ -5,5 +5,6 @@
 export { PromptTemplatePage } from './PromptTemplatePage'
 export { promptCardManager } from './prompt-manager'
 export { createPromptCardOperator, initializePromptCards } from './prompt-operator'
+export { DEFAULT_PROMPT_CARDS } from './defaults'
 export type { PromptCard, PromptCardPlacement, CreatePromptCardParams, UpdatePromptCardParams } from './types'
 
