@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import type { AIConfig, ApiProviderConfig, ProviderType } from '../types'
-import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { ConfirmDialog, Tooltip } from '../../components'
 import { useConfirm } from '../../writing/hooks/useConfirm'
 
 // 图标组件（局部版本）
@@ -238,8 +238,9 @@ function ApiProviderForm({ provider, onSave, onCancel, inline = false }: {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-800 mb-3">
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-800 mb-3">
             API URL <span className="text-red-500 text-xs">*</span>
+            <Tooltip content="注意这是openai兼容格式，以deepseek为例，URL是：https://api.deepseek.com/v1/chat/completions（就是多了个尾缀）" />
           </label>
           <input
             type="url"
@@ -250,11 +251,6 @@ function ApiProviderForm({ provider, onSave, onCancel, inline = false }: {
             required
           />
           {errors.baseUrl && <p className="text-red-500 text-xs mt-1">{errors.baseUrl}</p>}
-          {!inline && (
-            <p className="text-xs text-gray-500 mt-1">
-              完整的聊天补全接口URL地址
-            </p>
-          )}
         </div>
 
         <div>
