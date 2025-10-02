@@ -62,6 +62,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 监听内联编辑触发事件
   onTriggerInlineEdit: (callback) => ipcRenderer.on('trigger-inline-edit', (event, data) => callback(data)),
 
+  // 打开提示词功能窗口
+  openPromptTemplateWindow: () => ipcRenderer.invoke('open-prompt-template-window'),
+
+  // 查询提示词窗口是否打开
+  isPromptWindowOpen: () => ipcRenderer.invoke('is-prompt-window-open'),
+
+  // 监听提示词窗口状态变化
+  onPromptWindowStateChanged: (callback) => ipcRenderer.on('prompt-window-state-changed', (event, isOpen) => callback(isOpen)),
+
 })
 
 // DOM加载完成后的处理

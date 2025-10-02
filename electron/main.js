@@ -80,6 +80,21 @@ class Application {
         this.contextMenuManager.showDirectoryMenu(dirPath)
       }
     })
+
+    // 打开提示词功能窗口
+    ipcMain.handle('open-prompt-template-window', async () => {
+      if (this.windowManager) {
+        this.windowManager.createPromptTemplateWindow()
+      }
+    })
+
+    // 查询提示词窗口是否打开
+    ipcMain.handle('is-prompt-window-open', async () => {
+      if (this.windowManager) {
+        return this.windowManager.isPromptWindowOpen()
+      }
+      return false
+    })
   }
 }
 

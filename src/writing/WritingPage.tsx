@@ -19,7 +19,8 @@ export default function WritingPage() {
     // 初始化时从存储加载配置
     return storage.initAIConfig(DEFAULT_CONFIG)
   })
-  const [activeTool, setActiveTool] = useState<'workspace' | 'api' | 'docs' | 'settings'>('workspace')
+  const [activeTool, setActiveTool] = useState<'workspace' | 'api' | 'docs' | 'settings' | 'prompt'>('workspace')
+  const [isPromptWindowOpen, setIsPromptWindowOpen] = useState(false)
 
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   
@@ -46,6 +47,15 @@ export default function WritingPage() {
   const handleConfigChange = (newConfig: AIConfig) => {
     setConfig(newConfig)
     storage.saveAIConfig(newConfig)
+  }
+
+  // 打开提示词功能窗口
+  const handleOpenPromptWindow = () => {
+    if (typeof window !== 'undefined' && (window as any).electronAPI) {
+      // 立即设置状态，避免延迟感
+      setIsPromptWindowOpen(true)
+      ;(window as any).electronAPI.openPromptTemplateWindow()
+    }
   }
 
   // 处理文件选择 - 不再立即读取文件内容
@@ -164,6 +174,21 @@ export default function WritingPage() {
       ;(window as any).electronAPI.onTriggerInlineEdit(handleTriggerInlineEdit)
     }
   }, [openFileForEdit])
+
+  // 监听提示词窗口状态变化
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).electronAPI) {
+      // 初始化时查询窗口状态
+      ;(window as any).electronAPI.isPromptWindowOpen().then((isOpen: boolean) => {
+        setIsPromptWindowOpen(isOpen)
+      })
+
+      // 监听窗口状态变化
+      ;(window as any).electronAPI.onPromptWindowStateChanged((isOpen: boolean) => {
+        setIsPromptWindowOpen(isOpen)
+      })
+    }
+  }, [])
   
   // 快捷键保存
   useEffect(() => {
@@ -211,18 +236,38 @@ export default function WritingPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
                   </svg>
                   )},
-                ] as const).map(item => (
-                  <button
-                    key={item.key}
-                    onClick={() => setActiveTool(item.key as typeof activeTool)}
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
-                      activeTool === (item.key as typeof activeTool) ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'
-                    }`}
-                    title={item.label}
-                  >
-                    {item.icon}
-                  </button>
-                ))}
+                  { key: 'prompt', label: '提示词', icon: (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                    </svg>
+                  )},
+                ] as const).map(item => {
+                  // 判断是否应该高亮
+                  const isActive = item.key === 'prompt' ? isPromptWindowOpen : activeTool === (item.key as typeof activeTool)
+                  // 提示词窗口打开时使用不同的颜色
+                  const activeClass = item.key === 'prompt' && isPromptWindowOpen
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : isActive
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-50'
+                  
+                  return (
+                    <button
+                      key={item.key}
+                      onClick={() => {
+                        if (item.key === 'prompt') {
+                          handleOpenPromptWindow()
+                        } else {
+                          setActiveTool(item.key as typeof activeTool)
+                        }
+                      }}
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${activeClass}`}
+                      title={item.label}
+                    >
+                      {item.icon}
+                    </button>
+                  )
+                })}
               </div>
               
               {/* 弹性空间 */}
