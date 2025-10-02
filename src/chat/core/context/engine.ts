@@ -115,7 +115,7 @@ export class ContextEngine {
     // 应用标准处理流程
     editor = applyStandardPipeline(config, finalSystemPrompt, tempContent, tempPlacement)(editor)
 
-    // 应用自定义操作符
+    // 应用自定义操作符（包括提示词卡片操作符）
     for (const operator of this.customOperators) {
       editor = operator(editor)
     }

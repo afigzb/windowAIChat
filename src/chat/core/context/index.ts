@@ -34,9 +34,20 @@ export {
   mergeConsecutiveSameRole,
   applyStandardPipeline,
   compose,
-  when
+  when,
+  compressMessages,
+  compressMessagesByRole
 } from './message-operators'
 export type { MessageOperator } from './message-operators'
+
+// 导出文本压缩工具
+export {
+  TextCompressor,
+  defaultTextCompressor,
+  compressText,
+  DEFAULT_COMPRESSION_OPTIONS
+} from './text-compressor'
+export type { TextCompressionOptions } from './text-compressor'
 
 // 导出概括功能
 export { buildSummarizePlan } from './summarizer'

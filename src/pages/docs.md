@@ -75,17 +75,30 @@
 
 ```json
 {
-  "id": "gemini-2.5-pro-preset",
-  "name": "Google Gemini 2.5 Pro (Preset)",
-  "type": "gemini",
-  "apiKey": "",
-  "baseUrl": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro",
   "model": "gemini-2.5-pro",
-  "maxTokens": 8192,
-  "extraHeaders": {},
-  "extraParams": {},
-  "enableCodeConfig": true,
-  "codeConfigJson": "{\n  \"model\": \"gemini-2.5-pro\",\n  \"systemInstruction\": {\n    \"parts\": [\n      { \"text\": \"你是 AI 写作助手，帮助用户完成小说创作。\" }\n    ]\n  },\n  \"generationConfig\": {\n    \"temperature\": 0.7,\n    \"maxOutputTokens\": 8192,\n    \"topP\": 0.9,\n    \"topK\": 40,\n    \"candidateCount\": 1,\n    \"thinkingConfig\": {\n      \"includeThoughts\": true,\n      \"thinkingBudget\": -1\n    },\n    \"responseMimeType\": \"text/plain\"\n  },\n  \"safetySettings\": [\n    { \"category\": \"HARM_CATEGORY_HATE_SPEECH\", \"threshold\": \"BLOCK_NONE\" },\n    { \"category\": \"HARM_CATEGORY_HARASSMENT\", \"threshold\": \"BLOCK_NONE\" },\n    { \"category\": \"HARM_CATEGORY_SEXUALLY_EXPLICIT\", \"threshold\": \"BLOCK_NONE\" },\n    { \"category\": \"HARM_CATEGORY_DANGEROUS_CONTENT\", \"threshold\": \"BLOCK_NONE\" }\n  ]\n}"
+  "systemInstruction": {
+    "parts": [
+      { "text": "你是 AI 写作助手，帮助用户完成小说创作。" }
+    ]
+  },
+  "generationConfig": {
+    "temperature": 0.7,
+    "maxOutputTokens": 8192,
+    "topP": 0.9,
+    "topK": 40,
+    "candidateCount": 1,
+    "thinkingConfig": {
+      "includeThoughts": true,
+      "thinkingBudget": -1
+    },
+    "responseMimeType": "text/plain"
+  },
+  "safetySettings": [
+    { "category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE" },
+    { "category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE" },
+    { "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE" },
+    { "category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE" }
+  ]
 }
 ```
 

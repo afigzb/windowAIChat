@@ -71,6 +71,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 监听提示词窗口状态变化
   onPromptWindowStateChanged: (callback) => ipcRenderer.on('prompt-window-state-changed', (event, isOpen) => callback(isOpen)),
 
+  // 通知提示词卡片已更新（用于窗口间同步）
+  notifyPromptCardsChanged: () => ipcRenderer.send('prompt-cards-changed'),
+
+  // 监听提示词卡片更新事件
+  onPromptCardsChanged: (callback) => ipcRenderer.on('prompt-cards-changed', () => callback()),
+
 })
 
 // DOM加载完成后的处理

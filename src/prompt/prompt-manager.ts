@@ -33,10 +33,39 @@ class PromptCardManager {
   }
 
   /**
+   * 重新从存储加载卡片（用于窗口间数据同步）
+   */
+  reload(): void {
+    const storedCards = storage.loadGenericData<PromptCard[]>(STORAGE_KEY, [])
+    
+    // 如果存储为空，保持当前卡片不变（避免意外清空）
+    if (storedCards.length > 0) {
+      this.cards = storedCards
+      console.log('[PromptCardManager] 重新加载提示词卡片，数量:', this.cards.length)
+    }
+  }
+
+  /**
    * 保存卡片到存储
    */
   private save(): void {
     storage.saveGenericData(STORAGE_KEY, this.cards)
+    // 通知其他窗口数据已更新
+    this.notifyOtherWindows()
+  }
+
+  /**
+   * 通知其他窗口提示词卡片已更新
+   */
+  private notifyOtherWindows(): void {
+    try {
+      // 通过 Electron IPC 广播更新事件
+      if (typeof window !== 'undefined' && (window as any).electronAPI?.notifyPromptCardsChanged) {
+        (window as any).electronAPI.notifyPromptCardsChanged()
+      }
+    } catch (error) {
+      console.warn('[PromptCardManager] 通知其他窗口失败:', error)
+    }
   }
 
   /**

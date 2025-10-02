@@ -211,6 +211,20 @@ class WindowManager {
   isPromptWindowOpen() {
     return this.promptWindow && !this.promptWindow.isDestroyed()
   }
+
+  /**
+   * 广播提示词卡片更新事件给所有窗口
+   */
+  broadcastPromptCardsChanged() {
+    // 通知主窗口
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.webContents.send('prompt-cards-changed')
+    }
+    // 通知提示词窗口（如果打开的话）
+    if (this.promptWindow && !this.promptWindow.isDestroyed()) {
+      this.promptWindow.webContents.send('prompt-cards-changed')
+    }
+  }
 }
 
 module.exports = WindowManager

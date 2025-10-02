@@ -41,6 +41,25 @@ export function SettingsPanel({ config, onConfigChange, onRequestReset }: Settin
             <div className="text-xs text-gray-500">为节约 tokens，只保留最近的消息发送给 AI</div>
           </div>
 
+          <div className="space-y-3">
+            <label className="flex items-center space-x-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={config.enableCompression ?? false}
+                onChange={(e) => onConfigChange({ ...config, enableCompression: e.target.checked })}
+                className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-2 focus:ring-indigo-500"
+              />
+              <div className="flex-1">
+                <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                  启用文本压缩
+                </span>
+                <p className="text-xs text-gray-500 mt-1">
+                  自动压缩发送内容中的多余空白和换行，减少 tokens 消耗
+                </p>
+              </div>
+            </label>
+          </div>
+
           <div className={`space-y-3 p-4 rounded-xl transition-all duration-200 ${
             isSummarizeFocused 
               ? 'bg-indigo-50/50 border-2 border-indigo-300 shadow-sm' 

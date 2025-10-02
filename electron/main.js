@@ -95,6 +95,14 @@ class Application {
       }
       return false
     })
+
+    // 处理提示词卡片更新通知（窗口间同步）
+    ipcMain.on('prompt-cards-changed', () => {
+      // 广播给所有窗口
+      if (this.windowManager) {
+        this.windowManager.broadcastPromptCardsChanged()
+      }
+    })
   }
 }
 

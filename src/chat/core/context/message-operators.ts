@@ -1,5 +1,6 @@
 import type { MessageEditor } from './message-editor'
 import type { AIConfig } from '../../types'
+import { compressText, type TextCompressionOptions } from './text-compressor'
 
 /**
  * ===== 消息操作符 =====
@@ -185,6 +186,13 @@ export function mergeConsecutiveSameRole(): MessageOperator {
 /**
  * 应用配置中的所有规则
  * 这是一个便捷函数，应用标准的消息处理流程
+ * 
+ * 处理顺序：
+ * 1. 注入 system 提示词
+ * 2. 添加临时上下文
+ * 3. 限制历史消息数量
+ * 4. 移除空消息
+ * 5. 压缩所有消息内容（如果启用）- **包括 system、user、assistant 全部角色**
  */
 export function applyStandardPipeline(
   config: AIConfig,
@@ -194,10 +202,18 @@ export function applyStandardPipeline(
 ): MessageOperator {
   return (editor) => {
     let result = editor
+    // 1. 注入 system 提示词
     result = injectSystemPrompt(systemPrompt)(result)
+    // 2. 添加临时上下文
     result = addTemporaryContext(tempContent, tempPlacement)(result)
+    // 3. 限制历史消息数量
     result = limitHistory(config.historyLimit)(result)
+    // 4. 移除空消息
     result = removeEmptyMessages()(result)
+    // 5. 压缩所有消息（system/user/assistant 全部压缩，移除多余空格和换行）
+    if (config.enableCompression) {
+      result = compressMessages()(result)
+    }
     return result
   }
 }
@@ -217,6 +233,46 @@ export function compose(...operators: MessageOperator[]): MessageOperator {
 export function when(condition: boolean, operator: MessageOperator): MessageOperator {
   return (editor) => {
     return condition ? operator(editor) : editor
+  }
+}
+
+/**
+ * 压缩消息内容
+ * 使用文本压缩工具减少消息内容的大小
+ * @param options 压缩选项
+ */
+export function compressMessages(options?: TextCompressionOptions): MessageOperator {
+  return (editor) => {
+    return editor.transform((messages) => {
+      return messages.map(msg => ({
+        ...msg,
+        content: compressText(msg.content, options)
+      }))
+    })
+  }
+}
+
+/**
+ * 压缩特定角色的消息
+ * @param role 要压缩的消息角色
+ * @param options 压缩选项
+ */
+export function compressMessagesByRole(
+  role: 'user' | 'assistant' | 'system',
+  options?: TextCompressionOptions
+): MessageOperator {
+  return (editor) => {
+    return editor.transform((messages) => {
+      return messages.map(msg => {
+        if (msg.role === role) {
+          return {
+            ...msg,
+            content: compressText(msg.content, options)
+          }
+        }
+        return msg
+      })
+    })
   }
 }
 

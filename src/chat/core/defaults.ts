@@ -52,7 +52,8 @@ export const DEFAULT_CONFIG: AIConfig = {
   providers: DEFAULT_PROVIDERS,
   historyLimit: 40,
   systemPrompt: '', // 系统提示现在由提示词卡片系统管理
-  summarizePrompt: DEFAULT_SUMMARIZE_PROMPT
+  summarizePrompt: DEFAULT_SUMMARIZE_PROMPT,
+  enableCompression: false  // 默认关闭压缩
 }
 
 
