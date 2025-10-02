@@ -146,7 +146,7 @@ export class ContextEngine {
 
     // 6. 最后执行压缩（确保所有内容包括提示词卡片都被压缩）
     if (config.enableCompression) {
-      editor = compressMessages()(editor)
+      editor = compressMessages(config.compressionOptions)(editor)
     }
 
     return editor.build()
