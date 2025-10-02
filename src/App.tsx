@@ -1,4 +1,4 @@
-import { WritingPage } from './writing'
+import EditorWorkspace from './pages/EditorWorkspace'
 import { PromptTemplatePage } from './prompt'
 
 function App() {
@@ -10,7 +10,7 @@ function App() {
     return <PromptTemplatePage />
   }
 
-  return <WritingPage />
+  return <EditorWorkspace />
 }
 
 export default App

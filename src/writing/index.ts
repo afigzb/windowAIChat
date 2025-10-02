@@ -1,1 +1,1 @@
-export { default as WritingPage } from './WritingPage'
+export { default as EditorWorkspace } from '../pages/EditorWorkspace'

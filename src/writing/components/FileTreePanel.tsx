@@ -3,7 +3,7 @@
 import React from 'react'
 import { FileTreeNode } from './FileTreeNode'
 import { InlineEdit } from './InlineEdit'
-import { useFileTree } from './useFileTree'
+import { useFileTree } from '../hooks/useFileTree'
 import type { FileSystemNode } from '../../storage/file-system'
 import { getFileName } from '../../md-html-dock/utils/fileContentReader'
 
