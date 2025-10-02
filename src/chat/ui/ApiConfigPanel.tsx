@@ -1,5 +1,5 @@
-import type { AIConfig } from '../../chat'
-import { ApiProviderManager } from '../../chat'
+import type { AIConfig } from '../types'
+import { ApiProviderManager } from './ApiProviderConfig'
 
 interface ApiConfigPanelProps {
   config: AIConfig

@@ -1,4 +1,4 @@
-import EditorWorkspace from './pages/EditorWorkspace'
+import EditorWorkspace from './pages/AppLayout'
 import { PromptTemplatePage } from './prompt'
 
 function App() {

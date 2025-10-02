@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { AIConfig } from '../chat'
-import { DEFAULT_CONFIG } from '../chat'
-import { ConfirmDialog } from '../components/ConfirmDialog'
-import { SideToolbar } from '../components'
+import { DEFAULT_CONFIG, ApiConfigPanel } from '../chat'
+import { ConfirmDialog} from '../components'
+import { SideToolbar } from './SideToolbar'
+import { SettingsPanel } from './SettingsPanel'
 import { DocsPage } from '../writing/components/DocsPage'
-import { ApiConfigPanel, SettingsPanel, WorkspaceView } from './components'
+import { WorkspaceView } from '../writing/components/WorkspaceView'
 import storage from '../storage'
-import { useDocxEditor } from '../writing/hooks/useDocxEditor'
-import { useFileSelection } from '../writing/hooks/useFileSelection'
+import { useDocxEditor, useFileSelection } from '../writing/hooks'
 
 export default function EditorWorkspace() {
   const [config, setConfig] = useState<AIConfig>(() => {

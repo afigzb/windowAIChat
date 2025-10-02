@@ -34,6 +34,7 @@ export type {
 
 // 导出UI组件（主要外部接口）
 export { ChatPanel } from './ui/ChatPanel'
+export { ApiConfigPanel } from './ui/ApiConfigPanel'
 export * from './ui/components'
 
 // 导出Markdown渲染器（跨模块引用）

@@ -1,8 +1,8 @@
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import type { AIConfig } from '../../chat'
 import { ChatPanel } from '../../chat'
-import { FileTreePanel } from '../../writing/components/FileTreePanel'
-import { DocxEditor } from '../../writing/components/DocxEditor'
+import { FileTreePanel } from './FileTreePanel'
+import { DocxEditor } from './DocxEditor'
 
 interface OpenFile {
   path: string

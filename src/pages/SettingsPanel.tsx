@@ -1,4 +1,4 @@
-import type { AIConfig } from '../../chat'
+import type { AIConfig } from '../chat'
 
 interface SettingsPanelProps {
   config: AIConfig
