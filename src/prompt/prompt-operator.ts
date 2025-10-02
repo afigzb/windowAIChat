@@ -1,10 +1,13 @@
 import type { MessageOperator, ContextEngine } from '../chat/core/context'
+import { isInOverrideMode } from '../chat/core/context'
 import { promptCardManager } from './prompt-manager'
 import type { PromptCardPlacement } from './types'
 
 /**
  * 创建提示词卡片操作符
  * 将启用的提示词卡片按照其配置的位置插入到消息流中
+ * 
+ * 注意：如果系统提示词处于覆盖模式（如概括功能），则不会应用卡片
  * 
  * @returns MessageOperator
  * 
@@ -16,6 +19,11 @@ import type { PromptCardPlacement } from './types'
  */
 export function createPromptCardOperator(): MessageOperator {
   return (editor) => {
+    // 如果处于覆盖模式（如概括功能），跳过卡片应用
+    if (isInOverrideMode()) {
+      return editor
+    }
+
     // 获取所有启用的卡片（已按order排序）
     const enabledCards = promptCardManager.getEnabledCards()
     

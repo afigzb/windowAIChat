@@ -13,7 +13,8 @@ export {
   systemPrompt, 
   setSystemPrompt, 
   clearSystemPrompt, 
-  addSystemPromptTransformer 
+  addSystemPromptTransformer,
+  isInOverrideMode 
 } from './system-prompt'
 export type { SystemPromptTransformer } from './system-prompt'
 

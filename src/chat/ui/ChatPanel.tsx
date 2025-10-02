@@ -240,7 +240,8 @@ export function ChatPanel({
       // 发送概括请求
       const doSummarize = async () => {
         try {
-          setSystemPrompt(systemPrompt)
+          // 使用覆盖模式（override=true）确保概括提示词不会与 prompt 卡片合并
+          setSystemPrompt(systemPrompt, true)
           // 计算当前激活路径的对话摘录（仅 user/assistant），用于提供更完整上下文
           const pathIds = conversationState.conversationTree.activePath
           const flat = conversationState.conversationTree.flatMessages
