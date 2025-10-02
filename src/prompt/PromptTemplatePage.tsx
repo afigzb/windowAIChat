@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { promptCardManager } from './prompt-manager'
 import type { PromptCard, PromptCardPlacement } from './types'
-import { ConfirmDialog } from '../writing/components/ConfirmDialog'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 
 /**
  * 提示词模板页面
@@ -10,7 +10,6 @@ export function PromptTemplatePage() {
   const [cards, setCards] = useState<PromptCard[]>([])
   const [editingCard, setEditingCard] = useState<PromptCard | null>(null)
   const [isCreating, setIsCreating] = useState(false)
-  const [editorKey, setEditorKey] = useState(0)
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string; isOpen: boolean }>({
     id: '',
     title: '',
@@ -29,7 +28,6 @@ export function PromptTemplatePage() {
   // 创建新卡片
   const handleCreate = () => {
     setIsCreating(true)
-    setEditorKey(prev => prev + 1) // 每次创建时更新key，确保组件重新挂载
     setEditingCard({
       id: '',
       title: '',
@@ -77,7 +75,6 @@ export function PromptTemplatePage() {
   const handleEdit = (card: PromptCard) => {
     setEditingCard({ ...card })
     setIsCreating(false)
-    setEditorKey(prev => prev + 1) // 每次编辑时更新key，确保组件重新挂载
   }
 
   // 删除卡片 - 显示确认对话框
@@ -146,7 +143,6 @@ export function PromptTemplatePage() {
         {/* 编辑对话框 */}
         {editingCard && (
           <PromptCardEditor
-            key={editorKey}
             card={editingCard}
             isCreating={isCreating}
             onChange={setEditingCard}

@@ -1,4 +1,4 @@
-import type { MessageOperator } from '../chat/core/context'
+import type { MessageOperator, ContextEngine } from '../chat/core/context'
 import { promptCardManager } from './prompt-manager'
 import type { PromptCardPlacement } from './types'
 
@@ -65,10 +65,7 @@ export function createPromptCardOperator(): MessageOperator {
  * @param contextEngine ContextEngine实例
  * @returns 取消注册的函数
  */
-export function initializePromptCards(contextEngine: any): () => void {
-  // 确保promptCardManager已初始化
-  promptCardManager.initialize()
-  
+export function initializePromptCards(contextEngine: ContextEngine): () => void {
   // 注册操作符
   return contextEngine.registerOperator(createPromptCardOperator())
 }

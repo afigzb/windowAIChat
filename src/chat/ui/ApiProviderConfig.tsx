@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import type { AIConfig, ApiProviderConfig, ProviderType } from '../types'
-import { ConfirmDialog } from '../../writing/components/ConfirmDialog'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { useConfirm } from '../../writing/hooks/useConfirm'
 
 // 图标组件（局部版本）

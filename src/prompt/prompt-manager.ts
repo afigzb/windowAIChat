@@ -10,15 +10,16 @@ const STORAGE_KEY = 'prompt_cards'
  */
 class PromptCardManager {
   private cards: PromptCard[] = []
-  private initialized = false
+
+  constructor() {
+    this.initialize()
+  }
 
   /**
    * 初始化：从存储加载所有卡片
    * 如果是第一次使用（存储为空），则加载默认配置
    */
-  initialize(): void {
-    if (this.initialized) return
-    
+  private initialize(): void {
     const storedCards = storage.loadGenericData<PromptCard[]>(STORAGE_KEY, [])
     
     // 如果存储为空（第一次使用），使用默认配置
@@ -29,8 +30,6 @@ class PromptCardManager {
     } else {
       this.cards = storedCards
     }
-    
-    this.initialized = true
   }
 
   /**
@@ -44,7 +43,6 @@ class PromptCardManager {
    * 获取所有卡片（按order排序）
    */
   getAllCards(): PromptCard[] {
-    this.initialize()
     return [...this.cards].sort((a, b) => a.order - b.order)
   }
 
@@ -59,7 +57,6 @@ class PromptCardManager {
    * 根据ID获取卡片
    */
   getCardById(id: string): PromptCard | undefined {
-    this.initialize()
     return this.cards.find(card => card.id === id)
   }
 
@@ -67,8 +64,6 @@ class PromptCardManager {
    * 创建新卡片
    */
   createCard(params: CreatePromptCardParams): PromptCard {
-    this.initialize()
-    
     const now = Date.now()
     const maxOrder = this.cards.length > 0 
       ? Math.max(...this.cards.map(c => c.order))
@@ -94,8 +89,6 @@ class PromptCardManager {
    * 更新卡片
    */
   updateCard(id: string, params: UpdatePromptCardParams): PromptCard | null {
-    this.initialize()
-    
     const index = this.cards.findIndex(card => card.id === id)
     if (index < 0) return null
 
@@ -114,8 +107,6 @@ class PromptCardManager {
    * 删除卡片
    */
   deleteCard(id: string): boolean {
-    this.initialize()
-    
     const index = this.cards.findIndex(card => card.id === id)
     if (index < 0) return false
 
@@ -138,8 +129,6 @@ class PromptCardManager {
    * 更新卡片顺序
    */
   reorderCards(orderedIds: string[]): void {
-    this.initialize()
-    
     const idToCard = new Map(this.cards.map(card => [card.id, card]))
     
     orderedIds.forEach((id, index) => {
@@ -157,7 +146,6 @@ class PromptCardManager {
    * 清空所有卡片
    */
   clearAll(): void {
-    this.initialize()
     this.cards = []
     this.save()
   }

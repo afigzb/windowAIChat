@@ -1,7 +1,7 @@
 // 自定义确认对话框组件
 // 替代原生confirm，避免焦点丢失问题
 
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 
 interface ConfirmDialogProps {
   isOpen: boolean
@@ -24,18 +24,6 @@ export function ConfirmDialog({
   onCancel,
   type = 'warning'
 }: ConfirmDialogProps) {
-  const confirmButtonRef = useRef<HTMLButtonElement>(null)
-
-  // 简单的焦点管理
-  useEffect(() => {
-    if (isOpen) {
-      // 对话框打开时聚焦到确认按钮
-      setTimeout(() => {
-        confirmButtonRef.current?.focus()
-      }, 100)
-    }
-  }, [isOpen])
-
   // 处理键盘事件
   useEffect(() => {
     if (!isOpen) return
@@ -134,7 +122,6 @@ export function ConfirmDialog({
             {cancelText}
           </button>
           <button
-            ref={confirmButtonRef}
             onClick={onConfirm}
             className={`flex-1 px-5 py-3 ${iconStyles.buttonClass} text-sm font-semibold rounded-xl transition-all duration-200 shadow-md hover:shadow-lg`}
           >
