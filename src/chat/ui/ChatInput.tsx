@@ -139,7 +139,7 @@ export const ChatInputArea = forwardRef<
   return (
     <div className="sticky bottom-0">
         <div className="max-w-4xl mx-auto px-8 py-6 min-w-[20rem]">
-        <div className="border-2 border-gray-200 rounded-2xl bg-white focus-within:border-blue-400 focus-within:shadow-xl transition-all duration-300 shadow-md hover:shadow-lg min-w-[18rem]">
+        <div className="border-2 border-gray-200 rounded-2xl bg-white focus-within:border-blue-400 focus-within:shadow-xl transition-all duration-300 shadow-md hover:shadow-lg min-w-[20rem]">
           <div className="p-5">
             <textarea
               ref={textareaRef}
@@ -155,7 +155,7 @@ export const ChatInputArea = forwardRef<
           </div>
 
           <div className="flex items-center justify-between px-5 py-4 border-t-2 border-gray-100 bg-gradient-to-r from-gray-50 to-slate-50 rounded-b-2xl min-w-[20rem]">
-            <div className="flex items-center gap-4 min-w-0 flex-shrink">
+            <div className="flex items-center gap-4 flex-shrink">
               <ApiProviderToggle config={config} onProviderChange={onProviderChange} disabled={isLoading} />
               
               {isLoading && (
@@ -168,7 +168,7 @@ export const ChatInputArea = forwardRef<
             <button
               onClick={isLoading ? onAbort : onSend}
               disabled={!isLoading && !canSend}
-              className={`px-6 py-3 rounded-xl transition-all duration-300 text-sm font-semibold flex items-center gap-2.5 shadow-md hover:shadow-xl transform min-w-[5rem] whitespace-nowrap ${
+              className={`px-6 py-3 rounded-xl transition-all duration-300 text-sm font-semibold flex items-center gap-2.5 shadow-md hover:shadow-xl transform whitespace-nowrap ${
                 isLoading 
                   ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white hover:from-gray-700 hover:to-gray-800 hover:scale-105'
                   : canSend

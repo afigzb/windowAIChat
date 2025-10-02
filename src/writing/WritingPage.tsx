@@ -264,7 +264,7 @@ export default function WritingPage() {
               <div className={`absolute inset-0 ${activeTool === 'workspace' ? 'block' : 'hidden'}`}>
                 <PanelGroup direction="horizontal" style={{ height: '100%' }} autoSaveId="writing-page-panels">
                   {/* 左侧：文件管理 */}
-                  <Panel defaultSize={20}>
+                  <Panel defaultSize={15}>
                     <div className="bg-white border-r border-slate-300 flex flex-col h-full">
                       <div className="p-4 h-16 border-b border-slate-200 flex items-center">
                         <h2 className="font-semibold text-slate-900 whitespace-nowrap overflow-hidden text-ellipsis">文件管理</h2>
@@ -370,7 +370,7 @@ export default function WritingPage() {
                   <PanelResizeHandle className="w-px bg-slate-200" />
 
                   {/* 右侧：AI 助手 */}
-                  <Panel defaultSize={30}>
+                  <Panel defaultSize={35}>
                     <ChatPanel
                       config={config}
                       onConfigChange={handleConfigChange}

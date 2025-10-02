@@ -68,13 +68,44 @@ export function MessagePreviewDialog({ isOpen, onClose, previewData }: MessagePr
 
   if (!isOpen || !previewData) return null
 
-  // 解析消息
-  const messages = previewData.requestBody.messages || []
-  const systemMessage = messages.find((msg: any) => msg.role === 'system')
-  const lastUserMessage = [...messages].reverse().find((msg: any) => msg.role === 'user')
-  const contextMessages = messages.filter((msg: any) => 
-    msg !== systemMessage && msg !== lastUserMessage
-  )
+  // 解析消息 - 支持 OpenAI 和 Gemini 格式
+  const isGeminiFormat = !!previewData.requestBody.contents
+  
+  let messages: any[] = []
+  let systemMessage: any = null
+  let lastUserMessage: any = null
+  let contextMessages: any[] = []
+  
+  if (isGeminiFormat) {
+    // Gemini 格式
+    const contents = previewData.requestBody.contents || []
+    const systemInstruction = previewData.requestBody.systemInstruction
+    
+    // 转换 systemInstruction
+    if (systemInstruction?.parts) {
+      systemMessage = {
+        role: 'system',
+        content: systemInstruction.parts.map((p: any) => p.text || '').join('\n')
+      }
+    }
+    
+    // 转换 contents
+    messages = contents.map((item: any) => ({
+      role: item.role === 'model' ? 'assistant' : 'user',
+      content: item.parts?.map((p: any) => p.text || '').join('\n') || ''
+    }))
+    
+    lastUserMessage = [...messages].reverse().find((msg: any) => msg.role === 'user')
+    contextMessages = messages.filter((msg: any) => msg !== lastUserMessage)
+  } else {
+    // OpenAI 格式
+    messages = previewData.requestBody.messages || []
+    systemMessage = messages.find((msg: any) => msg.role === 'system')
+    lastUserMessage = [...messages].reverse().find((msg: any) => msg.role === 'user')
+    contextMessages = messages.filter((msg: any) => 
+      msg !== systemMessage && msg !== lastUserMessage
+    )
+  }
 
   // 复制到剪贴板
   const handleCopy = async () => {
@@ -103,13 +134,20 @@ export function MessagePreviewDialog({ isOpen, onClose, previewData }: MessagePr
   // 脱敏处理 API Key
   const sanitizeHeaders = (headers: Record<string, string>) => {
     const sanitized = { ...headers }
+    
+    // 处理 OpenAI 格式: Authorization: Bearer xxxxx
     if (sanitized.Authorization) {
       const parts = sanitized.Authorization.split(' ')
       if (parts.length === 2) {
-        const token = parts[1]
-        sanitized.Authorization = `${parts[0]} ${token.substring(0, 4)}...${token.substring(token.length - 4)}`
+        sanitized.Authorization = `${parts[0]} ************`
       }
     }
+    
+    // 处理 Gemini 格式: x-goog-api-key: xxxxx
+    if (sanitized['x-goog-api-key']) {
+      sanitized['x-goog-api-key'] = '************'
+    }
+    
     return sanitized
   }
 

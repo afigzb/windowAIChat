@@ -3,6 +3,31 @@ import { contextEngine } from '../core/context'
 
 /**
  * Gemini 系适配器 - 专门处理 Google Gemini API
+ * 
+ * 特性：
+ * - 自动转换消息格式：将通用格式转换为 Gemini 的 contents/systemInstruction 格式
+ * - 支持流式响应：处理 Gemini 的 JSON 数组流式格式
+ * - 支持思考模式：提取并展示 AI 的思考过程（thought）和最终答案（answer）
+ * - 灵活配置：通过 extraParams 或 codeConfigJson 自定义请求参数
+ * 
+ * 常用配置参数（通过 codeConfigJson）：
+ * ```json
+ * {
+ *   "generationConfig": {
+ *     "temperature": 0.7,           // 温度参数（0.0-2.0）
+ *     "topP": 0.9,                  // nucleus sampling
+ *     "topK": 40,                   // top-k sampling
+ *     "maxOutputTokens": 8192,      // 最大输出令牌数
+ *     "thinkingConfig": {
+ *       "includeThoughts": true,    // 是否包含思考过程
+ *       "thinkingBudget": -1        // 思考预算（-1 为动态）
+ *     }
+ *   },
+ *   "safetySettings": [              // 安全设置
+ *     { "category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE" }
+ *   ]
+ * }
+ * ```
  */
 export class GeminiAdapter {
   private provider: ApiProviderConfig
@@ -49,6 +74,15 @@ export class GeminiAdapter {
 
   /**
    * 构建 Gemini 格式的请求体
+   * 
+   * 消息格式转换：
+   * - system 消息 -> systemInstruction.parts
+   * - user/assistant 消息 -> contents (role: user/model)
+   * 
+   * 参数优先级（从高到低）：
+   * 1. codeConfigJson 中的自定义配置（除了 contents 和 systemInstruction）
+   * 2. extraParams 中的参数
+   * 3. 默认配置（maxOutputTokens, thinkingConfig）
    */
   private buildRequestBody(
     messages: FlatMessage[],
@@ -77,9 +111,13 @@ export class GeminiAdapter {
     
     // 构建生成配置，优先使用provider配置的maxTokens
     const generationConfig: Record<string, any> = { 
-      temperature: 0.9, 
-      maxOutputTokens: this.provider.maxTokens || 8192,
-      thinkingConfig: {
+      maxOutputTokens: this.provider.maxTokens || 8192
+    }
+    
+    // 只在需要时添加 thinkingConfig（Gemini 2.5 Pro/Flash 支持思考功能）
+    // 默认启用以支持推理模式，用户可通过 codeConfigJson 覆盖
+    if (!this.provider.extraParams?.generationConfig?.thinkingConfig) {
+      generationConfig.thinkingConfig = {
         thinkingBudget: -1,      // 启用动态思考，模型根据问题复杂度自动调整预算
         includeThoughts: true    // 在响应中包含思考摘要
       }

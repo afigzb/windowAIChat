@@ -549,7 +549,7 @@ export function ChatPanel({
             return (
               <div className="sticky top-0 z-10 px-6 py-2 bg-gradient-to-r from-blue-50/70 to-indigo-50/70 border-b-2 border-blue-200 backdrop-blur-sm">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-sm">
+                  <div className="flex items-center gap-3 text-sm whitespace-nowrap overflow-hidden">
                     <span className="text-blue-700 font-semibold">上下文</span>
                     <span className="px-2 py-0.5 rounded-lg bg-blue-100 text-blue-700 font-medium">计入 {meta.includedMessages}</span>
                     {meta.excludedMessages > 0 && (
@@ -560,7 +560,7 @@ export function ChatPanel({
                   {/* 概括按钮 */}
                   <button
                     onClick={handleSummarize}
-                    className="px-2 py-1 rounded text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-100/50 transition-all duration-200 flex items-center gap-1 border border-blue-200 hover:border-blue-300"
+                    className="px-2 py-1 rounded text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-100/50 transition-all duration-200 flex items-center gap-1 border border-blue-200 hover:border-blue-300 whitespace-nowrap"
                     title="新建对话并对当前上下文进行概括"
                   >
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -574,79 +574,79 @@ export function ChatPanel({
           })()}
           <div className="space-y-0">
             {activeNodes.map((node) => {
-                  const branchNavigation = branchManager.getBranchNavigationForNode(node.id)
-                  const isInActivePath = conversationState.conversationTree.activePath.includes(node.id)
-                  const isGeneratingNode = conversationState.isLoading && node.content === '正在生成...'
-                  
-                  // 计算是否计入上下文：由 ContextEngine 提供
-                  let isInContext: boolean | undefined = undefined
-                  if (node.role === 'user' || node.role === 'assistant') {
-                    const meta = contextEngine.getContextMetadataFromTree(conversationState.conversationTree, config)
-                    isInContext = !!meta.inclusionMap.get(node.id)
+              const branchNavigation = branchManager.getBranchNavigationForNode(node.id)
+              const isInActivePath = conversationState.conversationTree.activePath.includes(node.id)
+              const isGeneratingNode = conversationState.isLoading && node.content === '正在生成...'
+              
+              // 计算是否计入上下文：由 ContextEngine 提供
+              let isInContext: boolean | undefined = undefined
+              if (node.role === 'user' || node.role === 'assistant') {
+                const meta = contextEngine.getContextMetadataFromTree(conversationState.conversationTree, config)
+                isInContext = !!meta.inclusionMap.get(node.id)
+              }
+              
+              // 创建包装函数以传递临时内容
+              const handleRegenerate = async (nodeId: string) => {
+                let extraContent = ''
+                if (additionalContent) {
+                  if (typeof additionalContent === 'function') {
+                    extraContent = await additionalContent()
+                  } else {
+                    extraContent = additionalContent
                   }
-                  
-                  // 创建包装函数以传递临时内容
-                  const handleRegenerate = async (nodeId: string) => {
-                    let extraContent = ''
-                    if (additionalContent) {
-                      if (typeof additionalContent === 'function') {
-                        extraContent = await additionalContent()
-                      } else {
-                        extraContent = additionalContent
-                      }
-                    }
-                    return regenerateMessage(nodeId, extraContent)
-                  }
+                }
+                return regenerateMessage(nodeId, extraContent)
+              }
 
-                  const handleEditUserMessage = async (nodeId: string, newContent: string) => {
-                    let extraContent = ''
-                    if (additionalContent) {
-                      if (typeof additionalContent === 'function') {
-                        extraContent = await additionalContent()
-                      } else {
-                        extraContent = additionalContent
-                      }
-                    }
-                    return conversationActions.editUserMessage(nodeId, newContent, extraContent)
+              const handleEditUserMessage = async (nodeId: string, newContent: string) => {
+                let extraContent = ''
+                if (additionalContent) {
+                  if (typeof additionalContent === 'function') {
+                    extraContent = await additionalContent()
+                  } else {
+                    extraContent = additionalContent
                   }
-                  
-                  return (
-                    <MessageBubble 
-                      key={node.id} 
-                      node={node}
-                      onRegenerate={!conversationState.isLoading ? handleRegenerate : undefined}
-                      onEditUserMessage={!conversationState.isLoading ? handleEditUserMessage : undefined}
-                      branchNavigation={branchNavigation}
-                      onBranchNavigate={(direction) => branchManager.navigateToSibling(node.id, direction)}
-                      isInActivePath={isInActivePath}
-                      showBranchControls={!conversationState.isLoading && branchNavigation.totalBranches > 1}
-                      isGenerating={isGeneratingNode}
-                      currentThinking={isGeneratingNode ? conversationState.currentThinking : ''}
-                      currentAnswer={isGeneratingNode ? conversationState.currentAnswer : ''}
-                      isInContext={isInContext}
-                    />
-                  )
-                })}
-                
-                <div ref={messagesEndRef} />
-              </div>
-            </div>
+                }
+                return conversationActions.editUserMessage(nodeId, newContent, extraContent)
+              }
+              
+              return (
+                <MessageBubble 
+                  key={node.id} 
+                  node={node}
+                  onRegenerate={!conversationState.isLoading ? handleRegenerate : undefined}
+                  onEditUserMessage={!conversationState.isLoading ? handleEditUserMessage : undefined}
+                  branchNavigation={branchNavigation}
+                  onBranchNavigate={(direction) => branchManager.navigateToSibling(node.id, direction)}
+                  isInActivePath={isInActivePath}
+                  showBranchControls={!conversationState.isLoading && branchNavigation.totalBranches > 1}
+                  isGenerating={isGeneratingNode}
+                  currentThinking={isGeneratingNode ? conversationState.currentThinking : ''}
+                  currentAnswer={isGeneratingNode ? conversationState.currentAnswer : ''}
+                  isInContext={isInContext}
+                />
+              )
+            })}
+            
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
 
-            {/* AI输入区域 */}
-            <div className="bg-white border-t-2 border-gray-200 flex-shrink-0 shadow-lg">
-              <ChatInputArea
-                ref={chatInputRef}
-                value={conversationState.inputValue}
-                onChange={conversationActions.updateInputValue}
-                onSend={handleSendMessage}
-                isLoading={conversationState.isLoading}
-                onAbort={conversationActions.abortRequest}
-                config={config}
-                onProviderChange={(providerId) => onConfigChange({
-                  ...config,
-                  currentProviderId: providerId
-                })}
-              />
+        {/* AI输入区域 */}
+        <div className="bg-white border-t-2 border-gray-200 flex-shrink-0 shadow-lg">
+          <ChatInputArea
+            ref={chatInputRef}
+            value={conversationState.inputValue}
+            onChange={conversationActions.updateInputValue}
+            onSend={handleSendMessage}
+            isLoading={conversationState.isLoading}
+            onAbort={conversationActions.abortRequest}
+            config={config}
+            onProviderChange={(providerId) => onConfigChange({
+              ...config,
+              currentProviderId: providerId
+            })}
+          />
         </div>
       </div>
 
