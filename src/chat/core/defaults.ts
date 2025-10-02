@@ -43,7 +43,7 @@ export const DEFAULT_CONFIG: AIConfig = {
   currentProviderId: DEFAULT_PROVIDERS[0].id,
   providers: DEFAULT_PROVIDERS,
   historyLimit: 40,
-  systemPrompt: '你是AI写作助手，帮助用户完成小说写作。'
+  systemPrompt: '' // 系统提示现在由提示词卡片系统管理
 }
 
 

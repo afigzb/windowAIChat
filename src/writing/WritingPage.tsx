@@ -21,6 +21,7 @@ export default function WritingPage() {
   })
   const [activeTool, setActiveTool] = useState<'workspace' | 'api' | 'docs' | 'settings' | 'prompt'>('workspace')
   const [isPromptWindowOpen, setIsPromptWindowOpen] = useState(false)
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
 
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   
@@ -47,6 +48,16 @@ export default function WritingPage() {
   const handleConfigChange = (newConfig: AIConfig) => {
     setConfig(newConfig)
     storage.saveAIConfig(newConfig)
+  }
+
+  // 重置API配置（只重置API相关，保留其他设置）
+  const handleResetConfig = () => {
+    handleConfigChange({
+      ...config,
+      currentProviderId: DEFAULT_CONFIG.currentProviderId,
+      providers: DEFAULT_CONFIG.providers
+    })
+    setShowResetConfirm(false)
   }
 
   // 打开提示词功能窗口
@@ -451,17 +462,6 @@ export default function WritingPage() {
                     </div>
                   <div className="flex-1 overflow-auto p-6">
                     <div className="space-y-6">
-                        <div className="space-y-2">
-                          <label className="block text-sm font-medium text-gray-700">系统提示</label>
-                          <textarea
-                            value={config.systemPrompt}
-                            onChange={(e) => handleConfigChange({ ...config, systemPrompt: e.target.value })}
-                            placeholder="设置AI的角色和行为..."
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-blue-50/30 focus:shadow-lg "
-                            rows={3}
-                          />
-                          <p className="text-xs text-gray-500">定义AI的角色定位和回答风格</p>
-                        </div>
                         <div className="space-y-3">
                           <label className="block text-sm font-medium text-gray-700">历史消息保留数量 ({config.historyLimit}条消息)</label>
                           <div className="px-4 py-3 bg-slate-50 rounded-xl border border-slate-200">
@@ -484,10 +484,10 @@ export default function WritingPage() {
                         </div>
                         <div>
                           <button
-                            onClick={() => handleConfigChange(DEFAULT_CONFIG)}
+                            onClick={() => setShowResetConfirm(true)}
                             className="px-4 py-2 border border-gray-300 rounded-xl hover:bg-slate-50 transition-colors text-slate-700"
                           >
-                            重置为默认设置
+                            重置API为默认设置
                           </button>
                         </div>
                       </div>
@@ -500,8 +500,20 @@ export default function WritingPage() {
         </main>
       </div>
       
-      {/* 确认对话框 */}
+      {/* 文件操作确认对话框 */}
       <ConfirmDialog {...confirmProps} />
+      
+      {/* API重置确认对话框 */}
+      <ConfirmDialog
+        isOpen={showResetConfirm}
+        title="重置API配置"
+        message="确定要将API配置重置为默认设置吗？这将重置所有API提供商和密钥配置，但会保留您的其他设置（如历史消息数量）。"
+        confirmText="确定重置"
+        cancelText="取消"
+        type="warning"
+        onConfirm={handleResetConfig}
+        onCancel={() => setShowResetConfirm(false)}
+      />
     </div>
   )
 }

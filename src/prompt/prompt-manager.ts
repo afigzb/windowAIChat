@@ -18,7 +18,33 @@ class PromptCardManager {
     if (this.initialized) return
     
     this.cards = storage.loadGenericData<PromptCard[]>(STORAGE_KEY, [])
+    
+    // 如果没有任何卡片，创建默认的系统提示词
+    if (this.cards.length === 0) {
+      this.createDefaultCard()
+    }
+    
     this.initialized = true
+  }
+
+  /**
+   * 创建默认提示词卡片
+   */
+  private createDefaultCard(): void {
+    const now = Date.now()
+    const defaultCard: PromptCard = {
+      id: `prompt_default_${now}`,
+      title: '默认系统提示',
+      content: '你是一个专业的AI写作助手，善于帮助用户进行文档编辑、内容创作和文字优化。请用清晰、准确、友好的语言与用户交流。',
+      placement: 'system',
+      enabled: true,
+      order: 0,
+      createdAt: now,
+      updatedAt: now
+    }
+    
+    this.cards.push(defaultCard)
+    this.save()
   }
 
   /**
