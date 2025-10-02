@@ -32,11 +32,9 @@ export {
   ensureSystemMessage,
   removeEmptyMessages,
   mergeConsecutiveSameRole,
-  applyStandardPipeline,
   compose,
   when,
-  compressMessages,
-  compressMessagesByRole
+  compressMessages
 } from './message-operators'
 export type { MessageOperator } from './message-operators'
 

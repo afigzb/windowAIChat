@@ -6,7 +6,14 @@ import type {
   TempContextPlacement 
 } from './types'
 import { MessageEditor } from './message-editor'
-import { applyStandardPipeline, type MessageOperator } from './message-operators'
+import { 
+  injectSystemPrompt,
+  addTemporaryContext,
+  limitHistory,
+  removeEmptyMessages,
+  compressMessages,
+  type MessageOperator 
+} from './message-operators'
 
 /**
  * ContextEngine 统一管理消息上下文：
@@ -92,8 +99,16 @@ export class ContextEngine {
 
 
   /**
-   * 构建标准化的请求消息（新架构）
-   * 使用MessageEditor提供灵活的消息编辑能力
+   * 构建标准化的请求消息
+   * 这是完整的消息处理流程，包括所有转换步骤
+   * 
+   * 处理流程：
+   * 1. 注入 system 提示词
+   * 2. 添加临时上下文
+   * 3. 限制历史消息数量
+   * 4. 移除空消息
+   * 5. 应用自定义操作符（如提示词卡片）
+   * 6. 压缩所有消息内容
    * 
    * @param history 对话历史
    * @param config AI配置
@@ -109,15 +124,29 @@ export class ContextEngine {
   ): RequestMessage[] {
     const finalSystemPrompt = systemPrompt.getPrompt(config)
 
-    // 使用MessageEditor构建消息
+    // 使用 MessageEditor 构建消息
     let editor = MessageEditor.from(history)
 
-    // 应用标准处理流程
-    editor = applyStandardPipeline(config, finalSystemPrompt, tempContent, tempPlacement)(editor)
+    // 1. 注入 system 提示词
+    editor = injectSystemPrompt(finalSystemPrompt)(editor)
 
-    // 应用自定义操作符（包括提示词卡片操作符）
+    // 2. 添加临时上下文
+    editor = addTemporaryContext(tempContent, tempPlacement)(editor)
+
+    // 3. 限制历史消息数量
+    editor = limitHistory(config.historyLimit)(editor)
+
+    // 4. 移除空消息
+    editor = removeEmptyMessages()(editor)
+
+    // 5. 应用自定义操作符（包括提示词卡片操作符）
     for (const operator of this.customOperators) {
       editor = operator(editor)
+    }
+
+    // 6. 最后执行压缩（确保所有内容包括提示词卡片都被压缩）
+    if (config.enableCompression) {
+      editor = compressMessages()(editor)
     }
 
     return editor.build()

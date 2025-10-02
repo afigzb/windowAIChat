@@ -69,7 +69,6 @@ export function ChatPanel({
   // 记录预览时的依赖快照，用于检测是否需要自动刷新
   const previewDepsRef = useRef<{
     inputValue: string
-    configHash: string
     activePath: string[]
   } | null>(null)
   
@@ -224,7 +223,6 @@ export function ChatPanel({
       // 记录当前预览的依赖快照
       previewDepsRef.current = {
         inputValue: conversationState.inputValue,
-        configHash: JSON.stringify(config),
         activePath: [...conversationState.conversationTree.activePath]
       }
       
@@ -240,31 +238,6 @@ export function ChatPanel({
     extraContext: string
     systemPrompt: string
   } | null>(null)
-
-  // 自动刷新预览：当预览对话框打开时，监听关键数据变化
-  useEffect(() => {
-    if (!showPreviewDialog || !previewDepsRef.current) return
-
-    const currentDeps = {
-      inputValue: conversationState.inputValue,
-      configHash: JSON.stringify(config),
-      activePath: conversationState.conversationTree.activePath
-    }
-
-    // 检测是否有变化
-    const hasInputChanged = currentDeps.inputValue !== previewDepsRef.current.inputValue
-    const hasConfigChanged = currentDeps.configHash !== previewDepsRef.current.configHash
-    const hasPathChanged = JSON.stringify(currentDeps.activePath) !== JSON.stringify(previewDepsRef.current.activePath)
-
-    if (hasInputChanged || hasConfigChanged || hasPathChanged) {
-      console.log('[ChatPanel] 检测到预览相关数据变化，自动刷新预览', {
-        inputChanged: hasInputChanged,
-        configChanged: hasConfigChanged,
-        pathChanged: hasPathChanged
-      })
-      handlePreview()
-    }
-  }, [showPreviewDialog, conversationState.inputValue, config, conversationState.conversationTree.activePath])
 
   // 处理挂起的概括请求
   useEffect(() => {
