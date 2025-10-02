@@ -38,12 +38,21 @@ export const DEFAULT_PROVIDERS: ApiProviderConfig[] = [
   },
 ]
 
+// 默认概括提示词
+export const DEFAULT_SUMMARIZE_PROMPT = `你是一名专业的中文文本概括助手。
+目标：将提供的对话与文件内容进行高质量、结构化的总结。
+要求：
+- 保留关键信息、结论与决策，删除冗余与重复。
+- 用分点或小节组织结果，语言简洁清晰。
+- 不臆测缺失信息，必要时标注"信息不足"。`
+
 // 默认AI配置参数（通用Provider）
 export const DEFAULT_CONFIG: AIConfig = {
   currentProviderId: DEFAULT_PROVIDERS[0].id,
   providers: DEFAULT_PROVIDERS,
   historyLimit: 40,
-  systemPrompt: '' // 系统提示现在由提示词卡片系统管理
+  systemPrompt: '', // 系统提示现在由提示词卡片系统管理
+  summarizePrompt: DEFAULT_SUMMARIZE_PROMPT
 }
 
 

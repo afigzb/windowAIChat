@@ -82,6 +82,7 @@ export interface AIConfig {
   providers: ApiProviderConfig[]         // 可用的API配置列表
   historyLimit: number
   systemPrompt: string
+  summarizePrompt?: string               // 概括功能的系统提示词（可选，为空则使用默认）
 }
 
 // ===== 组件Props =====

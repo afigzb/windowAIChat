@@ -287,7 +287,8 @@ export function ChatPanel({
     const plan = buildSummarizePlan(
       conversationState.inputValue?.trim(),
       conversationHistoryText,
-      filesText
+      filesText,
+      config.summarizePrompt
     )
 
     // 4) 设置挂起状态，然后新建对话

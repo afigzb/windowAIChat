@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import type { AIConfig } from '../chat'
+import { DEFAULT_SUMMARIZE_PROMPT } from '../chat/core/defaults'
 
 interface SettingsPanelProps {
   config: AIConfig
@@ -7,6 +9,8 @@ interface SettingsPanelProps {
 }
 
 export function SettingsPanel({ config, onConfigChange, onRequestReset }: SettingsPanelProps) {
+  const [isSummarizeFocused, setIsSummarizeFocused] = useState(false)
+
   return (
     <div className="h-full bg-white border-l border-slate-300 flex flex-col">
       <div className="h-16 px-4 border-b border-slate-200 flex items-center">
@@ -36,6 +40,34 @@ export function SettingsPanel({ config, onConfigChange, onRequestReset }: Settin
             </div>
             <div className="text-xs text-gray-500">为节约 tokens，只保留最近的消息发送给 AI</div>
           </div>
+
+          <div className={`space-y-3 p-4 rounded-xl transition-all duration-200 ${
+            isSummarizeFocused 
+              ? 'bg-indigo-50/50 border-2 border-indigo-300 shadow-sm' 
+              : 'border-2 border-transparent'
+          }`}>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-gray-700">
+                概括功能提示词
+              </label>
+              <button
+                onClick={() => onConfigChange({ ...config, summarizePrompt: DEFAULT_SUMMARIZE_PROMPT })}
+                className="text-xs text-indigo-600 hover:text-indigo-700 hover:underline"
+              >
+                恢复默认
+              </button>
+            </div>
+            <textarea
+              value={config.summarizePrompt || DEFAULT_SUMMARIZE_PROMPT}
+              onChange={(e) => onConfigChange({ ...config, summarizePrompt: e.target.value })}
+              onFocus={() => setIsSummarizeFocused(true)}
+              onBlur={() => setIsSummarizeFocused(false)}
+              className="w-full h-40 px-3 py-2 bg-white border border-slate-300 rounded-xl resize-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+              placeholder="输入自定义的概括提示词..."
+            />
+            <div className="text-xs text-gray-500">自定义概括按钮使用的提示词，用于总结对话历史和文件内容</div>
+          </div>
+
           <div>
             <button
               onClick={onRequestReset}

@@ -1,4 +1,5 @@
 // 提供与聊天系统解耦的概括功能构建器
+import { DEFAULT_SUMMARIZE_PROMPT } from '../defaults'
 
 export interface SummarizePlan {
   userMessageContent: string
@@ -6,15 +7,9 @@ export interface SummarizePlan {
   systemPrompt: string
 }
 
-function buildSystemPrompt(): string {
-  return [
-    '你是一名专业的中文文本概括助手。',
-    '目标：将提供的对话与文件内容进行高质量、结构化的总结。',
-    '要求：',
-    '- 保留关键信息、结论与决策，删除冗余与重复。',
-    '- 用分点或小节组织结果，语言简洁清晰。',
-    '- 不臆测缺失信息，必要时标注"信息不足"。'
-  ].join('\n')
+function buildSystemPrompt(customPrompt?: string): string {
+  // 如果有自定义提示词，使用自定义的；否则使用默认的
+  return customPrompt?.trim() || DEFAULT_SUMMARIZE_PROMPT
 }
 
 /**
@@ -22,11 +17,13 @@ function buildSystemPrompt(): string {
  * @param inputResidual 用户额外输入的概括指令
  * @param conversationHistoryText 当前对话的历史上下文（已根据 historyLimit 截断）
  * @param filesText 选中的文件内容
+ * @param customPrompt 自定义的概括提示词（可选）
  */
 export function buildSummarizePlan(
   inputResidual?: string,
   conversationHistoryText?: string,
-  filesText?: string
+  filesText?: string,
+  customPrompt?: string
 ): SummarizePlan {
   const trimmedInput = (inputResidual || '').trim()
   const userMessageContent = trimmedInput || '请对上述内容进行高质量概括'
@@ -48,7 +45,7 @@ export function buildSummarizePlan(
     ? '\n\n' + contextParts.join('\n\n') 
     : ''
 
-  const systemPrompt = buildSystemPrompt()
+  const systemPrompt = buildSystemPrompt(customPrompt)
 
   return {
     userMessageContent,
