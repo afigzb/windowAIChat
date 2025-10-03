@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { promptCardManager } from './prompt-manager'
 import type { PromptCard, PromptCardPlacement } from './types'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -268,17 +268,33 @@ function PromptCardEditor({ card, isCreating, onChange, onSave, onCancel }: Prom
 
   const canSave = card.title.trim() && card.content.trim()
 
+  const contentTextareaRef = useRef<HTMLTextAreaElement | null>(null)
+
+  const resizeContentTextarea = () => {
+    const textareaEl = contentTextareaRef.current
+    if (!textareaEl) return
+    textareaEl.style.height = 'auto'
+    textareaEl.style.height = `${textareaEl.scrollHeight}px`
+  }
+
+  useEffect(() => {
+    resizeContentTextarea()
+    // Also resize on window resize to keep layout consistent
+    const handleResize = () => resizeContentTextarea()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  useEffect(() => {
+    // Recalculate when content changes
+    resizeContentTextarea()
+  }, [card.content])
+
   return (
     <div 
       className="fixed inset-0 bg-gray-100 bg-opacity-75 flex items-center justify-center z-[9999] p-4"
-      onClick={(e) => {
-        // 点击背景时关闭
-        if (e.target === e.currentTarget) {
-          onCancel()
-        }
-      }}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-gray-200">
+      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[95vh] overflow-y-auto border border-gray-200">
         {/* 头部 */}
         <div className="border-b border-gray-200 px-6 py-4">
           <h2 className="text-xl font-semibold text-gray-900">
@@ -309,11 +325,13 @@ function PromptCardEditor({ card, isCreating, onChange, onSave, onCancel }: Prom
               提示词内容
             </label>
             <textarea
+              ref={contentTextareaRef}
               value={card.content}
               onChange={e => onChange({ ...card, content: e.target.value })}
               placeholder="输入提示词内容..."
-              rows={8}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-sm"
+              rows={6}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-none overflow-hidden leading-relaxed"
+              style={{ height: 'auto' }}
             />
           </div>
 
