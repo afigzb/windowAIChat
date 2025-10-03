@@ -168,8 +168,8 @@ export function ChatPanel({
     conversationActions.sendMessage(content, null, extraContent)
   }
 
-  // 处理预览
-  const handlePreview = async () => {
+  // 生成预览数据（不打开对话框）
+  const generatePreviewData = async () => {
     try {
       // 获取额外内容（与实际发送时的逻辑完全一致）
       let extraContent = ''
@@ -225,11 +225,16 @@ export function ChatPanel({
         inputValue: conversationState.inputValue,
         activePath: [...conversationState.conversationTree.activePath]
       }
-      
-      setShowPreviewDialog(true)
     } catch (error: any) {
+      console.error('生成预览数据失败:', error)
       alert(`预览失败: ${error.message || '未知错误'}`)
     }
+  }
+
+  // 处理预览（生成数据并打开对话框）
+  const handlePreview = async () => {
+    await generatePreviewData()
+    setShowPreviewDialog(true)
   }
 
   // 概括状态
@@ -668,7 +673,7 @@ export function ChatPanel({
         isOpen={showPreviewDialog}
         onClose={() => setShowPreviewDialog(false)}
         previewData={previewData}
-        onRefreshPreview={handlePreview}
+        onRefreshPreview={generatePreviewData}
       />
     </div>
   )
