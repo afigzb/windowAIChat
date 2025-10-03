@@ -2,8 +2,8 @@
 import { DEFAULT_SUMMARIZE_PROMPT } from '../defaults'
 
 export interface SummarizePlan {
-  userMessageContent: string
-  extraContext: string
+  userMessageContent: string // 保存到对话历史中的消息（占位符）
+  extraContext: string // 包含实际的概括指令和上下文
   systemPrompt: string
 }
 
@@ -26,10 +26,13 @@ export function buildSummarizePlan(
   customPrompt?: string
 ): SummarizePlan {
   const trimmedInput = (inputResidual || '').trim()
-  const userMessageContent = trimmedInput || '请对上述内容进行高质量概括'
+  const actualInstruction = trimmedInput || '请对上述内容进行高质量概括'
 
-  // 组装额外上下文：对话历史 + 文件内容
+  // 组装额外上下文：概括指令 + 对话历史 + 文件内容
   const contextParts: string[] = []
+  
+  // 将实际的概括指令作为临时上下文的一部分（不会被保存到对话历史）
+  contextParts.push('【概括指令】\n' + actualInstruction)
   
   const trimmedHistory = (conversationHistoryText || '').trim()
   if (trimmedHistory) {
@@ -48,7 +51,7 @@ export function buildSummarizePlan(
   const systemPrompt = buildSystemPrompt(customPrompt)
 
   return {
-    userMessageContent,
+    userMessageContent: '...',  // 占位符，避免在对话历史中保存实际的概括指令
     extraContext,
     systemPrompt
   }

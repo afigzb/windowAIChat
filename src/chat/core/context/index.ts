@@ -23,9 +23,22 @@ export { MessageEditor } from './message-editor'
 
 // 导出消息操作符
 export {
+  // System 提示词操作符
   injectSystemPrompt,
   appendSystemPrompt,
+  
+  // 基础插入操作符（解耦后的位置操作）
+  appendToLastUser,
+  insertUserAfterSystem,
+  insertAssistantAfterSystem,
+  insertMessageAfterSystem,
+  
+  // 临时上下文操作符（业务层）
   addTemporaryContext,
+  defaultTempFormatter,
+  noFormatter,
+  
+  // 其他操作符
   limitHistory,
   addFileContext,
   addSummaryContext,
@@ -36,7 +49,7 @@ export {
   when,
   compressMessages
 } from './message-operators'
-export type { MessageOperator } from './message-operators'
+export type { MessageOperator, TempContentFormatter } from './message-operators'
 
 // 导出文本压缩工具
 export {

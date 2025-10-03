@@ -46,37 +46,113 @@ export function appendSystemPrompt(systemPrompt: string): MessageOperator {
   }
 }
 
+// ===== 基础插入操作符（位置相关，内容无关） =====
+
 /**
- * 添加临时上下文
+ * 追加内容到最后一条用户消息
+ * @param content 要追加的内容
+ * @param separator 分隔符，默认 '\n\n'
+ */
+export function appendToLastUser(content: string, separator: string = '\n\n'): MessageOperator {
+  return (editor) => {
+    if (!content.trim()) return editor
+    return editor.appendToLastUserMessage(separator + content)
+  }
+}
+
+/**
+ * 在 system 消息后插入用户消息
+ * @param content 消息内容
+ */
+export function insertUserAfterSystem(content: string): MessageOperator {
+  return (editor) => {
+    if (!content.trim()) return editor
+    return editor.insertAfterSystem({
+      role: 'user',
+      content
+    })
+  }
+}
+
+/**
+ * 在 system 消息后插入助手消息
+ * @param content 消息内容
+ */
+export function insertAssistantAfterSystem(content: string): MessageOperator {
+  return (editor) => {
+    if (!content.trim()) return editor
+    return editor.insertAfterSystem({
+      role: 'assistant',
+      content
+    })
+  }
+}
+
+/**
+ * 在 system 消息后插入任意角色的消息
+ * @param message 完整的消息对象
+ */
+export function insertMessageAfterSystem(message: { role: 'user' | 'assistant'; content: string }): MessageOperator {
+  return (editor) => {
+    if (!message.content.trim()) return editor
+    return editor.insertAfterSystem(message)
+  }
+}
+
+// ===== 临时上下文操作符（业务层，使用基础操作符） =====
+
+/**
+ * 临时内容格式化器
+ */
+export type TempContentFormatter = (content: string) => string
+
+/**
+ * 默认的临时内容格式化器（添加【上下文】标记）
+ */
+export const defaultTempFormatter: TempContentFormatter = (content: string) => {
+  return `【上下文】\n${content}`
+}
+
+/**
+ * 无格式化（直接使用原内容）
+ */
+export const noFormatter: TempContentFormatter = (content: string) => content
+
+/**
+ * 添加临时上下文（解耦版）
+ * 
+ * 设计理念：
+ * - 分离关注点：位置策略 vs 内容格式化
+ * - 使用基础插入操作符组合实现
+ * - 支持自定义格式化器
+ * 
  * @param tempContent 临时内容
  * @param placement 放置位置
+ * @param formatter 内容格式化器，默认添加【上下文】标记
  */
 export function addTemporaryContext(
   tempContent: string | undefined,
-  placement: 'append' | 'after_system' | 'prepend' = 'append'
+  placement: 'append' | 'after_system' | 'prepend' = 'append',
+  formatter: TempContentFormatter = defaultTempFormatter
 ): MessageOperator {
   return (editor) => {
     const trimmed = tempContent?.trim()
     if (!trimmed) return editor
 
+    // 根据 placement 选择合适的基础插入操作符
     switch (placement) {
       case 'after_system':
-        // 在system消息之后插入独立的上下文消息
-        return editor.insertAfterSystem({
-          role: 'user',
-          content: `【上下文】\n${trimmed}`
-        })
+        // 使用格式化器处理内容，然后插入
+        const formattedContent = formatter(trimmed)
+        return insertUserAfterSystem(formattedContent)(editor)
 
       case 'append':
-        // 追加到最后一条用户消息
-        return editor.appendToLastUserMessage('\n\n' + trimmed)
+        // 直接追加，不使用格式化器（保持原有行为）
+        return appendToLastUser(trimmed)(editor)
 
       case 'prepend':
-        // 插入到所有消息之前（system之后）
-        return editor.insertAfterSystem({
-          role: 'user',
-          content: trimmed
-        })
+        // 前置插入，不使用格式化器
+        return insertUserAfterSystem(trimmed)(editor)
 
       default:
         return editor
@@ -96,6 +172,8 @@ export function limitHistory(limit: number): MessageOperator {
 
 /**
  * 添加文件上下文
+ * 使用基础插入操作符重构，清晰分离位置和格式化逻辑
+ * 
  * @param filesContent 文件内容
  * @param placement 放置位置
  */
@@ -109,19 +187,19 @@ export function addFileContext(
 
     const contextMessage = `【文件内容】\n${trimmed}`
 
+    // 使用基础插入操作符
     if (placement === 'after_system') {
-      return editor.insertAfterSystem({
-        role: 'user',
-        content: contextMessage
-      })
+      return insertUserAfterSystem(contextMessage)(editor)
     } else {
-      return editor.appendToLastUserMessage('\n\n' + contextMessage)
+      return appendToLastUser(contextMessage)(editor)
     }
   }
 }
 
 /**
  * 添加对话历史摘要
+ * 使用基础插入操作符重构
+ * 
  * @param summaryContent 摘要内容
  */
 export function addSummaryContext(summaryContent: string | undefined): MessageOperator {
@@ -129,10 +207,8 @@ export function addSummaryContext(summaryContent: string | undefined): MessageOp
     const trimmed = summaryContent?.trim()
     if (!trimmed) return editor
 
-    return editor.insertAfterSystem({
-      role: 'user',
-      content: `【对话历史摘要】\n${trimmed}`
-    })
+    const formattedContent = `【对话历史摘要】\n${trimmed}`
+    return insertUserAfterSystem(formattedContent)(editor)
   }
 }
 
