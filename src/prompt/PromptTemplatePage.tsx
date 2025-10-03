@@ -208,7 +208,7 @@ function PromptCardItem({ card, onEdit, onDelete, onToggle }: PromptCardItemProp
           >
             <div
               className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${
-                card.enabled ? 'translate-x-4' : 'translate-x-0.5'
+                card.enabled ? 'translate-x-[1.125rem]' : 'translate-x-0.5'
               }`}
             />
           </button>
