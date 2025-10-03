@@ -42,64 +42,18 @@ export function injectSystemPrompt(systemPrompt: string, position: number = 0): 
 export function appendSystemPrompt(systemPrompt: string): MessageOperator {
   return (editor) => {
     if (!systemPrompt.trim()) return editor
-    return editor.appendToSystemMessage(systemPrompt)
+    
+    const systemIndex = editor.findIndexWhere(m => m.role === 'system')
+    if (systemIndex >= 0) {
+      return editor.modifyAt(systemIndex, m => ({
+        ...m,
+        content: m.content + '\n\n' + systemPrompt
+      }))
+    }
+    // 如果没有system消息，则插入一条
+    return editor.prepend({ role: 'system', content: systemPrompt })
   }
 }
-
-// ===== 基础插入操作符（位置相关，内容无关） =====
-
-/**
- * 追加内容到最后一条用户消息
- * @param content 要追加的内容
- * @param separator 分隔符，默认 '\n\n'
- */
-export function appendToLastUser(content: string, separator: string = '\n\n'): MessageOperator {
-  return (editor) => {
-    if (!content.trim()) return editor
-    return editor.appendToLastUserMessage(separator + content)
-  }
-}
-
-/**
- * 在 system 消息后插入用户消息
- * @param content 消息内容
- */
-export function insertUserAfterSystem(content: string): MessageOperator {
-  return (editor) => {
-    if (!content.trim()) return editor
-    return editor.insertAfterSystem({
-      role: 'user',
-      content
-    })
-  }
-}
-
-/**
- * 在 system 消息后插入助手消息
- * @param content 消息内容
- */
-export function insertAssistantAfterSystem(content: string): MessageOperator {
-  return (editor) => {
-    if (!content.trim()) return editor
-    return editor.insertAfterSystem({
-      role: 'assistant',
-      content
-    })
-  }
-}
-
-/**
- * 在 system 消息后插入任意角色的消息
- * @param message 完整的消息对象
- */
-export function insertMessageAfterSystem(message: { role: 'user' | 'assistant'; content: string }): MessageOperator {
-  return (editor) => {
-    if (!message.content.trim()) return editor
-    return editor.insertAfterSystem(message)
-  }
-}
-
-// ===== 临时上下文操作符（业务层，使用基础操作符） =====
 
 /**
  * 临时内容格式化器
@@ -119,40 +73,42 @@ export const defaultTempFormatter: TempContentFormatter = (content: string) => {
 export const noFormatter: TempContentFormatter = (content: string) => content
 
 /**
- * 添加临时上下文（解耦版）
- * 
- * 设计理念：
- * - 分离关注点：位置策略 vs 内容格式化
- * - 使用基础插入操作符组合实现
- * - 支持自定义格式化器
+ * 添加临时上下文
  * 
  * @param tempContent 临时内容
  * @param placement 放置位置
- * @param formatter 内容格式化器，默认添加【上下文】标记
+ *   - 'after_system': 在 system 消息后独立插入，使用 formatter 格式化（默认添加【上下文】标记）
+ *   - 'append': 追加到最后一条用户消息，不使用 formatter（保持对话流自然）
+ * @param formatter 内容格式化器，仅在 after_system 时使用，默认添加【上下文】标记
  */
 export function addTemporaryContext(
   tempContent: string | undefined,
-  placement: 'append' | 'after_system' | 'prepend' = 'append',
+  placement: 'append' | 'after_system' = 'append',
   formatter: TempContentFormatter = defaultTempFormatter
 ): MessageOperator {
   return (editor) => {
     const trimmed = tempContent?.trim()
     if (!trimmed) return editor
 
-    // 根据 placement 选择合适的基础插入操作符
     switch (placement) {
       case 'after_system':
-        // 使用格式化器处理内容，然后插入
+        // 在 system 后独立插入，使用 formatter 格式化
         const formattedContent = formatter(trimmed)
-        return insertUserAfterSystem(formattedContent)(editor)
+        return editor.insertAfterSystem({
+          role: 'user',
+          content: formattedContent
+        })
 
       case 'append':
-        // 直接追加，不使用格式化器（保持原有行为）
-        return appendToLastUser(trimmed)(editor)
-
-      case 'prepend':
-        // 前置插入，不使用格式化器
-        return insertUserAfterSystem(trimmed)(editor)
+        // 追加到最后一条用户消息，不使用 formatter
+        const lastUserIndex = editor.findLastIndexWhere(m => m.role === 'user')
+        if (lastUserIndex >= 0) {
+          return editor.modifyAt(lastUserIndex, m => ({
+            ...m,
+            content: m.content + '\n\n' + trimmed
+          }))
+        }
+        return editor
 
       default:
         return editor
@@ -172,7 +128,6 @@ export function limitHistory(limit: number): MessageOperator {
 
 /**
  * 添加文件上下文
- * 使用基础插入操作符重构，清晰分离位置和格式化逻辑
  * 
  * @param filesContent 文件内容
  * @param placement 放置位置
@@ -187,18 +142,27 @@ export function addFileContext(
 
     const contextMessage = `【文件内容】\n${trimmed}`
 
-    // 使用基础插入操作符
     if (placement === 'after_system') {
-      return insertUserAfterSystem(contextMessage)(editor)
+      return editor.insertAfterSystem({
+        role: 'user',
+        content: contextMessage
+      })
     } else {
-      return appendToLastUser(contextMessage)(editor)
+      // append: 追加到最后一条用户消息
+      const lastUserIndex = editor.findLastIndexWhere(m => m.role === 'user')
+      if (lastUserIndex >= 0) {
+        return editor.modifyAt(lastUserIndex, m => ({
+          ...m,
+          content: m.content + '\n\n' + contextMessage
+        }))
+      }
+      return editor
     }
   }
 }
 
 /**
  * 添加对话历史摘要
- * 使用基础插入操作符重构
  * 
  * @param summaryContent 摘要内容
  */
@@ -208,7 +172,10 @@ export function addSummaryContext(summaryContent: string | undefined): MessageOp
     if (!trimmed) return editor
 
     const formattedContent = `【对话历史摘要】\n${trimmed}`
-    return insertUserAfterSystem(formattedContent)(editor)
+    return editor.insertAfterSystem({
+      role: 'user',
+      content: formattedContent
+    })
   }
 }
 

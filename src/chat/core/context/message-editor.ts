@@ -211,43 +211,21 @@ export class MessageEditor {
     return new MessageEditor(newMessages)
   }
 
-  /**
-   * 向最后一条用户消息追加内容
-   */
-  appendToLastUserMessage(content: string): MessageEditor {
-    const lastUserIndex = this.findLastIndex(m => m.role === 'user')
-    if (lastUserIndex >= 0) {
-      return this.modifyAt(lastUserIndex, m => ({
-        ...m,
-        content: m.content + content
-      }))
-    }
-    return this
-  }
-
-  /**
-   * 向第一条system消息追加内容
-   */
-  appendToSystemMessage(content: string): MessageEditor {
-    const systemIndex = this.messages.findIndex(m => m.role === 'system')
-    if (systemIndex >= 0) {
-      return this.modifyAt(systemIndex, m => ({
-        ...m,
-        content: m.content + '\n\n' + content
-      }))
-    }
-    // 如果没有system消息，则插入一条
-    return this.prepend({ role: 'system', content })
-  }
-
   // ===== 查询操作 =====
+
+  /**
+   * 查找第一个满足条件的消息索引
+   */
+  findIndexWhere(predicate: (message: RequestMessage, index: number) => boolean): number {
+    return this.messages.findIndex(predicate)
+  }
 
   /**
    * 查找最后一个满足条件的消息索引
    */
-  private findLastIndex(predicate: (message: RequestMessage) => boolean): number {
+  findLastIndexWhere(predicate: (message: RequestMessage, index: number) => boolean): number {
     for (let i = this.messages.length - 1; i >= 0; i--) {
-      if (predicate(this.messages[i])) {
+      if (predicate(this.messages[i], i)) {
         return i
       }
     }

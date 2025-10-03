@@ -46,7 +46,16 @@ export function createPromptCardOperator(): MessageOperator {
     let result = editor
     if (cardsByPlacement.system.length > 0) {
       const combinedContent = cardsByPlacement.system.join('\n\n')
-      result = result.appendToSystemMessage(combinedContent)
+      const systemIndex = result.findIndexWhere(m => m.role === 'system')
+      if (systemIndex >= 0) {
+        result = result.modifyAt(systemIndex, m => ({
+          ...m,
+          content: m.content + '\n\n' + combinedContent
+        }))
+      } else {
+        // 如果没有system消息，则在开头插入一条
+        result = result.prepend({ role: 'system', content: combinedContent })
+      }
     }
 
     // 2. 处理 after_system 位置的卡片（在system后独立插入）
@@ -59,7 +68,13 @@ export function createPromptCardOperator(): MessageOperator {
     // 3. 处理 user_end 位置的卡片（追加到最后一条user消息）
     if (cardsByPlacement.user_end.length > 0) {
       const combinedContent = '\n\n' + cardsByPlacement.user_end.join('\n\n')
-      result = result.appendToLastUserMessage(combinedContent)
+      const lastUserIndex = result.findLastIndexWhere(m => m.role === 'user')
+      if (lastUserIndex >= 0) {
+        result = result.modifyAt(lastUserIndex, m => ({
+          ...m,
+          content: m.content + combinedContent
+        }))
+      }
     }
 
     return result

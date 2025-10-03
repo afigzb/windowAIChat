@@ -27,13 +27,7 @@ export {
   injectSystemPrompt,
   appendSystemPrompt,
   
-  // 基础插入操作符（解耦后的位置操作）
-  appendToLastUser,
-  insertUserAfterSystem,
-  insertAssistantAfterSystem,
-  insertMessageAfterSystem,
-  
-  // 临时上下文操作符（业务层）
+  // 临时上下文操作符
   addTemporaryContext,
   defaultTempFormatter,
   noFormatter,
