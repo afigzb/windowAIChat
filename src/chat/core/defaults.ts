@@ -9,7 +9,8 @@ export const DEFAULT_PROVIDERS: ApiProviderConfig[] = [
     type: 'openai',
     baseUrl: 'https://api.deepseek.com/v1/chat/completions',
     apiKey: '',
-    model: 'deepseek-reasoner'
+    model: 'deepseek-reasoner',
+    maxTokens: 64000,
   },
   {
     id: 'gemini-flash',
@@ -17,7 +18,8 @@ export const DEFAULT_PROVIDERS: ApiProviderConfig[] = [
     type: 'gemini',
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
     apiKey: '',
-    model: 'gemini-2.5-flash'
+    model: 'gemini-2.5-flash',
+    maxTokens: 65536
   },
   {
     id: 'gemini-2.5-pro',
@@ -25,7 +27,8 @@ export const DEFAULT_PROVIDERS: ApiProviderConfig[] = [
     type: 'gemini',
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent',
     apiKey: '',
-    model: 'gemini-2.5-pro'
+    model: 'gemini-2.5-pro',
+    maxTokens: 65536
   },
   geminiProPreset as ApiProviderConfig,
   {
