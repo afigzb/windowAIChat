@@ -6,6 +6,7 @@
   "homepage": "./",
   "description": "AI写作助手桌面应用 - 文档编辑与AI对话集成",
   "author": "Your Name",
+  "license": "GPL-3.0-only",
   "scripts": {
     "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
     "build": "tsc -b && vite build",
