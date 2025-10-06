@@ -133,6 +133,7 @@ export function MessageBubble({
   node, 
   onRegenerate, 
   onEditUserMessage,
+  onEditAssistantMessage,
   branchNavigation, 
   onBranchNavigate, 
   isInActivePath, 
@@ -151,8 +152,12 @@ export function MessageBubble({
   const contentRef = useRef<HTMLDivElement>(null)
 
   const handleEditSave = () => {
-    if (editContent.trim() && editContent.trim() !== node.content && onEditUserMessage) {
-      onEditUserMessage(node.id, editContent.trim())
+    if (editContent.trim() && editContent.trim() !== node.content) {
+      if (isUser && onEditUserMessage) {
+        onEditUserMessage(node.id, editContent.trim())
+      } else if (!isUser && onEditAssistantMessage) {
+        onEditAssistantMessage(node.id, editContent.trim())
+      }
     }
     setIsEditing(false)
   }
@@ -288,9 +293,46 @@ export function MessageBubble({
             </div>
           ) : (
             /* AI消息 - 卡片样式 */
-            <div className="w-full min-w-[8rem] bg-white border-2 border-gray-200 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className={`w-full min-w-[8rem] ${
+              isEditing 
+                ? 'bg-gradient-to-br from-gray-50 to-slate-50 border-2 border-blue-300 rounded-2xl shadow-md' 
+                : 'bg-white border-2 border-gray-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300'
+            } overflow-hidden`}>
               <div className="p-8">
-                {isGenerating ? (
+                {isEditing ? (
+                  <div className="space-y-4">
+                    <textarea
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && e.ctrlKey) {
+                          e.preventDefault()
+                          handleEditSave()
+                        } else if (e.key === 'Escape') {
+                          handleEditCancel()
+                        }
+                      }}
+                      className="w-full bg-white text-gray-900 placeholder-gray-400 border-2 border-gray-300 rounded-xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none text-base leading-relaxed"
+                      placeholder="修改AI回答内容..."
+                      rows={Math.max(3, editContent.split('\n').length)}
+                      autoFocus
+                    />
+                    <div className="flex gap-3 justify-end min-w-[6rem]">
+                      <button 
+                        onClick={handleEditCancel} 
+                        className="px-5 py-2.5 text-gray-600 hover:text-gray-800 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-100 min-w-[2rem] whitespace-nowrap"
+                      >
+                        取消
+                      </button>
+                      <button 
+                        onClick={handleEditSave} 
+                        className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-semibold rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 min-w-[6rem] whitespace-nowrap"
+                      >
+                        保存修改
+                      </button>
+                    </div>
+                  </div>
+                ) : isGenerating ? (
                   currentAnswer ? (
                     <div ref={contentRef} className="text-gray-800 leading-relaxed min-w-[4rem] break-words">
                       <MarkdownRenderer content={currentAnswer} />
@@ -323,7 +365,7 @@ export function MessageBubble({
             )}
             
             {/* 操作按钮 */}
-            {!isUser && !isGenerating && (
+            {!isUser && !isGenerating && !isEditing && (
                 <div className="flex items-center gap-2 min-w-[4rem]">
                 {onRegenerate && (
                   <button
@@ -333,6 +375,20 @@ export function MessageBubble({
                   >
                     <Icon name="regenerate" className="w-3 h-3 flex-shrink-0" />
                     <span>重新生成</span>
+                  </button>
+                )}
+                
+                {onEditAssistantMessage && (
+                  <button
+                    onClick={() => {
+                      setEditContent(node.content)
+                      setIsEditing(true)
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md transform hover:scale-105 min-w-[3rem] whitespace-nowrap"
+                    title="编辑AI回答"
+                  >
+                    <Icon name="edit" className="w-3 h-3 flex-shrink-0" />
+                    <span>编辑</span>
                   </button>
                 )}
                 

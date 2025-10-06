@@ -13,7 +13,8 @@ import {
   getActiveNodesFromPath,
   addMessageToTree,
   getConversationHistory,
-  editUserMessage
+  editUserMessage,
+  updateAssistantMessage
 } from './tree-utils'
 
 // 对话管理器的状态接口
@@ -29,6 +30,7 @@ export interface ConversationState {
 export interface ConversationActions {
   sendMessage: (content: string, parentNodeId?: string | null, tempContent?: string, tempPlacement?: 'append' | 'after_system') => Promise<void>
   editUserMessage: (nodeId: string, newContent: string, tempContent?: string, tempPlacement?: 'append' | 'after_system') => Promise<void>
+  editAssistantMessage: (nodeId: string, newContent: string) => void
   updateInputValue: (value: string) => void
   abortRequest: () => void
   clearStreamState: () => void
@@ -265,6 +267,25 @@ export function useConversationManager(
     }
   }, [conversationTree, isLoading, updateConversationTree, generateAIReply])
 
+  /**
+   * 直接编辑AI消息（不创建分支，不重新发送）
+   * @param nodeId 要编辑的消息ID
+   * @param newContent 新的消息内容
+   */
+  const handleEditAssistantMessage = useCallback((nodeId: string, newContent: string) => {
+    if (isLoading) return
+
+    const newFlatMessages = updateAssistantMessage(
+      conversationTree.flatMessages,
+      nodeId,
+      newContent
+    )
+
+    if (newFlatMessages) {
+      updateConversationTree(newFlatMessages, conversationTree.activePath)
+    }
+  }, [conversationTree, isLoading, updateConversationTree])
+
   // 重新生成消息（合并regeneration功能）
   const regenerateMessage = useCallback(async (nodeId: string, tempContent?: string) => {
     if (isLoading) return
@@ -343,6 +364,7 @@ export function useConversationManager(
   const actions: ConversationActions = {
     sendMessage,
     editUserMessage: handleEditUserMessage,
+    editAssistantMessage: handleEditAssistantMessage,
     updateInputValue: setInputValue,
     abortRequest,
     clearStreamState,

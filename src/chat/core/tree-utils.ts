@@ -275,6 +275,31 @@ export function editUserMessage(
   return { newFlatMessages, newActivePath }
 }
 
+// 直接编辑AI消息（不创建分支，不重新发送）
+export function updateAssistantMessage(
+  flatMessages: Map<string, FlatMessage>,
+  targetNodeId: string,
+  newContent: string
+): Map<string, FlatMessage> | null {
+  const targetMessage = flatMessages.get(targetNodeId)
+  if (!targetMessage || targetMessage.role !== 'assistant') {
+    return null
+  }
+
+  // 创建更新后的消息（保留原ID和其他属性）
+  const updatedMessage: FlatMessage = {
+    ...targetMessage,
+    content: newContent.trim(),
+    timestamp: new Date() // 更新时间戳
+  }
+  
+  // 复制现有的扁平消息映射并更新消息
+  const newFlatMessages = new Map(flatMessages)
+  newFlatMessages.set(targetNodeId, updatedMessage)
+
+  return newFlatMessages
+}
+
 // 创建初始对话树
 export function createInitialConversationTree(welcomeMessage?: string): ConversationTree {
   const flatMessages = new Map<string, FlatMessage>()

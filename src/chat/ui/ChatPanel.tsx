@@ -624,6 +624,10 @@ export function ChatPanel({
                 }
                 return conversationActions.editUserMessage(nodeId, newContent, extraContent)
               }
+
+              const handleEditAssistantMessage = (nodeId: string, newContent: string) => {
+                conversationActions.editAssistantMessage(nodeId, newContent)
+              }
               
               return (
                 <MessageBubble 
@@ -631,6 +635,7 @@ export function ChatPanel({
                   node={node}
                   onRegenerate={!conversationState.isLoading ? handleRegenerate : undefined}
                   onEditUserMessage={!conversationState.isLoading ? handleEditUserMessage : undefined}
+                  onEditAssistantMessage={!conversationState.isLoading ? handleEditAssistantMessage : undefined}
                   branchNavigation={branchNavigation}
                   onBranchNavigate={(direction) => branchManager.navigateToSibling(node.id, direction)}
                   isInActivePath={isInActivePath}
