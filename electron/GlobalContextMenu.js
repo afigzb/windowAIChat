@@ -1,7 +1,7 @@
 // 全局右键菜单管理器 - Electron层实现
 // 提供统一的原生右键菜单功能
 
-const { Menu, dialog } = require('electron')
+const { Menu, dialog, shell } = require('electron')
 const fs = require('fs').promises
 const path = require('path')
 
@@ -145,7 +145,7 @@ class GlobalContextMenuManager {
     })
   }
 
-  // 删除文件或文件夹
+  // 删除文件或文件夹（移动到回收站）
   async deleteFile(targetPath, fileName) {
     try {
       const stats = await fs.stat(targetPath)
@@ -153,19 +153,16 @@ class GlobalContextMenuManager {
       
       const { response } = await dialog.showMessageBox(this.mainWindow, {
         type: 'warning',
-        buttons: ['确定', '取消'],
+        buttons: ['移到回收站', '取消'],
         defaultId: 1,
         title: '确认删除',
         message: `确定要删除${itemType} "${fileName}" 吗？`,
-        detail: stats.isDirectory() ? '这将删除文件夹及其所有内容。' : ''
+        detail: stats.isDirectory() ? '文件夹及其所有内容将被移动到回收站。' : '文件将被移动到回收站，可以在回收站中恢复。'
       })
 
-      if (response === 0) { // 确定
-        if (stats.isDirectory()) {
-          await fs.rmdir(targetPath, { recursive: true })
-        } else {
-          await fs.unlink(targetPath)
-        }
+      if (response === 0) { // 移到回收站
+        // 使用 shell.trashItem 将文件移到回收站而不是直接删除
+        await shell.trashItem(targetPath)
         
         // 通知前端刷新文件树
         this.mainWindow.webContents.send('file-system-changed', {
@@ -175,7 +172,7 @@ class GlobalContextMenuManager {
         })
       }
     } catch (error) {
-      console.error('删除失败:', error)
+      console.error('移动到回收站失败:', error)
       this.showErrorDialog('删除失败', error.message)
     }
   }

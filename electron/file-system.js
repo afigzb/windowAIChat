@@ -1,6 +1,8 @@
-const { dialog } = require('electron')
+const { dialog, shell } = require('electron')
 const fs = require('fs').promises
+const fsSync = require('fs')
 const path = require('path')
+const os = require('os')
 
 /**
  * 文件系统管理模块
@@ -105,12 +107,42 @@ class FileSystemManager {
   }
 
   /**
-   * 写入文件内容
+   * 写入文件内容（使用原子写入，防止数据丢失）
    */
   async writeFile(filePath, content) {
     try {
-      await fs.writeFile(filePath, content, 'utf-8')
-      return true
+      // 使用原子写入：先写入临时文件，然后重命名
+      const dir = path.dirname(filePath)
+      const ext = path.extname(filePath)
+      const basename = path.basename(filePath, ext)
+      
+      // 创建临时文件路径
+      const tempFilePath = path.join(dir, `.${basename}.tmp${ext}`)
+      
+      try {
+        // 写入临时文件
+        await fs.writeFile(tempFilePath, content, 'utf-8')
+        
+        // 确保数据写入磁盘
+        const fd = fsSync.openSync(tempFilePath, 'r+')
+        fsSync.fsyncSync(fd)
+        fsSync.closeSync(fd)
+        
+        // 原子性地重命名临时文件为目标文件
+        await fs.rename(tempFilePath, filePath)
+        
+        return true
+      } catch (error) {
+        // 如果失败，尝试清理临时文件
+        try {
+          if (fsSync.existsSync(tempFilePath)) {
+            await fs.unlink(tempFilePath)
+          }
+        } catch (cleanupError) {
+          console.warn('清理临时文件失败:', cleanupError)
+        }
+        throw error
+      }
     } catch (error) {
       console.error('写入文件失败:', error)
       throw error
@@ -146,19 +178,15 @@ class FileSystemManager {
   }
 
   /**
-   * 删除文件或目录
+   * 删除文件或目录（移动到回收站）
    */
   async deleteFileOrDirectory(targetPath) {
     try {
-      const stats = await fs.stat(targetPath)
-      if (stats.isDirectory()) {
-        await fs.rmdir(targetPath, { recursive: true })
-      } else {
-        await fs.unlink(targetPath)
-      }
+      // 使用 shell.trashItem 将文件移到回收站而不是直接删除
+      await shell.trashItem(targetPath)
       return true
     } catch (error) {
-      console.error('删除失败:', error)
+      console.error('移动到回收站失败:', error)
       throw error
     }
   }
