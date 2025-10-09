@@ -9,8 +9,8 @@ import { fileContentCache } from '../utils/fileContentCache'
 export interface DocxFile {
   path: string
   name: string
-  htmlContent: string // 转换为HTML的内容
-  originalHtmlContent: string // 原始HTML内容用于比较是否修改
+  htmlContent: string
+  originalHtmlContent: string
   isModified: boolean
 }
 
@@ -22,8 +22,8 @@ export function useDocxEditor() {
     characters: 0,
     words: 0
   })
+  const [isFirstUpdate, setIsFirstUpdate] = useState(true)
   
-  // 使用自定义确认对话框
   const { confirm, confirmProps } = useConfirm()
 
   // 判断文件是否为支持的格式
@@ -64,10 +64,7 @@ export function useDocxEditor() {
         isModified: false
       } : null)
 
-      // 使对应文件的内容缓存失效，避免后续读取到旧内容
-      try {
-        fileContentCache.remove(openFile.path)
-      } catch {}
+      fileContentCache.remove(openFile.path)
       
       return true
     } catch (err) {
@@ -80,7 +77,6 @@ export function useDocxEditor() {
     }
   }, [openFile])
 
-  // 打开文件进行编辑
   const openFileForEdit = useCallback(async (filePath: string, fileName: string) => {
     const fileSupport = isSupportedFile(filePath)
     if (!fileSupport.isSupported) {
@@ -89,12 +85,10 @@ export function useDocxEditor() {
       return
     }
 
-    // 如果要打开的文件已经是当前打开的文件，直接返回
     if (openFile && openFile.path === filePath) {
       return
     }
 
-    // 如果有未保存的文件，先询问是否保存
     if (openFile && openFile.isModified) {
       const shouldSave = await confirm({
         title: '文件未保存',
@@ -105,20 +99,13 @@ export function useDocxEditor() {
       })
       if (shouldSave) {
         const saved = await saveCurrentFile()
-        if (!saved) {
-          return
-        }
+        if (!saved) return
       }
     }
 
-    // 立即清理状态，确保界面及时响应
     setOpenFile(null)
     setError(null)
-    setWordCount({
-      characters: 0,
-      words: 0
-    })
-
+    setWordCount({ characters: 0, words: 0 })
     setIsLoading(true)
     
     try {
@@ -203,29 +190,40 @@ export function useDocxEditor() {
         originalHtmlContent: htmlContent,
         isModified: false
       })
+      
+      // 重置首次更新标志
+      setIsFirstUpdate(true)
     } catch (err) {
       setError(`打开文件失败: ${err}`)
       console.error('打开文件失败:', err)
     } finally {
       setIsLoading(false)
     }
-  }, [openFile, saveCurrentFile])
+  }, [openFile, saveCurrentFile, confirm])
 
-  // 更新文件内容
   const updateContent = useCallback((newHtmlContent: string) => {
     if (!openFile) return
     
-    setOpenFile({
-      ...openFile,
-      htmlContent: newHtmlContent,
-      isModified: newHtmlContent !== openFile.originalHtmlContent
-    })
-  }, [openFile])
+    // 首次更新是编辑器标准化后的 HTML，用它作为原始内容基准
+    if (isFirstUpdate) {
+      setOpenFile({
+        ...openFile,
+        htmlContent: newHtmlContent,
+        originalHtmlContent: newHtmlContent,
+        isModified: false
+      })
+      setIsFirstUpdate(false)
+    } else {
+      setOpenFile({
+        ...openFile,
+        htmlContent: newHtmlContent,
+        isModified: newHtmlContent !== openFile.originalHtmlContent
+      })
+    }
+  }, [openFile, isFirstUpdate])
 
-  // 对外暴露的保存文件函数
   const saveFile = saveCurrentFile
 
-  // 关闭文件
   const closeFile = useCallback(async () => {
     if (openFile?.isModified) {
       const shouldClose = await confirm({
@@ -235,17 +233,13 @@ export function useDocxEditor() {
         cancelText: '取消',
         type: 'warning'
       })
-      if (!shouldClose) {
-        return false
-      }
+      if (!shouldClose) return false
     }
     
     setOpenFile(null)
     setError(null)
-    setWordCount({
-      characters: 0,
-      words: 0
-    })
+    setWordCount({ characters: 0, words: 0 })
+    setIsFirstUpdate(true)
     return true
   }, [openFile, confirm])
 

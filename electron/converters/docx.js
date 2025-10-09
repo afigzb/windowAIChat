@@ -5,7 +5,7 @@ const HTMLtoDOCX = require('html-to-docx')
 
 /**
  * DOCX处理模块
- * 支持基础样式的DOCX文件读取、转换和保存功能
+ * 负责DOCX文件与HTML之间的双向转换
  */
 class DocxHandler {
   /**
@@ -15,47 +15,34 @@ class DocxHandler {
    */
   async readDocxAsHtml(filePath) {
     try {
-      // 检查文件是否为空
       const stats = await fs.stat(filePath)
       if (stats.size === 0) {
         return '<p></p>'
       }
 
-      // 配置mammoth选项 - 只支持基础样式
       const options = {
-        // 基础样式映射
         styleMap: [
-          // 基本标题样式
+          // 标题样式
           "p[style-name='Heading 1'] => h1:fresh",
           "p[style-name='Heading 2'] => h2:fresh", 
           "p[style-name='Heading 3'] => h3:fresh",
-          
-          // 基本字符样式
+          // 字符样式
           "b => strong",
           "i => em",
-          
-          // 基本列表样式
+          // 列表样式
           "p:unordered-list(1) => ul > li:fresh",
           "p:ordered-list(1) => ol > li:fresh"
         ],
-        
-        // 保留空段落
         ignoreEmptyParagraphs: false
       }
 
       const result = await mammoth.convertToHtml({ path: filePath }, options)
-      let htmlContent = result.value
       
-      // 输出警告信息（如果有的话）
-      if (result.messages && result.messages.length > 0) {
+      if (result.messages?.length > 0) {
         console.log('DOCX转换警告:', result.messages)
       }
       
-      // 简单的HTML后处理
-      htmlContent = this.postProcessHtml(htmlContent)
-      
-      // 如果内容为空，返回空段落
-      return htmlContent || '<p></p>'
+      return this.normalizeHtml(result.value) || '<p></p>'
     } catch (error) {
       console.error('读取DOCX文件失败:', error)
       throw error
@@ -63,25 +50,52 @@ class DocxHandler {
   }
 
   /**
-   * HTML后处理函数，添加基础样式支持
+   * 统一的 HTML 标准化函数
+   * 确保 HTML 格式与 Tiptap 编辑器保持一致
    * @param {string} html - 原始HTML内容
-   * @returns {string} 处理后的HTML内容
+   * @returns {string} 标准化后的HTML
    */
-  postProcessHtml(html) {
-    // 包裹统一主题类，便于在渲染层应用一致样式
-    return `<div class="content-theme">${html}</div>`
+  normalizeHtml(html) {
+    if (!html || !html.trim()) return '<p></p>'
+    
+    return html
+      .trim()
+      // 移除表格和列表的内联样式属性
+      .replace(/<(table|ul|ol)[^>]*>/gi, '<$1>')
+      // 统一空段落格式为 Tiptap 标准：<p><br></p>
+      .replace(/<p>&nbsp;<\/p>/gi, '<p><br></p>')
+      .replace(/<p>\s*<\/p>/gi, '<p><br></p>')
+      // 移除开头和结尾的空段落
+      .replace(/^(<p><br><\/p>)+/gi, '')
+      .replace(/(<p><br><\/p>)+$/gi, '')
   }
 
-
   /**
-   * 清理HTML内容以用于DOCX保存
+   * 清理HTML以保存为DOCX
+   * 移除编辑器相关属性，转换为 DOCX 兼容格式
    * @param {string} html - 原始HTML内容
-   * @returns {string} 清理后的HTML内容
+   * @returns {string} 清理后的HTML
    */
   sanitizeHtmlForDocx(html) {
     if (!html) return ''
-    // 去除样式标签
-    return html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    
+    return html
+      .trim()
+      // 移除样式和脚本标签
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      // 移除编辑器特有的属性
+      .replace(/\s*class="[^"]*"/gi, '')
+      .replace(/\s*contenteditable="[^"]*"/gi, '')
+      .replace(/\s*data-[a-z-]+="[^"]*"/gi, '')
+      // 清理多余空白
+      .replace(/\s+>/g, '>')
+      .replace(/>\s+</g, '><')
+      // 移除开头和结尾的空段落
+      .replace(/^(<p><br><\/p>)+/gi, '')
+      .replace(/(<p><br><\/p>)+$/gi, '')
+      // 转换空段落为 DOCX 兼容格式：<p>&nbsp;</p>
+      .replace(/<p><br><\/p>/gi, '<p>&nbsp;</p>')
   }
 
   /**
@@ -92,30 +106,24 @@ class DocxHandler {
    */
   async saveHtmlAsDocx(filePath, htmlContent) {
     try {
-      // 清理HTML内容
-      const cleanedHtmlContent = this.sanitizeHtmlForDocx(htmlContent)
-
-      // 创建基本的HTML文档结构
-      const fullHtml = `
-        <html>
-          <head>
-            <meta charset="UTF-8">
-            <title>Document</title>
-          </head>
-          <body>
-            ${cleanedHtmlContent}
-          </body>
-        </html>
-      `
+      const cleanedContent = this.sanitizeHtmlForDocx(htmlContent)
+      const fullHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Document</title>
+</head>
+<body>
+${cleanedContent}
+</body>
+</html>`
       
-      // 转换HTML为DOCX
       const docxBuffer = await HTMLtoDOCX(fullHtml, null, {
         table: { row: { cantSplit: true } },
         footer: true,
-        pageNumber: true,
+        pageNumber: true
       })
       
-      // 保存文件
       await fs.writeFile(filePath, docxBuffer)
       return true
     } catch (error) {

@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./styles/content-theme.css";
+@import "./md-html-dock/styles/tiptap.css";
 
 /* 修复长文本换行问题 */
 * {

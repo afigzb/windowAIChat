@@ -1,7 +1,7 @@
 // DOCX格式的富文本编辑器组件
+// 使用 Tiptap 实现的高级富文本编辑器
 
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { countWords } from '../../md-html-dock/utils/wordCount'
+import { TiptapDocxEditor } from '../../md-html-dock/renderers/TiptapDocxEditor'
 import type { WordCountResult } from '../../md-html-dock/types'
 
 interface DocxEditorProps {
@@ -12,6 +12,11 @@ interface DocxEditorProps {
   readOnly?: boolean
 }
 
+/**
+ * DOCX 编辑器组件
+ * 基于 Tiptap 的强大富文本编辑器
+ * 支持：标题、列表、粗体、斜体、下划线、删除线、链接、图片、表格、代码块等
+ */
 export function DocxEditor({ 
   content, 
   onChange, 
@@ -19,76 +24,13 @@ export function DocxEditor({
   placeholder = "在这里开始编辑DOCX文档...",
   readOnly = false 
 }: DocxEditorProps) {
-  const editorRef = useRef<HTMLDivElement>(null)
-  const [isInitialized, setIsInitialized] = useState(false)
-
-  // 初始化编辑器内容
-  useEffect(() => {
-    if (editorRef.current && !isInitialized) {
-      editorRef.current.innerHTML = content || ''
-      setIsInitialized(true)
-    }
-  }, [content, isInitialized])
-
-  // 处理内容变化
-  const handleInput = useCallback(() => {
-    if (editorRef.current) {
-      const newContent = editorRef.current.innerHTML
-      onChange(newContent)
-      
-      // 计算字数统计
-      if (onWordCountChange) {
-        const wordCount = countWords(newContent)
-        onWordCountChange(wordCount)
-      }
-    }
-  }, [onChange, onWordCountChange])
-
-  // 当内容从外部更新时也要计算字数
-  useEffect(() => {
-    if (onWordCountChange && content) {
-      const wordCount = countWords(content)
-      onWordCountChange(wordCount)
-    }
-  }, [content, onWordCountChange])
-
-  // 处理粘贴事件
-  const handlePaste = useCallback((e: React.ClipboardEvent) => {
-    // 允许正常的粘贴行为，包括富文本
-    // 不做特殊处理
-  }, [])
-
-  // 右键菜单由Electron层自动处理，无需额外处理
-
   return (
-    <div className="h-full w-full flex flex-col border-2 border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300">
-      {/* 编辑区域 */}
-      <div 
-        ref={editorRef}
-        contentEditable={!readOnly}
-        onInput={handleInput}
-        onPaste={handlePaste}
-
-        className="flex-1 p-6 overflow-y-auto focus:outline-none content-theme bg-white rounded-xl"
-        style={{ 
-          fontFamily: 'system-ui, -apple-system, sans-serif', 
-          fontSize: '16px',
-          lineHeight: '1.8',
-          minHeight: '320px'
-        }}
-        data-placeholder={placeholder}
-        suppressContentEditableWarning={true}
-      />
-      
-      {/* 占位符样式 */}
-      <style>{`
-        [contenteditable]:empty:before {
-          content: attr(data-placeholder);
-          color: #9ca3af;
-          font-style: italic;
-          pointer-events: none;
-        }
-      `}</style>
-    </div>
+    <TiptapDocxEditor
+      content={content}
+      onChange={onChange}
+      onWordCountChange={onWordCountChange}
+      placeholder={placeholder}
+      readOnly={readOnly}
+    />
   )
 }
