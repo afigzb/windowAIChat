@@ -72,19 +72,21 @@ export const TiptapDocxEditor: React.FC<TiptapDocxEditorProps> = ({
     }
   })
 
-  useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
-      isInitializing.current = true
-      editor.commands.setContent(content)
-      
-      // 内容设置后，再次返回标准化的 HTML
-      setTimeout(() => {
-        const normalizedHtml = editor.getHTML()
-        onChange(normalizedHtml)
-        isInitializing.current = false
-      }, 0)
-    }
-  }, [content, editor, onChange])
+  // 移除这个 useEffect，让 key 的变化来触发编辑器重新创建
+  // 这样可以避免内容切换时的闪烁
+  // useEffect(() => {
+  //   if (editor && content !== editor.getHTML()) {
+  //     isInitializing.current = true
+  //     editor.commands.setContent(content)
+  //     
+  //     // 内容设置后，再次返回标准化的 HTML
+  //     setTimeout(() => {
+  //       const normalizedHtml = editor.getHTML()
+  //       onChange(normalizedHtml)
+  //       isInitializing.current = false
+  //     }, 0)
+  //   }
+  // }, [content, editor, onChange])
 
   useEffect(() => {
     if (editor) {

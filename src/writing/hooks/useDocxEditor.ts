@@ -103,9 +103,7 @@ export function useDocxEditor() {
       }
     }
 
-    setOpenFile(null)
     setError(null)
-    setWordCount({ characters: 0, words: 0 })
     setIsLoading(true)
     
     try {

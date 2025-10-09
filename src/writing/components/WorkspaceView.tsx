@@ -143,6 +143,7 @@ export function WorkspaceView({
           <div className="flex-1 p-4 overflow-hidden">
             {openFile ? (
               <DocxEditor 
+                key={openFile.path}
                 content={openFile.htmlContent}
                 onChange={onContentUpdate}
                 onWordCountChange={onWordCountChange}
