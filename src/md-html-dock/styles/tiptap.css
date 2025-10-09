@@ -28,6 +28,8 @@
   align-items: center;
   gap: 0.25rem;
   border-radius: 0.75rem 0.75rem 0 0;
+  max-height: 6.5rem; /* 限制为刚好两行 */
+  overflow-y: auto; /* 如果超出则允许滚动 */
 }
 
 .tiptap-toolbar-button {
@@ -206,6 +208,7 @@
 @media (max-width: 640px) {
   .tiptap-toolbar {
     padding: 0.5rem;
+    max-height: 6rem; /* 小屏幕允许稍微高一点 */
   }
   
   .tiptap-toolbar-button {

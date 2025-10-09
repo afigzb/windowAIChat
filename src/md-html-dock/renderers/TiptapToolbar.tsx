@@ -12,38 +12,8 @@ interface TiptapToolbarProps {
 export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor }) => {
   if (!editor) return null
 
-  const getCurrentStyle = () => {
-    if (editor.isActive('heading', { level: 1 })) return 'h1'
-    if (editor.isActive('heading', { level: 2 })) return 'h2'
-    if (editor.isActive('heading', { level: 3 })) return 'h3'
-    return 'p'
-  }
-
-  const setStyle = (style: string) => {
-    if (style === 'p') {
-      editor.chain().focus().setParagraph().run()
-    } else {
-      const level = parseInt(style.charAt(1)) as 1 | 2 | 3
-      editor.chain().focus().toggleHeading({ level }).run()
-    }
-  }
-
   return (
     <div className="tiptap-toolbar">
-      <select
-        value={getCurrentStyle()}
-        onChange={(e) => setStyle(e.target.value)}
-        className="tiptap-toolbar-select"
-        title="段落样式"
-      >
-        <option value="p">正文</option>
-        <option value="h1">标题 1</option>
-        <option value="h2">标题 2</option>
-        <option value="h3">标题 3</option>
-      </select>
-
-      <div className="tiptap-toolbar-divider" />
-
       <button
         onClick={() => editor.chain().focus().toggleBold().run()}
         className={`tiptap-toolbar-button ${editor.isActive('bold') ? 'active' : ''}`}
