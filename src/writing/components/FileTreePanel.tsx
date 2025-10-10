@@ -3,6 +3,8 @@
 import React from 'react'
 import { FileTreeNode } from './FileTreeNode'
 import { InlineEdit } from './InlineEdit'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { useConfirm } from '../hooks/useConfirm'
 import { useFileTree } from '../hooks/useFileTree'
 import type { FileSystemNode } from '../../storage/file-system'
 import { getFileName } from '../../md-html-dock/utils/fileContentReader'
@@ -28,6 +30,8 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
     handleInlineEditConfirm,
     handleInlineEditCancel
   } = useFileTree()
+  
+  const { confirm, confirmProps } = useConfirm()
 
   // 通知Electron设置工作区路径
   React.useEffect(() => {
@@ -38,7 +42,9 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
 
   if (!workspace) {
     return (
-      <div className="space-y-6">
+      <>
+        <ConfirmDialog {...confirmProps} />
+        <div className="space-y-6">
         <div className="text-base text-gray-700">
           <p className="mb-4 font-medium">选择项目工作目录开始使用文件管理功能</p>
         </div>
@@ -54,12 +60,15 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
             <span className="text-base font-semibold">{isLoading ? '正在加载...' : '选择工作目录'}</span>
           </div>
         </button>
-      </div>
+        </div>
+      </>
     )
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <>
+      <ConfirmDialog {...confirmProps} />
+      <div className="h-full flex flex-col">
       {/* 选中文件显示区域 - 始终显示，固定高度 */}
       <div className="flex-shrink-0 p-3 border-b-2 border-gray-200 bg-gradient-to-r from-gray-50 to-slate-50">
         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-3 min-w-0 shadow-sm">
@@ -163,6 +172,29 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
               }
             }
           }}
+          onDragOver={(e) => {
+            // 允许将文件拖入根目录
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+          onDrop={async (e) => {
+            try {
+              e.preventDefault()
+              e.stopPropagation()
+              const sourcePath = e.dataTransfer.getData('application/x-filepath') || e.dataTransfer.getData('text/plain')
+              if (!sourcePath || !workspace?.rootPath) return
+              // 拖到空白区域即移动到根目录
+              await (await import('../../storage/file-system')).fileSystemManager.move(sourcePath, workspace.rootPath)
+            } catch (err) {
+              console.error('移动失败:', err)
+              await confirm({
+                title: '移动失败',
+                message: `无法移动文件或文件夹：${err}`,
+                confirmText: '确定',
+                type: 'danger'
+              })
+            }
+          }}
         >
           <div className="p-4 min-h-full">
             {fileTree.map((node) => (
@@ -213,6 +245,7 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   )
 }

@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   createDirectory: (parentPath, dirName) => ipcRenderer.invoke('create-directory', parentPath, dirName),
   deleteFileOrDirectory: (path) => ipcRenderer.invoke('delete-file-or-directory', path),
   rename: (oldPath, newName) => ipcRenderer.invoke('rename', oldPath, newName),
+  movePath: (sourcePath, targetDirPath, newName) => ipcRenderer.invoke('move-path', sourcePath, targetDirPath, newName),
   
   // 获取文件信息
   getFileStats: (path) => ipcRenderer.invoke('get-file-stats', path),

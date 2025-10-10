@@ -211,6 +211,16 @@ export class FileSystemManager {
   }
 
   /**
+   * 移动文件或文件夹到目标目录
+   */
+  async move(sourcePath: string, targetDirPath: string, newName?: string): Promise<string> {
+    return this.executeWithRefresh(
+      () => (window as any).electronAPI.movePath(sourcePath, targetDirPath, newName),
+      '移动失败:'
+    )
+  }
+
+  /**
    * 根据路径查找文件节点
    */
   findNodeByPath(path: string): FileSystemNode | null {

@@ -115,15 +115,17 @@ export function ConfirmDialog({
           {message}
         </p>
         <div className="flex gap-3">
-          <button
-            onClick={onCancel}
-            className="flex-1 px-5 py-3 bg-gray-100 text-gray-800 text-sm font-semibold rounded-xl hover:bg-gray-200 transition-all duration-200"
-          >
-            {cancelText}
-          </button>
+          {cancelText && (
+            <button
+              onClick={onCancel}
+              className="flex-1 px-5 py-3 bg-gray-100 text-gray-800 text-sm font-semibold rounded-xl hover:bg-gray-200 transition-all duration-200"
+            >
+              {cancelText}
+            </button>
+          )}
           <button
             onClick={onConfirm}
-            className={`flex-1 px-5 py-3 ${iconStyles.buttonClass} text-sm font-semibold rounded-xl transition-all duration-200 shadow-md hover:shadow-lg`}
+            className={`${cancelText ? 'flex-1' : 'w-full'} px-5 py-3 ${iconStyles.buttonClass} text-sm font-semibold rounded-xl transition-all duration-200 shadow-md hover:shadow-lg`}
           >
             {confirmText}
           </button>

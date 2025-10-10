@@ -18,6 +18,45 @@ class FileSystemManager {
   }
 
   /**
+   * 移动文件或目录到目标目录
+   */
+  async movePath(sourcePath, targetDirPath, newName = null) {
+    try {
+      const sourceStats = await fs.stat(sourcePath)
+      const isSourceDirectory = sourceStats.isDirectory()
+
+      // 计算目标路径
+      const targetName = newName || path.basename(sourcePath)
+      const destinationPath = path.join(targetDirPath, targetName)
+
+      // 目标存在则报错，避免无提示覆盖
+      if (fsSync.existsSync(destinationPath)) {
+        throw new Error('目标位置已存在同名项目')
+      }
+
+      // 防止将目录移动到其自身或其子目录中
+      const normalizedSource = path.resolve(sourcePath)
+      const normalizedTargetDir = path.resolve(targetDirPath)
+      if (normalizedTargetDir === normalizedSource) {
+        throw new Error('不能将项目移动到其自身位置')
+      }
+      if (isSourceDirectory) {
+        const relative = path.relative(normalizedSource, normalizedTargetDir)
+        if (relative && !relative.startsWith('..') && !path.isAbsolute(relative)) {
+          throw new Error('不能将文件夹移动到其子文件夹中')
+        }
+      }
+
+      // 执行移动（重命名）
+      await fs.rename(sourcePath, destinationPath)
+      return destinationPath
+    } catch (error) {
+      console.error('移动文件/文件夹失败:', error)
+      throw error
+    }
+  }
+
+  /**
    * 选择工作目录
    */
   async selectDirectory() {
@@ -351,6 +390,10 @@ class FileSystemManager {
 
     ipcMain.handle('rename', async (event, oldPath, newName) => {
       return await this.rename(oldPath, newName)
+    })
+
+    ipcMain.handle('move-path', async (event, sourcePath, targetDirPath, newName) => {
+      return await this.movePath(sourcePath, targetDirPath, newName)
     })
 
     ipcMain.handle('get-file-stats', async (event, filePath) => {
