@@ -300,6 +300,83 @@ export function updateAssistantMessage(
   return newFlatMessages
 }
 
+// 删除节点及其兄弟节点，保留被删除节点的子节点
+export function deleteNodeAndSiblings(
+  flatMessages: Map<string, FlatMessage>,
+  activePath: string[],
+  targetNodeId: string
+): { newFlatMessages: Map<string, FlatMessage>, newActivePath: string[] } | null {
+  const targetMessage = flatMessages.get(targetNodeId)
+  if (!targetMessage) {
+    return null
+  }
+
+  // 构建树以获取结构信息
+  const roots = buildTreeFromFlat(flatMessages)
+  const nodeMap = buildNodeMap(roots)
+  const targetNode = nodeMap.get(targetNodeId)
+  
+  if (!targetNode) {
+    return null
+  }
+
+  // 找到目标节点的兄弟节点
+  let siblings: MessageNode[]
+  if (targetNode.parentId === null) {
+    siblings = roots
+  } else {
+    const parent = nodeMap.get(targetNode.parentId)
+    if (!parent) return null
+    siblings = parent.children
+  }
+
+  // 先保存目标节点的直接子节点ID，这些节点需要被保留
+  const targetNodeChildrenIds = new Set(targetNode.children.map(child => child.id))
+  
+  // 收集所有要删除的节点ID（目标节点 + 所有兄弟节点及其子树，但排除目标节点的直接子节点）
+  const nodesToDelete = new Set<string>()
+  
+  // 递归收集节点及其所有子节点
+  function collectNodeAndDescendants(node: MessageNode, isTargetNode: boolean) {
+    nodesToDelete.add(node.id)
+    // 如果是目标节点，跳过其直接子节点（但仍需递归处理兄弟节点的子树）
+    node.children.forEach(child => {
+      if (!(isTargetNode && targetNodeChildrenIds.has(child.id))) {
+        collectNodeAndDescendants(child, false)
+      }
+    })
+  }
+  
+  // 收集所有兄弟节点及其子树
+  siblings.forEach(sibling => {
+    const isTargetNode = sibling.id === targetNodeId
+    collectNodeAndDescendants(sibling, isTargetNode)
+  })
+
+  // 复制扁平消息映射，删除标记的节点
+  const newFlatMessages = new Map(flatMessages)
+  nodesToDelete.forEach(id => {
+    newFlatMessages.delete(id)
+  })
+
+  // 将被删除节点的子节点提升到父节点下
+  targetNode.children.forEach(child => {
+    const childMessage = flatMessages.get(child.id)
+    if (childMessage) {
+      // 更新子节点的 parentId 为被删除节点的父节点
+      newFlatMessages.set(child.id, {
+        ...childMessage,
+        parentId: targetNode.parentId
+      })
+    }
+  })
+
+  // 更新激活路径：移除被删除的节点
+  const newActivePath = activePath.filter(id => !nodesToDelete.has(id))
+
+  return { newFlatMessages, newActivePath }
+}
+
 // 创建初始对话树
 export function createInitialConversationTree(welcomeMessage?: string): ConversationTree {
   const flatMessages = new Map<string, FlatMessage>()

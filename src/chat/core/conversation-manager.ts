@@ -14,7 +14,8 @@ import {
   addMessageToTree,
   getConversationHistory,
   editUserMessage,
-  updateAssistantMessage
+  updateAssistantMessage,
+  deleteNodeAndSiblings
 } from './tree-utils'
 
 // 对话管理器的状态接口
@@ -31,6 +32,7 @@ export interface ConversationActions {
   sendMessage: (content: string, parentNodeId?: string | null, tempContent?: string, tempPlacement?: 'append' | 'after_system') => Promise<void>
   editUserMessage: (nodeId: string, newContent: string, tempContent?: string, tempPlacement?: 'append' | 'after_system') => Promise<void>
   editAssistantMessage: (nodeId: string, newContent: string) => void
+  deleteNode: (nodeId: string) => void
   updateInputValue: (value: string) => void
   abortRequest: () => void
   clearStreamState: () => void
@@ -286,6 +288,24 @@ export function useConversationManager(
     }
   }, [conversationTree, isLoading, updateConversationTree])
 
+  /**
+   * 删除节点及其兄弟节点，保留被删除节点的子节点
+   * @param nodeId 要删除的消息ID
+   */
+  const handleDeleteNode = useCallback((nodeId: string) => {
+    if (isLoading) return
+
+    const result = deleteNodeAndSiblings(
+      conversationTree.flatMessages,
+      conversationTree.activePath,
+      nodeId
+    )
+
+    if (result) {
+      updateConversationTree(result.newFlatMessages, result.newActivePath)
+    }
+  }, [conversationTree, isLoading, updateConversationTree])
+
   // 重新生成消息（合并regeneration功能）
   const regenerateMessage = useCallback(async (nodeId: string, tempContent?: string) => {
     if (isLoading) return
@@ -365,6 +385,7 @@ export function useConversationManager(
     sendMessage,
     editUserMessage: handleEditUserMessage,
     editAssistantMessage: handleEditAssistantMessage,
+    deleteNode: handleDeleteNode,
     updateInputValue: setInputValue,
     abortRequest,
     clearStreamState,

@@ -95,6 +95,7 @@ export interface MessageBubbleProps {
   onRegenerate?: (nodeId: string) => void
   onEditUserMessage?: (nodeId: string, newContent: string) => void
   onEditAssistantMessage?: (nodeId: string, newContent: string) => void
+  onDelete?: (nodeId: string) => void
   branchNavigation?: BranchNavigation
   onBranchNavigate?: (direction: 'left' | 'right') => void
   isInActivePath: boolean

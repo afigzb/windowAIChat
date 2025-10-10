@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { promptCardManager } from './prompt-manager'
 import type { PromptCard, PromptCardPlacement } from './types'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -268,28 +268,6 @@ function PromptCardEditor({ card, isCreating, onChange, onSave, onCancel }: Prom
 
   const canSave = card.title.trim() && card.content.trim()
 
-  const contentTextareaRef = useRef<HTMLTextAreaElement | null>(null)
-
-  const resizeContentTextarea = () => {
-    const textareaEl = contentTextareaRef.current
-    if (!textareaEl) return
-    textareaEl.style.height = 'auto'
-    textareaEl.style.height = `${textareaEl.scrollHeight}px`
-  }
-
-  useEffect(() => {
-    resizeContentTextarea()
-    // Also resize on window resize to keep layout consistent
-    const handleResize = () => resizeContentTextarea()
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
-
-  useEffect(() => {
-    // Recalculate when content changes
-    resizeContentTextarea()
-  }, [card.content])
-
   return (
     <div 
       className="fixed inset-0 bg-gray-100 bg-opacity-75 flex items-center justify-center z-[9999] p-4"
@@ -325,13 +303,11 @@ function PromptCardEditor({ card, isCreating, onChange, onSave, onCancel }: Prom
               提示词内容
             </label>
             <textarea
-              ref={contentTextareaRef}
               value={card.content}
               onChange={e => onChange({ ...card, content: e.target.value })}
               placeholder="输入提示词内容..."
-              rows={6}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-none overflow-hidden leading-relaxed"
-              style={{ height: 'auto' }}
+              rows={12}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm leading-relaxed"
             />
           </div>
 

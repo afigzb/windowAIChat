@@ -394,6 +394,32 @@ export function ChatPanel({
     }, 100)
   }
 
+  // 处理删除节点
+  const handleDeleteNode = async (nodeId: string) => {
+    const shouldDelete = await confirm({
+      title: '确认删除',
+      message: '确定要删除此节点及其所有兄弟节点吗？该节点的子节点将被保留并提升。此操作不可恢复。',
+      confirmText: '删除',
+      cancelText: '取消',
+      type: 'danger'
+    })
+    
+    if (!shouldDelete) {
+      // 恢复输入区域焦点
+      setTimeout(() => {
+        chatInputRef.current?.focus()
+      }, 100)
+      return
+    }
+    
+    conversationActions.deleteNode(nodeId)
+    
+    // 恢复输入区域焦点
+    setTimeout(() => {
+      chatInputRef.current?.focus()
+    }, 100)
+  }
+
   return (
     <div className="bg-gradient-to-br from-gray-50 to-slate-50 border-l-2 border-gray-200 flex flex-col h-full min-w-0">
 
@@ -636,6 +662,7 @@ export function ChatPanel({
                   onRegenerate={!conversationState.isLoading ? handleRegenerate : undefined}
                   onEditUserMessage={!conversationState.isLoading ? handleEditUserMessage : undefined}
                   onEditAssistantMessage={!conversationState.isLoading ? handleEditAssistantMessage : undefined}
+                  onDelete={!conversationState.isLoading ? handleDeleteNode : undefined}
                   branchNavigation={branchNavigation}
                   onBranchNavigate={(direction) => branchManager.navigateToSibling(node.id, direction)}
                   isInActivePath={isInActivePath}

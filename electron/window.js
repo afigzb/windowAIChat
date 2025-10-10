@@ -122,8 +122,13 @@ class WindowManager {
    * 创建提示词功能窗口
    */
   createPromptTemplateWindow() {
-    // 如果窗口已存在，则聚焦并返回
+    // 如果窗口已存在，则恢复并聚焦
     if (this.promptWindow && !this.promptWindow.isDestroyed()) {
+      // 如果窗口被最小化，先恢复它
+      if (this.promptWindow.isMinimized()) {
+        this.promptWindow.restore()
+      }
+      // 然后聚焦窗口
       this.promptWindow.focus()
       return this.promptWindow
     }
