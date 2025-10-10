@@ -35,7 +35,7 @@ export class FileSystemManager {
   private currentWorkspace: Workspace | null = null
   private fileTree: FileSystemNode[] = []
   private expansionState: FolderExpansionState = {}
-  private defaultExpansionLevel = 2 // 默认展开层级
+  private defaultExpansionLevel = 0 // 默认展开层级（0表示不自动展开）
 
   /**
    * 初始化文件系统管理器
