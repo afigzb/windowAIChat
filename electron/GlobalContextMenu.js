@@ -60,6 +60,11 @@ class GlobalContextMenuManager {
         { 
           label: '删除', 
           click: () => this.deleteFile(filePath, fileName) 
+        },
+        { type: 'separator' },
+        { 
+          label: '在文件资源管理器中显示', 
+          click: () => this.showInExplorer(filePath) 
         }
       )
     } else {
@@ -89,6 +94,15 @@ class GlobalContextMenuManager {
           }
         )
       }
+
+      // 添加"在文件资源管理器中显示"
+      template.push(
+        { type: 'separator' },
+        { 
+          label: '在文件资源管理器中显示', 
+          click: () => this.showInExplorer(filePath) 
+        }
+      )
     }
 
     if (template.length > 0) {
@@ -107,6 +121,11 @@ class GlobalContextMenuManager {
       { 
         label: '新建文件夹', 
         click: () => this.createDirectory(dirPath) 
+      },
+      { type: 'separator' },
+      { 
+        label: '在文件资源管理器中显示', 
+        click: () => this.showInExplorer(dirPath) 
       }
     ]
 
@@ -177,7 +196,19 @@ class GlobalContextMenuManager {
     }
   }
 
-
+  // 在文件资源管理器中显示文件或文件夹
+  showInExplorer(itemPath) {
+    try {
+      // shell.showItemInFolder 会在文件资源管理器中显示并选中该项
+      // 对于文件，会打开包含该文件的文件夹并选中文件
+      // 对于文件夹，会打开父文件夹并选中该文件夹
+      shell.showItemInFolder(itemPath)
+      console.log('在文件资源管理器中显示:', itemPath)
+    } catch (error) {
+      console.error('打开文件资源管理器失败:', error)
+      this.showErrorDialog('打开失败', '无法在文件资源管理器中显示该项')
+    }
+  }
 
   // 显示错误对话框
   showErrorDialog(title, message) {

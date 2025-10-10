@@ -11,6 +11,10 @@ const os = require('os')
 class FileSystemManager {
   constructor(mainWindow) {
     this.mainWindow = mainWindow
+    this.watcher = null // 文件系统监听器
+    this.watchedPath = null // 当前监听的路径
+    this.changeDebounceTimer = null // 防抖定时器
+    this.changeDebounceDelay = 500 // 防抖延迟（毫秒）
   }
 
   /**
@@ -226,6 +230,90 @@ class FileSystemManager {
   }
 
   /**
+   * 开始监听目录变化
+   */
+  startWatching(dirPath) {
+    // 如果已经在监听相同的路径，不需要重复监听
+    if (this.watcher && this.watchedPath === dirPath) {
+      console.log('已经在监听该目录:', dirPath)
+      return
+    }
+
+    // 停止之前的监听
+    this.stopWatching()
+
+    try {
+      console.log('开始监听目录变化:', dirPath)
+      
+      // 使用 fs.watch 监听目录变化（递归监听）
+      this.watcher = fsSync.watch(dirPath, { recursive: true }, (eventType, filename) => {
+        // 忽略临时文件和隐藏文件
+        if (filename && (
+          filename.startsWith('.') || 
+          filename.includes('.tmp') ||
+          filename.includes('~') ||
+          filename.endsWith('.swp')
+        )) {
+          return
+        }
+
+        console.log(`文件系统变化: ${eventType} - ${filename}`)
+        
+        // 使用防抖机制，避免频繁触发
+        if (this.changeDebounceTimer) {
+          clearTimeout(this.changeDebounceTimer)
+        }
+        
+        this.changeDebounceTimer = setTimeout(() => {
+          this.notifyFileSystemChanged(eventType, filename)
+        }, this.changeDebounceDelay)
+      })
+
+      this.watchedPath = dirPath
+
+      // 监听错误
+      this.watcher.on('error', (error) => {
+        console.error('文件系统监听错误:', error)
+        this.stopWatching()
+      })
+
+    } catch (error) {
+      console.error('启动文件系统监听失败:', error)
+    }
+  }
+
+  /**
+   * 停止监听目录变化
+   */
+  stopWatching() {
+    if (this.watcher) {
+      console.log('停止监听目录变化:', this.watchedPath)
+      this.watcher.close()
+      this.watcher = null
+      this.watchedPath = null
+    }
+
+    if (this.changeDebounceTimer) {
+      clearTimeout(this.changeDebounceTimer)
+      this.changeDebounceTimer = null
+    }
+  }
+
+  /**
+   * 通知渲染进程文件系统发生变化
+   */
+  notifyFileSystemChanged(eventType, filename) {
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.webContents.send('file-system-changed', {
+        eventType,
+        filename,
+        timestamp: Date.now()
+      })
+      console.log('已通知渲染进程文件系统变化')
+    }
+  }
+
+  /**
    * 注册IPC处理器
    */
   registerIpcHandlers(ipcMain) {
@@ -268,6 +356,25 @@ class FileSystemManager {
     ipcMain.handle('get-file-stats', async (event, filePath) => {
       return await this.getFileStats(filePath)
     })
+  }
+
+  /**
+   * 设置工作区路径并开始监听
+   * 这个方法应该从 main.js 中调用
+   */
+  setWorkspacePath(workspacePath) {
+    if (workspacePath) {
+      this.startWatching(workspacePath)
+    } else {
+      this.stopWatching()
+    }
+  }
+
+  /**
+   * 清理资源（应用关闭时调用）
+   */
+  cleanup() {
+    this.stopWatching()
   }
 }
 

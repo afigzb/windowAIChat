@@ -67,6 +67,10 @@ class Application {
       if (this.contextMenuManager) {
         this.contextMenuManager.setWorkspacePath(workspacePath)
       }
+      // 同时设置文件系统监听
+      if (this.fileSystemManager) {
+        this.fileSystemManager.setWorkspacePath(workspacePath)
+      }
     })
 
     ipcMain.handle('show-file-context-menu', async (event, fileInfo) => {
@@ -123,8 +127,20 @@ app.whenReady().then(() => {
 
 // 当所有窗口都被关闭时退出应用
 app.on('window-all-closed', () => {
+  // 清理文件系统监听器
+  if (application.fileSystemManager) {
+    application.fileSystemManager.cleanup()
+  }
+  
   // 在macOS上，应用程序通常保持活动状态直到用户明确退出
   if (process.platform !== 'darwin') {
     app.quit()
+  }
+})
+
+// 在应用退出前清理资源
+app.on('before-quit', () => {
+  if (application.fileSystemManager) {
+    application.fileSystemManager.cleanup()
   }
 })
