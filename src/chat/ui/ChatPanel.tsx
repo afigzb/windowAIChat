@@ -165,7 +165,9 @@ export function ChatPanel({
       }
     }
     
-    conversationActions.sendMessage(content, null, extraContent)
+    // 使用配置的文件内容插入位置
+    const placement = config.fileContentPlacement ?? 'append'
+    conversationActions.sendMessage(content, null, extraContent, placement)
   }
 
   // 生成预览数据（不打开对话框）
@@ -206,12 +208,13 @@ export function ChatPanel({
       const historyWithCurrentMessage = [...history, tempUserMessage]
 
       // 使用与实际发送完全相同的逻辑获取预览数据
-      // tempPlacement 参数默认为 'append'，与 sendMessage 保持一致
+      // 使用配置的文件内容插入位置
+      const placement = config.fileContentPlacement ?? 'append'
       const { url, headers, body } = getPreviewData(
         historyWithCurrentMessage,
         config,
         extraContent,
-        'append'  // 这里需要与实际发送时的参数保持一致
+        placement  // 与实际发送时的参数保持一致
       )
 
       setPreviewData({ 
@@ -636,7 +639,8 @@ export function ChatPanel({
                     extraContent = additionalContent
                   }
                 }
-                return regenerateMessage(nodeId, extraContent)
+                const placement = config.fileContentPlacement ?? 'append'
+                return regenerateMessage(nodeId, extraContent, placement)
               }
 
               const handleEditUserMessage = async (nodeId: string, newContent: string) => {
@@ -648,7 +652,8 @@ export function ChatPanel({
                     extraContent = additionalContent
                   }
                 }
-                return conversationActions.editUserMessage(nodeId, newContent, extraContent)
+                const placement = config.fileContentPlacement ?? 'append'
+                return conversationActions.editUserMessage(nodeId, newContent, extraContent, placement)
               }
 
               const handleEditAssistantMessage = (nodeId: string, newContent: string) => {

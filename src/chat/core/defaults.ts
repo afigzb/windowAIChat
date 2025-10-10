@@ -56,7 +56,8 @@ export const DEFAULT_CONFIG: AIConfig = {
   historyLimit: 40,
   systemPrompt: '', // 系统提示现在由提示词卡片系统管理
   summarizePrompt: DEFAULT_SUMMARIZE_PROMPT,
-  enableCompression: false  // 默认关闭压缩
+  enableCompression: false,  // 默认关闭压缩
+  fileContentPlacement: 'append'  // 默认将文件内容追加到用户消息尾部
 }
 
 

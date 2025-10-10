@@ -85,6 +85,7 @@ export interface AIConfig {
   summarizePrompt?: string               // 概括功能的系统提示词（可选，为空则使用默认）
   enableCompression?: boolean            // 是否启用消息内容压缩（移除多余空白、压缩换行等）
   compressionOptions?: import('./core/context/text-compressor').TextCompressionOptions  // 压缩选项配置
+  fileContentPlacement?: 'append' | 'after_system'  // 选中文件内容的插入位置（默认：append）
 }
 
 // ===== 组件Props =====

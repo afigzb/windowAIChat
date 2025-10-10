@@ -307,7 +307,7 @@ export function useConversationManager(
   }, [conversationTree, isLoading, updateConversationTree])
 
   // 重新生成消息（合并regeneration功能）
-  const regenerateMessage = useCallback(async (nodeId: string, tempContent?: string) => {
+  const regenerateMessage = useCallback(async (nodeId: string, tempContent?: string, tempPlacement: 'append' | 'after_system' = 'append') => {
     if (isLoading) return
 
     const targetMessage = conversationTree.flatMessages.get(nodeId)
@@ -354,7 +354,8 @@ export function useConversationManager(
         abortControllerRef.current,
         setCurrentThinking,
         setCurrentAnswer,
-        tempContent
+        tempContent,
+        tempPlacement
       )
 
       const updatedFlatMessages = new Map(newFlatMessages)
