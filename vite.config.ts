@@ -15,18 +15,7 @@ export default defineConfig(({ mode }) => {
       assetsInlineLimit: 0,
       rollupOptions: {
         output: {
-          manualChunks: (id) => {
-            if (!id.includes('node_modules')) return undefined
-            if (id.includes('react') && !id.includes('react-syntax-highlighter')) return 'react'
-            if (
-              id.includes('remark') ||
-              id.includes('rehype') ||
-              id.includes('react-markdown') ||
-              id.includes('katex')
-            ) return 'markdown'
-            if (id.includes('react-syntax-highlighter') || id.includes('highlight.js')) return 'syntax'
-            return 'vendor'
-          }
+          manualChunks: () => undefined
         }
       }
     },
