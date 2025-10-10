@@ -398,7 +398,7 @@ export function ChatPanel({
   const handleDeleteNode = async (nodeId: string) => {
     const shouldDelete = await confirm({
       title: '确认删除',
-      message: '确定要删除此节点及其所有兄弟节点吗？该节点的子节点将被保留并提升。此操作不可恢复。',
+      message: '特别注意，删除按钮会将该节点对应的其他分支节点一起删除，只留下该节点后的子节点。并且此操作不可恢复。',
       confirmText: '删除',
       cancelText: '取消',
       type: 'danger'
