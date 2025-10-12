@@ -138,7 +138,7 @@ export const ChatInputArea = forwardRef<
 
   return (
     <div className="sticky bottom-0">
-        <div className="max-w-4xl mx-auto px-8 py-6 min-w-[20rem]">
+        <div className="max-w-4xl mx-auto px-8 pb-6 min-w-[20rem]">
         <div className="border-2 border-gray-200 rounded-2xl bg-white focus-within:border-blue-400 focus-within:shadow-xl transition-all duration-300 shadow-md hover:shadow-lg min-w-[20rem]">
           <div className="p-5">
             <textarea

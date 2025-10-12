@@ -685,7 +685,7 @@ export function ChatPanel({
         </div>
 
         {/* AI输入区域 */}
-        <div className="bg-white border-t-2 border-gray-200 flex-shrink-0 shadow-lg">
+        <div>
           <ChatInputArea
             ref={chatInputRef}
             value={conversationState.inputValue}
