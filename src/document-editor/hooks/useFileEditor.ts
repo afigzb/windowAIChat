@@ -1,10 +1,11 @@
 // 通用文件编辑器状态管理 Hook
+// 职责：管理单个文件的打开、编辑、保存状态
 
 import { useState, useCallback } from 'react'
 import type { WordCountResult } from '../../md-html-dock/types'
 import { detectFileType, getSupportedFormats } from '../../md-html-dock/utils/fileTypeDetector'
-import { useConfirm } from '../../file-manager/hooks/useConfirm'
-import { fileContentCache } from '../../file-manager/utils/fileContentCache'
+import { useConfirm } from '../../components/useConfirm'
+import { fileContentCache } from '../../storage/fileContentCache'
 import type { FileContent, FileType, ImageData } from '../components/FileContentViewer'
 
 export function useFileEditor() {
@@ -82,8 +83,17 @@ export function useFileEditor() {
     }
   }, [openFile])
 
-  // 打开文件进行编辑或查看
+  /**
+   * 打开文件进行编辑或查看
+   * 
+   * 策略：
+   * 1. 检查文件格式是否支持
+   * 2. 处理未保存的文件（提示用户）
+   * 3. 根据文件类型调用对应的Electron API读取
+   * 4. 文本文件转换为HTML格式供编辑器使用
+   */
   const openFileForEdit = useCallback(async (filePath: string, fileName: string) => {
+    // 1. 验证文件格式
     const fileSupport = isSupportedFile(filePath)
     if (!fileSupport.isSupported) {
       const supportedFormats = getSupportedFormats()
@@ -91,10 +101,12 @@ export function useFileEditor() {
       return
     }
 
+    // 2. 避免重复打开同一文件
     if (openFile && openFile.path === filePath) {
       return
     }
 
+    // 3. 处理未保存的文件
     if (openFile && openFile.type === 'document' && openFile.isModified) {
       const shouldSave = await confirm({
         title: '文件未保存',
@@ -116,32 +128,9 @@ export function useFileEditor() {
       const fileTypeInfo = detectFileType(filePath)
       const fileType = getFileType(fileTypeInfo.readMethod)
       
-      // 根据文件类型读取内容
+      // 4. 根据文件类型读取并构建 FileContent
       if (fileType === 'document') {
-        let htmlContent = ''
-        
-        if (fileTypeInfo.readMethod === 'html') {
-          // DOCX/DOC 文件使用特殊的HTML读取方式
-          htmlContent = await (window as any).electronAPI.readDocxAsHtml(filePath)
-        } else if (fileTypeInfo.readMethod === 'text') {
-          // 文本文件直接读取并转换为HTML格式
-          const textContent = await (window as any).electronAPI.readFile(filePath)
-          
-          if (textContent.trim()) {
-            // 检测是否已经是HTML格式
-            if (textContent.trim().startsWith('<') && textContent.includes('>')) {
-              htmlContent = textContent
-            } else {
-              // 普通文本转换为HTML段落
-              htmlContent = textContent
-                .split('\n')
-                .map((line: string) => line.trim() ? `<p>${line}</p>` : '<p><br></p>')
-                .join('')
-            }
-          } else {
-            htmlContent = '<p><br></p>'
-          }
-        }
+        const htmlContent = await readDocumentAsHtml(filePath, fileTypeInfo.readMethod)
         
         setOpenFile({
           type: 'document',
@@ -152,7 +141,6 @@ export function useFileEditor() {
         })
         
       } else if (fileType === 'image') {
-        // 图片文件读取为base64
         const imageData = await (window as any).electronAPI.readImageAsBase64(filePath)
         
         setOpenFile({
@@ -183,6 +171,43 @@ export function useFileEditor() {
       setIsLoading(false)
     }
   }, [openFile, saveCurrentFile, confirm])
+
+  /**
+   * 读取文档文件为HTML格式
+   * 封装不同文件类型的读取逻辑
+   */
+  const readDocumentAsHtml = async (filePath: string, readMethod: string): Promise<string> => {
+    if (readMethod === 'html') {
+      // DOCX/DOC 文件：使用专用转换器
+      return await (window as any).electronAPI.readDocxAsHtml(filePath)
+    } else if (readMethod === 'text') {
+      // 文本文件：读取后转换为HTML
+      const textContent = await (window as any).electronAPI.readFile(filePath)
+      return textToHtml(textContent)
+    }
+    
+    return '<p><br></p>'
+  }
+
+  /**
+   * 将纯文本转换为HTML格式
+   */
+  const textToHtml = (text: string): string => {
+    if (!text || !text.trim()) {
+      return '<p><br></p>'
+    }
+    
+    // 检测是否已经是HTML格式
+    if (text.trim().startsWith('<') && text.includes('>')) {
+      return text
+    }
+    
+    // 普通文本转换为HTML段落
+    return text
+      .split('\n')
+      .map((line: string) => line.trim() ? `<p>${line}</p>` : '<p><br></p>')
+      .join('')
+  }
 
   // 更新文档内容
   const updateContent = useCallback((newHtmlContent: string) => {

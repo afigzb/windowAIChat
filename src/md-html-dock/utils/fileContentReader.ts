@@ -1,7 +1,7 @@
 // 文件内容读取器
 // 负责读取各种类型文件的内容，并从HTML结构中提取纯文本
 
-import { fileContentCache } from '../../file-manager/utils/fileContentCache'
+import { fileContentCache } from '../../storage/fileContentCache'
 import { detectFileType } from './fileTypeDetector'
 
 /**

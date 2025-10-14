@@ -11,7 +11,7 @@
 import { useState } from 'react'
 import type { AIConfig, ApiProviderConfig } from '../types'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { useConfirm } from '../../file-manager/hooks/useConfirm'
+import { useConfirm } from '../../components/useConfirm'
 import { Icon } from './components'
 import { ApiProviderForm } from './ApiProviderForm'
 

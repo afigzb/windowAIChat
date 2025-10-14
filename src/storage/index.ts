@@ -3,6 +3,9 @@
 
 import type { AIConfig } from '../chat'
 
+// 导出文件缓存管理器（属于数据层工具）
+export { fileContentCache } from './fileContentCache'
+
 // 存储键名常量
 const STORAGE_KEYS = {
   AI_CONFIG: 'ai_config',
