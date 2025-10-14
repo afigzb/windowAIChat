@@ -9,7 +9,6 @@ class WindowManager {
   constructor() {
     this.mainWindow = null
     this.contextMenuManager = null
-    this.docxHandler = null
     this.promptWindow = null
   }
 
@@ -102,13 +101,6 @@ class WindowManager {
    */
   setContextMenuManager(manager) {
     this.contextMenuManager = manager
-  }
-
-  /**
-   * 设置DOCX处理器
-   */
-  setDocxHandler(handler) {
-    this.docxHandler = handler
   }
 
   /**

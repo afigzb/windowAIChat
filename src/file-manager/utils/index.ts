@@ -1,0 +1,2 @@
+export { fileContentCache } from './fileContentCache'
+

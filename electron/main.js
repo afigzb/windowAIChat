@@ -3,7 +3,7 @@ const WindowManager = require('./window')
 const StorageManager = require('./storage')
 const FileSystemManager = require('./file-system')
 const GlobalContextMenuManager = require('./GlobalContextMenu')
-const DocxHandler = require('./converters/docx')
+const { converterManager } = require('./converters')
 
 /**
  * 应用主入口
@@ -15,7 +15,7 @@ class Application {
     this.storageManager = new StorageManager()
     this.fileSystemManager = null
     this.contextMenuManager = null
-    this.docxHandler = new DocxHandler()
+    this.converterManager = converterManager
   }
 
   /**
@@ -31,9 +31,6 @@ class Application {
     // 初始化上下文菜单管理器
     this.contextMenuManager = new GlobalContextMenuManager(mainWindow)
     this.windowManager.setContextMenuManager(this.contextMenuManager)
-
-    // 初始化DOCX处理器
-    this.windowManager.setDocxHandler(this.docxHandler)
 
     // 注册所有IPC处理器
     this._registerIpcHandlers()
@@ -52,8 +49,8 @@ class Application {
     // 文件系统管理
     this.fileSystemManager.registerIpcHandlers(ipcMain)
 
-    // DOCX处理
-    this.docxHandler.registerIpcHandlers(ipcMain)
+    // 文件转换器（DOCX、图片、文本等）
+    this.converterManager.registerAllIpcHandlers(ipcMain)
 
     // 右键菜单
     this._registerContextMenuHandlers()

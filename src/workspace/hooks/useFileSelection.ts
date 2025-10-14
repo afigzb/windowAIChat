@@ -1,13 +1,9 @@
 import { useState, useCallback } from 'react'
 import { readFileContent, extractTextFromHTML, formatFileContent } from '../../md-html-dock/utils/fileContentReader'
 import { detectFileType } from '../../md-html-dock/utils/fileTypeDetector'
+import type { FileContent } from '../../document-editor'
 
-interface OpenFile {
-  path: string
-  htmlContent?: string
-}
-
-export function useFileSelection(openFile: OpenFile | null) {
+export function useFileSelection(openFile: FileContent | null) {
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set())
   const [fileContents, setFileContents] = useState<Map<string, string>>(new Map())
   const [loadingFiles, setLoadingFiles] = useState<Set<string>>(new Set())
@@ -47,8 +43,8 @@ export function useFileSelection(openFile: OpenFile | null) {
         for (const filePath of filePaths) {
           try {
             if (openFile && openFile.path === filePath) {
-              const typeInfo = detectFileType(filePath)
-              if (typeInfo.readMethod === 'image') {
+              if (openFile.type === 'image') {
+                // 图片类型：读取原始内容
                 const content = await readFileContent(filePath, false)
                 parts.push(formatFileContent(filePath, content))
                 setFileContents(prev => {
@@ -56,7 +52,8 @@ export function useFileSelection(openFile: OpenFile | null) {
                   newContents.set(filePath, content)
                   return newContents
                 })
-              } else {
+              } else if (openFile.type === 'document') {
+                // 文档类型：从HTML提取文本
                 const text = extractTextFromHTML(openFile.htmlContent || '')
                 parts.push(formatFileContent(filePath, text))
                 setFileContents(prev => {

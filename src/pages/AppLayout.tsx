@@ -5,9 +5,10 @@ import { ConfirmDialog} from '../components'
 import { SideToolbar } from './SideToolbar'
 import { SettingsPanel } from './SettingsPanel'
 import { DocsPage } from './DocsPage'
-import { WorkspaceView } from '../writing/components/WorkspaceView'
+import { WorkspaceView } from '../workspace'
 import storage from '../storage'
-import { useDocxEditor, useFileSelection } from '../writing/hooks'
+import { useFileEditor } from '../document-editor'
+import { useFileSelection } from '../workspace'
 
 export default function EditorWorkspace() {
   const [config, setConfig] = useState<AIConfig>(() => {
@@ -29,7 +30,7 @@ export default function EditorWorkspace() {
     saveFile,
     closeFile,
     confirmProps
-  } = useDocxEditor()
+  } = useFileEditor()
 
   const {
     selectedFiles,
@@ -99,7 +100,7 @@ export default function EditorWorkspace() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault()
-        if (openFile?.isModified) {
+        if (openFile?.type === 'document' && openFile?.isModified) {
           saveFile()
         }
       }

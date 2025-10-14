@@ -1,15 +1,9 @@
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import type { AIConfig } from '../../chat'
 import { ChatPanel } from '../../chat'
-import { FileTreePanel } from './FileTreePanel'
-import { DocxEditor } from './DocxEditor'
-
-interface OpenFile {
-  path: string
-  name: string
-  htmlContent: string
-  isModified: boolean
-}
+import { FileTreePanel } from '../../file-manager'
+import { FileContentViewer, type FileContent } from '../../document-editor'
+import type { WordCountResult } from '../../md-html-dock/types'
 
 interface WordCount {
   words: number
@@ -25,14 +19,14 @@ interface WorkspaceViewProps {
   onClearSelectedFiles: () => void
   
   // 编辑器状态
-  openFile: OpenFile | null
+  openFile: FileContent | null
   isFileLoading: boolean
   fileError: string | null
   wordCount: WordCount
   
   // 编辑器操作
   onContentUpdate: (content: string) => void
-  onWordCountChange: (count: WordCount) => void
+  onWordCountChange: (count: WordCountResult) => void
   onSaveFile: () => void
   onCloseFile: () => void
   
@@ -60,6 +54,12 @@ export function WorkspaceView({
   onConfigChange,
   additionalContent
 }: WorkspaceViewProps) {
+  
+  // 是否显示保存按钮（只有文档类型且已修改才显示）
+  const showSaveButton = openFile?.type === 'document' && openFile?.isModified
+  // 是否显示字数统计（只有文档类型才显示）
+  const showWordCount = openFile?.type === 'document'
+  
   return (
     <PanelGroup direction="horizontal" style={{ height: '100%' }} autoSaveId="writing-page-panels">
       <Panel defaultSize={15}>
@@ -83,29 +83,33 @@ export function WorkspaceView({
 
       <Panel defaultSize={50}>
         <div className="bg-white flex flex-col h-full">
+          {/* 顶部工具栏 */}
           <div className="p-4 h-16 border-b border-slate-200 flex items-center">
             <div className="flex items-center justify-between min-w-0 w-full">
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <h2 
                   className="font-semibold text-slate-900 truncate" 
-                  title={openFile ? openFile.name : 'DOCX编辑器'}
+                  title={openFile ? openFile.name : '文件查看器'}
                 >
-                  {openFile ? openFile.name : 'DOCX编辑器'}
+                  {openFile ? openFile.name : '文件查看器'}
                 </h2>
-                {openFile?.isModified && (
+                {openFile?.type === 'document' && openFile?.isModified && (
                   <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded flex-shrink-0">未保存</span>
+                )}
+                {openFile?.type === 'image' && (
+                  <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded flex-shrink-0">图片预览</span>
                 )}
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                {openFile && (
+                {showWordCount && (
                   <div className="text-sm text-slate-600 px-2 py-1 bg-slate-100 rounded-md whitespace-nowrap">
                     {wordCount.words}字
                   </div>
                 )}
-                {openFile && (
+                {showSaveButton && (
                   <button
                     onClick={onSaveFile}
-                    disabled={!openFile.isModified || isFileLoading}
+                    disabled={isFileLoading}
                     className="px-2 py-1.5 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
                     title="保存 (Ctrl+S)"
                   >
@@ -130,6 +134,8 @@ export function WorkspaceView({
               </div>
             </div>
           </div>
+
+          {/* 错误/加载提示 */}
           {(fileError || isFileLoading) && (
             <div className="px-4 py-2 border-b border-slate-200">
               {fileError && (
@@ -140,23 +146,23 @@ export function WorkspaceView({
               )}
             </div>
           )}
-          <div className="flex-1 p-4 overflow-hidden">
+
+          {/* 文件内容区域 */}
+          <div className="flex-1 overflow-hidden">
             {openFile ? (
-              <DocxEditor 
-                key={openFile.path}
-                content={openFile.htmlContent}
-                onChange={onContentUpdate}
+              <FileContentViewer
+                fileContent={openFile}
+                isLoading={isFileLoading}
+                onContentChange={onContentUpdate}
                 onWordCountChange={onWordCountChange}
-                placeholder="开始编辑您的文档..."
-                readOnly={isFileLoading}
               />
             ) : (
               <div className="h-full flex items-center justify-center text-slate-500">
                 <div className="text-center">
                   <div className="text-6xl mb-4">📝</div>
-                  <h3 className="text-lg font-medium mb-2">DOCX文档编辑器</h3>
-                  <p className="text-sm mb-4">从左侧文件管理中选择一个DOCX文件开始编辑</p>
-                  <div className="text-xs text-slate-400">支持格式：.docx, .doc, .txt, .md</div>
+                  <h3 className="text-lg font-medium mb-2">文件查看器</h3>
+                  <p className="text-sm mb-4">从左侧文件管理中选择一个文件开始</p>
+                  <div className="text-xs text-slate-400">支持格式：.docx, .doc, .txt, .md, .png, .jpg 等</div>
                 </div>
               </div>
             )}
@@ -176,4 +182,3 @@ export function WorkspaceView({
     </PanelGroup>
   )
 }
-
