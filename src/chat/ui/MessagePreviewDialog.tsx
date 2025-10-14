@@ -1,3 +1,15 @@
+/**
+ * 消息预览对话框组件
+ * 
+ * 功能：
+ * - 在发送前预览将要发送的消息内容和请求详情
+ * - 支持两种视图模式：用户友好视图 / 技术细节视图
+ * - 显示 System 提示词、当前消息、历史上下文（可折叠）
+ * - 显示完整的 API 请求信息（URL、Headers、Body）
+ * - 自动脱敏 API Key
+ * - 支持复制完整请求 JSON
+ */
+
 import { useEffect, useRef, useState } from 'react'
 import storage from '../../storage'
 

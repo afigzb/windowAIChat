@@ -1,3 +1,11 @@
+/**
+ * API 配置面板组件
+ * 
+ * 功能：
+ * - 左侧工具栏的配置面板容器
+ * - 包含 ApiProviderManager 组件
+ */
+
 import type { AIConfig } from '../types'
 import { ApiProviderManager } from './ApiProviderConfig'
 

@@ -45,9 +45,6 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
       <>
         <ConfirmDialog {...confirmProps} />
         <div className="space-y-6">
-        <div className="text-base text-gray-700">
-          <p className="mb-4 font-medium">选择项目工作目录开始使用文件管理功能</p>
-        </div>
         <button
           onClick={handleSelectWorkspace}
           disabled={isLoading}

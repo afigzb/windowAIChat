@@ -1,61 +1,26 @@
+/**
+ * 消息气泡组件
+ * 
+ * 功能：
+ * - 显示用户和AI的消息（支持不同样式）
+ * - 分支导航（查看/切换不同回复分支）
+ * - AI思考过程展示（可折叠）
+ * - 消息编辑（用户消息重新发送、AI消息直接修改）
+ * - 消息操作（重新生成、复制、删除）
+ * - 流式生成时的实时显示
+ * 
+ * 子组件：
+ * - BranchNavigation: 分支切换控件
+ * - ThinkingContent: AI思考过程展示
+ */
+
 import { useState, useRef } from 'react'
-import type { MessageNode, MessageBubbleProps } from '../types'
+import type { MessageBubbleProps } from '../types'
 import { MarkdownRenderer } from '../../md-html-dock/renderers/MarkdownRenderer'
+import { Icon, AnimatedDots } from './components'
 
-// 动画点组件
-const AnimatedDots = ({ size = 'sm', color = 'slate' }: { size?: 'sm' | 'md'; color?: 'teal' | 'slate' }) => {
-  const dotSize = size === 'sm' ? 'w-2 h-2' : 'w-2.5 h-2.5'
-  const colorClasses = {
-    teal: 'bg-blue-500',
-    slate: 'bg-gray-400'
-  }
-  
-  return (
-    <div className="flex items-center justify-center gap-1">
-      {[0, 0.1, 0.2].map((delay, i) => (
-        <div 
-          key={i}
-          className={`${dotSize} ${colorClasses[color]} rounded-full animate-bounce`}
-          style={{ animationDelay: `${delay}s` }}
-        />
-      ))}
-    </div>
-  )
-}
+// ===== 子组件：分支导航控件 =====
 
-// 图标组件
-type IconName = 'chevronDown' | 'chevronLeft' | 'chevronRight' | 'regenerate' | 'edit' | 'copy' | 'delete'
-
-const Icon = ({ name, className = "w-4 h-4" }: { name: IconName; className?: string }) => {
-  const icons: Record<string, string> = {
-    chevronDown: "M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z",
-    chevronLeft: "M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z",
-    chevronRight: "M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-  }
-
-  const strokeIcons: Record<string, string> = {
-    regenerate: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15",
-    edit: "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z",
-    copy: "M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3",
-    delete: "M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-  }
-
-  if (strokeIcons[name]) {
-    return (
-      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={strokeIcons[name]} />
-      </svg>
-    )
-  }
-
-  return (
-    <svg className={className} fill="currentColor" viewBox="0 0 20 20">
-      <path fillRule="evenodd" d={icons[name]} clipRule="evenodd"/>
-    </svg>
-  )
-}
-
-// 分支导航控件
 function BranchNavigation({ navigation, onNavigate }: {
   navigation: import('../types').BranchNavigation
   onNavigate: (direction: 'left' | 'right') => void
@@ -97,7 +62,8 @@ function BranchNavigation({ navigation, onNavigate }: {
   )
 }
 
-// 思考过程展示
+// ===== 子组件：思考过程展示 =====
+
 function ThinkingContent({ content, isExpanded, onToggle }: {
   content: string
   isExpanded: boolean
@@ -128,8 +94,8 @@ function ThinkingContent({ content, isExpanded, onToggle }: {
   )
 }
 
+// ===== 主组件：消息气泡 =====
 
-// 消息气泡组件
 export function MessageBubble({ 
   node, 
   onRegenerate, 
@@ -202,7 +168,7 @@ export function MessageBubble({
                 }`} title={isInContext ? '计入上下文' : '未计入上下文'} />
               )}
               {!isUser && isGenerating && (
-                    <div className="flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 text-sm rounded-full border-2 border-blue-200 shadow-sm min-w-[4rem] whitespace-nowrap">
+                <div className="flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 text-sm rounded-full border-2 border-blue-200 shadow-sm min-w-[4rem] whitespace-nowrap">
                   <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse shadow-lg shadow-blue-500/50 flex-shrink-0" />
                   <span className="font-medium">正在回复</span>
                 </div>
@@ -368,7 +334,7 @@ export function MessageBubble({
             
             {/* 操作按钮 */}
             {!isUser && !isGenerating && !isEditing && (
-                <div className="flex items-center gap-2 min-w-[4rem]">
+              <div className="flex items-center gap-2 min-w-[4rem]">
                 {onRegenerate && (
                   <button
                     onClick={() => onRegenerate(node.id)}

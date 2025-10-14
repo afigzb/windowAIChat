@@ -1,3 +1,25 @@
+/**
+ * 聊天面板主组件
+ * 
+ * 这是整个聊天界面的核心组件，协调所有子组件工作。
+ * 
+ * 主要功能：
+ * - 对话管理（创建、切换、删除对话）
+ * - 消息发送和接收（支持流式响应）
+ * - 对话历史记录（持久化存储）
+ * - 分支管理（多分支回复支持）
+ * - 上下文管理（动态计算上下文窗口）
+ * - 消息预览（发送前预览请求详情）
+ * - 对话概括（新建对话并总结历史）
+ * - 文件内容集成（将选中文件内容注入到消息中）
+ * 
+ * 子组件：
+ * - ChatInputArea: 消息输入区域
+ * - MessageBubble: 消息气泡显示
+ * - MessagePreviewDialog: 消息预览对话框
+ * - 对话历史抽屉（内联实现）
+ */
+
 import { useState, useRef, useEffect } from 'react'
 import type { AIConfig, ConversationTree, FlatMessage } from '../types'
 import { MessageBubble, ChatInputArea } from './components'
