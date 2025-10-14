@@ -191,7 +191,7 @@ export function useFileEditor() {
 
   /**
    * 将纯文本转换为HTML格式
-   * 保持原有换行结构：连续文本行为一段，空行作为段落分隔
+   * 完全保留原始换行结构：每行对应一个段落，空行保留为空段落
    */
   const textToHtml = (text: string): string => {
     if (!text || !text.trim()) {
@@ -203,16 +203,17 @@ export function useFileEditor() {
       return text
     }
     
-    // 将文本按段落分割（连续空行视为段落分隔）
-    const paragraphs = text.split(/\n+/)
+    // 按换行符分割，每行对应一个 <p> 标签
+    // 注意：不使用 \n+ 以保留连续空行
+    const lines = text.split('\n')
     
-    return paragraphs
-      .map((para: string) => {
-        const trimmed = para.trim()
-        return trimmed ? `<p>${trimmed}</p>` : ''
+    return lines
+      .map((line: string) => {
+        // 空行或只有空白的行转换为 <p><br></p>
+        // 有内容的行保留内容（不trim，保留行首尾空格）
+        return line.trim() ? `<p>${line}</p>` : '<p><br></p>'
       })
-      .filter(Boolean)
-      .join('') || '<p><br></p>'
+      .join('')
   }
 
   // 更新文档内容
@@ -264,71 +265,31 @@ export function useFileEditor() {
     setWordCount(newWordCount)
   }, [])
 
-  // HTML转文本函数，保留换行和段落结构
+  // HTML转文本函数，完全保留段落和换行结构
   const htmlToText = (html: string): string => {
     if (!html) return ''
     
     const temp = document.createElement('div')
     temp.innerHTML = html
     
-    // 递归处理节点，保留格式
-    const processNode = (node: Node, parentTag: string = ''): string => {
-      if (node.nodeType === Node.TEXT_NODE) {
-        return node.textContent || ''
-      }
-      
-      if (node.nodeType === Node.ELEMENT_NODE) {
-        const element = node as HTMLElement
-        const tagName = element.tagName.toLowerCase()
-        
-        // 处理子节点
-        let childText = ''
-        node.childNodes.forEach(child => {
-          childText += processNode(child, tagName)
-        })
-        
-        // 根据标签类型添加换行
-        switch (tagName) {
-          case 'br':
-            // br 在段落中不额外处理，由段落本身添加换行
-            return ''
-          case 'p':
-          case 'div':
-            // 如果父元素是列表项，不要添加额外换行（列表项自己会处理）
-            if (parentTag === 'li') {
-              return childText
-            }
-            // 空段落（<p><br></p> 或 <p></p>）和有内容的段落都只加一个换行
-            return (childText.trim() ? childText : '') + '\n'
-          case 'h1':
-          case 'h2':
-          case 'h3':
-          case 'h4':
-          case 'h5':
-          case 'h6':
-            return childText + '\n'
-          case 'li':
-            return childText + '\n'
-          case 'ul':
-          case 'ol':
-            return childText
-          case 'tr':
-            return childText + '\n'
-          case 'td':
-          case 'th':
-            return childText + '\t'
-          default:
-            return childText
-        }
-      }
-      
-      return ''
+    // 提取所有段落标签
+    const paragraphs = temp.querySelectorAll('p, h1, h2, h3, h4, h5, h6, div')
+    
+    if (paragraphs.length === 0) {
+      // 如果没有段落标签，返回纯文本内容
+      return temp.textContent || ''
     }
     
-    const result = processNode(temp)
+    // 将每个段落转换为一行文本
+    const lines: string[] = []
+    paragraphs.forEach(p => {
+      const text = p.textContent || ''
+      // 空段落保留为空行，有内容的段落保留内容
+      lines.push(text)
+    })
     
-    // 清理多余的空行（超过2个连续换行符）并移除末尾空行
-    return result.replace(/\n{3,}/g, '\n\n')
+    // 用换行符连接所有行
+    return lines.join('\n')
   }
 
   return {
