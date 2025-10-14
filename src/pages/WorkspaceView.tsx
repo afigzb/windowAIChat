@@ -1,9 +1,10 @@
+// 工作区视图组件 - 整合文件管理、文档编辑、AI聊天三栏布局
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
-import type { AIConfig } from '../../chat'
-import { ChatPanel } from '../../chat'
-import { FileTreePanel } from '../../file-manager'
-import { FileContentViewer, type FileContent } from '../../document-editor'
-import type { WordCountResult } from '../../md-html-dock/types'
+import type { AIConfig } from '../chat'
+import { ChatPanel } from '../chat'
+import { FileTreePanel } from '../file-manager'
+import { FileContentViewer, type FileContent } from '../document-editor'
+import type { WordCountResult } from '../md-html-dock/types'
 
 interface WordCount {
   words: number

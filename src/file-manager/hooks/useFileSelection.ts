@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { readMultipleFiles, readFileContent, extractTextFromHTML, formatFileContent } from '../../md-html-dock/utils/fileContentReader'
+import { readFileContent, extractTextFromHTML, formatFileContent } from '../../md-html-dock/utils/fileContentReader'
 import type { FileContent } from '../../document-editor'
 
 /**
@@ -9,6 +9,9 @@ import type { FileContent } from '../../document-editor'
  * - 管理多文件选择状态（用于AI对话的上下文）
  * - 协调打开文件和选中文件的内容获取
  * - 统一使用 fileContentReader 读取文件，避免重复实现
+ * 
+ * 属于：file-manager 模块
+ * 原因：文件选择是文件管理的一部分功能
  */
 export function useFileSelection(openFile: FileContent | null) {
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set())
@@ -99,4 +102,3 @@ export function useFileSelection(openFile: FileContent | null) {
     getAdditionalContent
   }
 }
-

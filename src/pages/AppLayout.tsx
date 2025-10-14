@@ -5,10 +5,10 @@ import { ConfirmDialog} from '../components'
 import { SideToolbar } from './SideToolbar'
 import { SettingsPanel } from './SettingsPanel'
 import { DocsPage } from './DocsPage'
-import { WorkspaceView } from '../workspace'
+import { WorkspaceView } from './WorkspaceView'
 import storage from '../storage'
 import { useFileEditor } from '../document-editor'
-import { useFileSelection } from '../workspace'
+import { useFileSelection } from '../file-manager'
 
 export default function EditorWorkspace() {
   const [config, setConfig] = useState<AIConfig>(() => {
