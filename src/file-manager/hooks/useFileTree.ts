@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import fileSystemManager, { type FileSystemNode, type Workspace } from '../../storage/file-system'
-import { fileContentCache } from '../utils/fileContentCache'
+import { fileContentCache } from '../../storage/fileContentCache'
 
 interface InlineEditState {
   isActive: boolean

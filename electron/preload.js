@@ -16,7 +16,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 获取目录树结构
   getDirectoryTree: (path) => ipcRenderer.invoke('get-directory-tree', path),
   
-  // 文件读取与写入
+  // === 统一的文件处理API ===
+  
+  // 获取支持的文件格式信息
+  getSupportedFormatsInfo: () => ipcRenderer.invoke('get-supported-formats-info'),
+  
+  // 获取文件格式信息
+  getFileFormatInfo: (filePath) => ipcRenderer.invoke('get-file-format-info', filePath),
+  
+  // 统一的文件读取接口（自动选择合适的转换器）
+  readFileAuto: (filePath) => ipcRenderer.invoke('read-file-auto', filePath),
+  
+  // 统一的文件保存接口（自动选择合适的转换器）
+  saveFileAuto: (filePath, content) => ipcRenderer.invoke('save-file-auto', filePath, content),
+
+  // 读取文件为纯文本（用于AI对话等场景，避免前端重复实现HTML转换）
+  readFileAsText: (filePath) => ipcRenderer.invoke('read-file-as-text', filePath),
+
+  // === 基础文件读写（用于纯文本文件的简单读写） ===
   readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
   writeFile: (filePath, content) => ipcRenderer.invoke('write-file', filePath, content),
   
@@ -29,13 +46,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // 获取文件信息
   getFileStats: (path) => ipcRenderer.invoke('get-file-stats', path),
-  
-  // DOCX文件处理
-  readDocxAsHtml: (filePath) => ipcRenderer.invoke('read-docx-as-html', filePath),
-  saveHtmlAsDocx: (filePath, htmlContent) => ipcRenderer.invoke('save-html-as-docx', filePath, htmlContent),
-  
-  // 图片文件处理
-  readImageAsBase64: (filePath) => ipcRenderer.invoke('read-image-as-base64', filePath),
   
   // === 应用数据键值存储（项目文件夹下） ===
   initStorageDir: () => ipcRenderer.invoke('init-storage-dir'),

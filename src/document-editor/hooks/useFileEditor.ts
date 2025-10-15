@@ -1,9 +1,9 @@
 // 通用文件编辑器状态管理 Hook
 // 职责：管理单个文件的打开、编辑、保存状态
+// 重构说明：文件解析和格式检测已移至后端 ConverterManager
 
 import { useState, useCallback } from 'react'
 import type { WordCountResult } from '../../md-html-dock/types'
-import { detectFileType, getSupportedFormats } from '../../md-html-dock/utils/fileTypeDetector'
 import { useConfirm } from '../../components/useConfirm'
 import { fileContentCache } from '../../storage/fileContentCache'
 import type { FileContent, FileType, ImageData } from '../components/FileContentViewer'
@@ -20,93 +20,17 @@ export function useFileEditor() {
   
   const { confirm, confirmProps } = useConfirm()
 
-  // 判断文件是否为支持的格式
-  const isSupportedFile = (filePath: string): { isSupported: boolean; reason?: string } => {
-    const fileTypeInfo = detectFileType(filePath)
-    return {
-      isSupported: fileTypeInfo.isSupported,
-      reason: fileTypeInfo.reason
-    }
-  }
-
-  // 将readMethod转换为FileType
-  const getFileType = (readMethod: string): FileType => {
-    switch (readMethod) {
-      case 'html':
-      case 'text':
-        return 'document'
-      case 'image':
-        return 'image'
-      default:
-        return 'unsupported'
-    }
-  }
-
-  // 内部保存函数
-  const saveCurrentFile = useCallback(async (): Promise<boolean> => {
-    if (!openFile || openFile.type !== 'document' || !openFile.isModified) {
-      return true
-    }
-
-    setIsLoading(true)
-    setError(null)
-    
-    try {
-      const fileTypeInfo = detectFileType(openFile.path)
-      
-      if (fileTypeInfo.readMethod === 'html') {
-        // DOCX/DOC 文件保存为对应格式
-        await (window as any).electronAPI.saveHtmlAsDocx(openFile.path, openFile.htmlContent)
-      } else if (fileTypeInfo.readMethod === 'text') {
-        // 文本文件保存为纯文本
-        const textContent = htmlToText(openFile.htmlContent || '')
-        await (window as any).electronAPI.writeFile(openFile.path, textContent)
-      } else {
-        throw new Error('不支持保存此文件格式')
-      }
-      
-      setOpenFile(prev => prev ? {
-        ...prev,
-        isModified: false
-      } : null)
-
-      fileContentCache.remove(openFile.path)
-      
-      return true
-    } catch (err) {
-      const errorMessage = `保存文件失败: ${err}`
-      setError(errorMessage)
-      console.error(errorMessage, err)
-      return false
-    } finally {
-      setIsLoading(false)
-    }
-  }, [openFile])
-
   /**
    * 打开文件进行编辑或查看
-   * 
-   * 策略：
-   * 1. 检查文件格式是否支持
-   * 2. 处理未保存的文件（提示用户）
-   * 3. 根据文件类型调用对应的Electron API读取
-   * 4. 文本文件转换为HTML格式供编辑器使用
+   * 使用后端统一的文件处理API
    */
   const openFileForEdit = useCallback(async (filePath: string, fileName: string) => {
-    // 1. 验证文件格式
-    const fileSupport = isSupportedFile(filePath)
-    if (!fileSupport.isSupported) {
-      const supportedFormats = getSupportedFormats()
-      setError(fileSupport.reason || `不支持的文件格式。支持的格式：${supportedFormats.slice(0, 10).join(', ')}${supportedFormats.length > 10 ? ' 等' : ''}`)
-      return
-    }
-
-    // 2. 避免重复打开同一文件
+    // 1. 避免重复打开同一文件
     if (openFile && openFile.path === filePath) {
       return
     }
 
-    // 3. 处理未保存的文件
+    // 2. 处理未保存的文件
     if (openFile && openFile.type === 'document' && openFile.isModified) {
       const shouldSave = await confirm({
         title: '文件未保存',
@@ -116,7 +40,7 @@ export function useFileEditor() {
         type: 'warning'
       })
       if (shouldSave) {
-        const saved = await saveCurrentFile()
+        const saved = await saveFile()
         if (!saved) return
       }
     }
@@ -125,36 +49,40 @@ export function useFileEditor() {
     setIsLoading(true)
     
     try {
-      const fileTypeInfo = detectFileType(filePath)
-      const fileType = getFileType(fileTypeInfo.readMethod)
+      // 3. 调用后端统一API读取文件
+      const result = await (window as any).electronAPI.readFileAuto(filePath)
       
-      // 4. 根据文件类型读取并构建 FileContent
-      if (fileType === 'document') {
-        const htmlContent = await readDocumentAsHtml(filePath, fileTypeInfo.readMethod)
-        
+      if (!result.success) {
+        setError(result.error || '读取文件失败')
+        return
+      }
+
+      // 4. 根据后端返回的类型构建 FileContent
+      if (result.type === 'document' || result.type === 'text') {
+        // 文档或文本文件：content 是 HTML 字符串
         setOpenFile({
           type: 'document',
           path: filePath,
           name: fileName,
-          htmlContent,
+          htmlContent: result.content,
           isModified: false
         })
         
-      } else if (fileType === 'image') {
-        const imageData = await (window as any).electronAPI.readImageAsBase64(filePath)
-        
+      } else if (result.type === 'image') {
+        // 图片文件：content 是图片数据对象
         setOpenFile({
           type: 'image',
           path: filePath,
           name: fileName,
           imageData: {
-            dataUrl: imageData.dataUrl,
-            mimeType: imageData.mimeType,
-            size: imageData.size
+            dataUrl: result.content.dataUrl,
+            mimeType: result.content.mimeType,
+            size: result.content.size
           }
         })
         
       } else {
+        // 不支持的格式
         setOpenFile({
           type: 'unsupported',
           path: filePath,
@@ -170,53 +98,11 @@ export function useFileEditor() {
     } finally {
       setIsLoading(false)
     }
-  }, [openFile, saveCurrentFile, confirm])
+  }, [openFile, confirm])
 
   /**
-   * 读取文档文件为HTML格式
-   * 封装不同文件类型的读取逻辑
+   * 更新文档内容
    */
-  const readDocumentAsHtml = async (filePath: string, readMethod: string): Promise<string> => {
-    if (readMethod === 'html') {
-      // DOCX/DOC 文件：使用专用转换器
-      return await (window as any).electronAPI.readDocxAsHtml(filePath)
-    } else if (readMethod === 'text') {
-      // 文本文件：读取后转换为HTML
-      const textContent = await (window as any).electronAPI.readFile(filePath)
-      return textToHtml(textContent)
-    }
-    
-    return '<p><br></p>'
-  }
-
-  /**
-   * 将纯文本转换为HTML格式
-   * 完全保留原始换行结构：每行对应一个段落，空行保留为空段落
-   */
-  const textToHtml = (text: string): string => {
-    if (!text || !text.trim()) {
-      return '<p><br></p>'
-    }
-    
-    // 检测是否已经是HTML格式
-    if (text.trim().startsWith('<') && text.includes('>')) {
-      return text
-    }
-    
-    // 按换行符分割，每行对应一个 <p> 标签
-    // 注意：不使用 \n+ 以保留连续空行
-    const lines = text.split('\n')
-    
-    return lines
-      .map((line: string) => {
-        // 空行或只有空白的行转换为 <p><br></p>
-        // 有内容的行保留内容（不trim，保留行首尾空格）
-        return line.trim() ? `<p>${line}</p>` : '<p><br></p>'
-      })
-      .join('')
-  }
-
-  // 更新文档内容
   const updateContent = useCallback((newHtmlContent: string) => {
     if (!openFile || openFile.type !== 'document') return
     
@@ -238,9 +124,53 @@ export function useFileEditor() {
     }
   }, [openFile, isFirstUpdate])
 
-  const saveFile = saveCurrentFile
+  /**
+   * 保存文件
+   * 使用后端统一的保存API
+   */
+  const saveFile = useCallback(async (): Promise<boolean> => {
+    if (!openFile || openFile.type !== 'document' || !openFile.isModified) {
+      return true
+    }
 
-  // 关闭文件
+    setIsLoading(true)
+    setError(null)
+    
+    try {
+      // 调用后端统一API保存文件
+      const result = await (window as any).electronAPI.saveFileAuto(
+        openFile.path, 
+        openFile.htmlContent
+      )
+      
+      if (!result.success) {
+        setError(result.error || '保存文件失败')
+        return false
+      }
+      
+      // 保存成功，更新状态
+      setOpenFile(prev => prev ? {
+        ...prev,
+        isModified: false
+      } : null)
+
+      // 清除缓存
+      fileContentCache.remove(openFile.path)
+      
+      return true
+    } catch (err) {
+      const errorMessage = `保存文件失败: ${err}`
+      setError(errorMessage)
+      console.error(errorMessage, err)
+      return false
+    } finally {
+      setIsLoading(false)
+    }
+  }, [openFile])
+
+  /**
+   * 关闭文件
+   */
   const closeFile = useCallback(async () => {
     if (openFile?.type === 'document' && openFile?.isModified) {
       const shouldClose = await confirm({
@@ -260,37 +190,31 @@ export function useFileEditor() {
     return true
   }, [openFile, confirm])
 
-  // 更新字数统计
+  /**
+   * 更新字数统计
+   */
   const updateWordCount = useCallback((newWordCount: WordCountResult) => {
     setWordCount(newWordCount)
   }, [])
 
-  // HTML转文本函数，完全保留段落和换行结构
-  const htmlToText = (html: string): string => {
-    if (!html) return ''
-    
-    const temp = document.createElement('div')
-    temp.innerHTML = html
-    
-    // 提取所有段落标签
-    const paragraphs = temp.querySelectorAll('p, h1, h2, h3, h4, h5, h6, div')
-    
-    if (paragraphs.length === 0) {
-      // 如果没有段落标签，返回纯文本内容
-      return temp.textContent || ''
+  /**
+   * 检查文件是否为支持的格式
+   * 现在使用后端API进行检查
+   */
+  const isSupportedFile = useCallback(async (filePath: string): Promise<{ isSupported: boolean; reason?: string }> => {
+    try {
+      const formatInfo = await (window as any).electronAPI.getFileFormatInfo(filePath)
+      return {
+        isSupported: formatInfo.isSupported,
+        reason: formatInfo.reason
+      }
+    } catch (error) {
+      return {
+        isSupported: false,
+        reason: '无法检测文件格式'
+      }
     }
-    
-    // 将每个段落转换为一行文本
-    const lines: string[] = []
-    paragraphs.forEach(p => {
-      const text = p.textContent || ''
-      // 空段落保留为空行，有内容的段落保留内容
-      lines.push(text)
-    })
-    
-    // 用换行符连接所有行
-    return lines.join('\n')
-  }
+  }, [])
 
   return {
     openFile,
@@ -306,4 +230,3 @@ export function useFileEditor() {
     confirmProps
   }
 }
-

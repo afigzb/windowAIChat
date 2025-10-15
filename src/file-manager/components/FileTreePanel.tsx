@@ -7,7 +7,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { useConfirm } from '../hooks/useConfirm'
 import { useFileTree } from '../hooks/useFileTree'
 import type { FileSystemNode } from '../../storage/file-system'
-import { getFileName } from '../../md-html-dock/utils/fileContentReader'
+import { getFileName } from '../utils/fileHelper'
 
 interface FileTreePanelProps {
   selectedFile?: string | null

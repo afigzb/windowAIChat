@@ -52,8 +52,41 @@ class Application {
     // 文件转换器（DOCX、图片、文本等）
     this.converterManager.registerAllIpcHandlers(ipcMain)
 
+    // 注册统一的文件处理API
+    this._registerUnifiedFileHandlers()
+
     // 右键菜单
     this._registerContextMenuHandlers()
+  }
+
+  /**
+   * 注册统一的文件处理API
+   */
+  _registerUnifiedFileHandlers() {
+    // 获取支持的文件格式信息
+    ipcMain.handle('get-supported-formats-info', async () => {
+      return this.converterManager.getSupportedFormatsInfo()
+    })
+
+    // 获取文件格式信息
+    ipcMain.handle('get-file-format-info', async (event, filePath) => {
+      return this.converterManager.getFileFormatInfo(filePath)
+    })
+
+    // 统一的文件读取接口
+    ipcMain.handle('read-file-auto', async (event, filePath) => {
+      return await this.converterManager.readFileAuto(filePath)
+    })
+
+    // 统一的文件保存接口
+    ipcMain.handle('save-file-auto', async (event, filePath, content) => {
+      return await this.converterManager.saveFileAuto(filePath, content)
+    })
+
+    // 读取文件为纯文本（用于AI对话等场景）
+    ipcMain.handle('read-file-as-text', async (event, filePath) => {
+      return await this.converterManager.readFileAsText(filePath)
+    })
   }
 
   /**

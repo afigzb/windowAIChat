@@ -70,6 +70,91 @@ ${content}
 </body>
 </html>`
   }
+
+  /**
+   * 从HTML中提取纯文本
+   * 统一的文本提取逻辑，避免前后端重复实现
+   * @param {string} html - HTML内容
+   * @returns {string} 纯文本
+   */
+  static extractText(html) {
+    if (!html || !html.trim()) {
+      return ''
+    }
+    
+    // 先移除不需要的内容
+    const cleaned = html
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '')
+      .replace(/<!--([\s\S]*?)-->/g, '')
+    
+    // 匹配所有<p>标签内容
+    const pRegex = /<p[^>]*>([\s\S]*?)<\/p>/gi
+    const lines = []
+    let match
+    
+    while ((match = pRegex.exec(cleaned)) !== null) {
+      const content = match[1]
+      
+      // 如果段落只包含<br>，视为空行
+      if (content.trim() === '<br>' || content.trim() === '<br/>') {
+        lines.push('')
+      } else {
+        // 提取文本内容，移除内部HTML标签
+        const text = content
+          .replace(/<br\s*\/?>/gi, '\n')  // <br>转换为换行
+          .replace(/<[^>]+>/g, '')  // 移除其他HTML标签
+          .replace(/&nbsp;/g, ' ')  // 解码HTML实体
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&amp;/g, '&')
+          .replace(/&quot;/g, '"')
+        
+        if (text.trim()) {
+          lines.push(text)
+        }
+      }
+    }
+    
+    // 如果没有找到<p>标签，尝试其他常见标签
+    if (lines.length === 0) {
+      // 处理其他块级元素
+      const blockTags = /<(div|h[1-6]|li|td|th)[^>]*>([\s\S]*?)<\/\1>/gi
+      while ((match = blockTags.exec(cleaned)) !== null) {
+        const text = match[2]
+          .replace(/<br\s*\/?>/gi, '\n')
+          .replace(/<[^>]+>/g, '')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&amp;/g, '&')
+          .replace(/&quot;/g, '"')
+          .trim()
+        
+        if (text) {
+          lines.push(text)
+        }
+      }
+    }
+    
+    // 如果还是没有内容，直接提取所有文本
+    if (lines.length === 0) {
+      const allText = cleaned
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .trim()
+      
+      return allText
+    }
+    
+    return lines.join('\n')
+  }
 }
 
 module.exports = HtmlProcessor
