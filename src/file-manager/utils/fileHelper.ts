@@ -2,8 +2,7 @@
  * 文件管理相关的辅助工具函数
  * 职责：提供前端文件处理的辅助功能
  * 
- * 注意：HTML到文本的转换已统一移至后端 HtmlProcessor.extractText()
- * 前端应使用 electronAPI.readFileAsText() 直接获取纯文本
+ * 注意：需要纯文本时使用 electronAPI.readFileAsText()
  */
 
 /**

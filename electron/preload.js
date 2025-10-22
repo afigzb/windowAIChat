@@ -16,24 +16,27 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 获取目录树结构
   getDirectoryTree: (path) => ipcRenderer.invoke('get-directory-tree', path),
   
-  // === 统一的文件处理API ===
+  // === 文件转换API（简化版） ===
   
-  // 获取支持的文件格式信息
-  getSupportedFormatsInfo: () => ipcRenderer.invoke('get-supported-formats-info'),
+  // 读取文件（自动识别格式：DOCX/图片/文本等）
+  readFileAuto: (filePath) => ipcRenderer.invoke('file:read', filePath),
   
+  // 保存文件（自动识别格式）
+  saveFileAuto: (filePath, content) => ipcRenderer.invoke('file:save', filePath, content),
+
+  // 读取文件为纯文本（用于AI对话等场景）
+  readFileAsText: (filePath) => ipcRenderer.invoke('file:readAsText', filePath),
+
   // 获取文件格式信息
-  getFileFormatInfo: (filePath) => ipcRenderer.invoke('get-file-format-info', filePath),
+  getFileFormatInfo: (filePath) => ipcRenderer.invoke('file:getInfo', filePath),
   
-  // 统一的文件读取接口（自动选择合适的转换器）
-  readFileAuto: (filePath) => ipcRenderer.invoke('read-file-auto', filePath),
-  
-  // 统一的文件保存接口（自动选择合适的转换器）
-  saveFileAuto: (filePath, content) => ipcRenderer.invoke('save-file-auto', filePath, content),
+  // 获取所有支持的文件格式
+  getSupportedFormatsInfo: () => ipcRenderer.invoke('file:getSupportedFormats'),
 
-  // 读取文件为纯文本（用于AI对话等场景，避免前端重复实现HTML转换）
-  readFileAsText: (filePath) => ipcRenderer.invoke('read-file-as-text', filePath),
+  // 从HTML中提取纯文本
+  extractTextFromHtml: (html) => ipcRenderer.invoke('file:extractText', html),
 
-  // === 基础文件读写（用于纯文本文件的简单读写） ===
+  // === 基础文件读写（仅用于简单场景，一般情况请使用上面的统一接口） ===
   readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
   writeFile: (filePath, content) => ipcRenderer.invoke('write-file', filePath, content),
   

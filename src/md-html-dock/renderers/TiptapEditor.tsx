@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react'
+import React, { useEffect, useCallback, useRef } from 'react'
 import { useEditor, EditorContent, Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { Underline } from '@tiptap/extension-underline'
@@ -33,6 +33,12 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   readOnly = false,
   className = ''
 }) => {
+  // 防抖定时器
+  const onChangeTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const wordCountTimerRef = useRef<NodeJS.Timeout | null>(null)
+  // 跟踪是否是程序化内容更新（避免循环）
+  const isProgrammaticUpdateRef = useRef(false)
+  
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -85,13 +91,43 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
     ],
     content,
     editable: !readOnly,
-    onUpdate: ({ editor }) => {
+    onCreate: ({ editor }) => {
+      // 编辑器初始化完成，获取标准化后的HTML
+      // 立即触发，不防抖
       const html = editor.getHTML()
       onChange(html)
       
+      // 立即更新字数统计（不防抖）
       if (onWordCountChange) {
-        const wordCount = countWords(html)
-        onWordCountChange(wordCount)
+        countWords(html).then(onWordCountChange)
+      }
+    },
+    onUpdate: ({ editor }) => {
+      // 如果是程序化更新，跳过
+      if (isProgrammaticUpdateRef.current) {
+        isProgrammaticUpdateRef.current = false
+        return
+      }
+      
+      // 性能优化：使用防抖减少onChange调用频率
+      const html = editor.getHTML()
+      
+      // onChange防抖：150ms（快速响应，但避免每次按键都触发）
+      if (onChangeTimerRef.current) {
+        clearTimeout(onChangeTimerRef.current)
+      }
+      onChangeTimerRef.current = setTimeout(() => {
+        onChange(html)
+      }, 150)
+      
+      // 字数统计防抖：500ms（不需要太频繁更新）
+      if (onWordCountChange) {
+        if (wordCountTimerRef.current) {
+          clearTimeout(wordCountTimerRef.current)
+        }
+        wordCountTimerRef.current = setTimeout(() => {
+          countWords(html).then(onWordCountChange)
+        }, 500)
       }
     },
     editorProps: {
@@ -105,17 +141,10 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   // 当外部 content 变化时更新编辑器内容
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
+      isProgrammaticUpdateRef.current = true
       editor.commands.setContent(content)
     }
   }, [content, editor])
-
-  // 计算初始字数
-  useEffect(() => {
-    if (onWordCountChange && content) {
-      const wordCount = countWords(content)
-      onWordCountChange(wordCount)
-    }
-  }, [content, onWordCountChange])
 
   // 更新只读状态
   useEffect(() => {
@@ -123,6 +152,18 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
       editor.setEditable(!readOnly)
     }
   }, [readOnly, editor])
+
+  // 清理定时器
+  useEffect(() => {
+    return () => {
+      if (onChangeTimerRef.current) {
+        clearTimeout(onChangeTimerRef.current)
+      }
+      if (wordCountTimerRef.current) {
+        clearTimeout(wordCountTimerRef.current)
+      }
+    }
+  }, [])
 
   if (!editor) {
     return null

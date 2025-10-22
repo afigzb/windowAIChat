@@ -1,12 +1,17 @@
-// 通用文件编辑器状态管理 Hook
-// 职责：管理单个文件的打开、编辑、保存状态
-// 重构说明：文件解析和格式检测已移至后端 ConverterManager
+/**
+ * 文件编辑器状态管理 Hook - 重构版
+ * 
+ * 架构说明：
+ * 1. 后端负责文件IO和格式转换
+ * 2. 前端负责编辑器交互和状态管理
+ * 3. 移除isFirstUpdate补丁，使用内容哈希判断修改状态
+ */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import type { WordCountResult } from '../../md-html-dock/types'
 import { useConfirm } from '../../components/useConfirm'
 import { fileContentCache } from '../../storage/fileContentCache'
-import type { FileContent, FileType, ImageData } from '../components/FileContentViewer'
+import type { FileContent } from '../../types/file-api'
 
 export function useFileEditor() {
   const [openFile, setOpenFile] = useState<FileContent | null>(null)
@@ -16,32 +21,38 @@ export function useFileEditor() {
     characters: 0,
     words: 0
   })
-  const [isFirstUpdate, setIsFirstUpdate] = useState(true)
+  
+  // 保存原始内容，用于判断是否修改（直接字符串对比，不计算hash）
+  const originalContentRef = useRef<string>('')
   
   const { confirm, confirmProps } = useConfirm()
 
   /**
-   * 打开文件进行编辑或查看
-   * 使用后端统一的文件处理API
+   * 打开文件
    */
   const openFileForEdit = useCallback(async (filePath: string, fileName: string) => {
-    // 1. 避免重复打开同一文件
+    // 避免重复打开
     if (openFile && openFile.path === filePath) {
       return
     }
 
-    // 2. 处理未保存的文件
-    if (openFile && openFile.type === 'document' && openFile.isModified) {
-      const shouldSave = await confirm({
-        title: '文件未保存',
-        message: `文件 "${openFile.name}" 已修改但未保存，是否要先保存？`,
-        confirmText: '保存',
-        cancelText: '不保存',
-        type: 'warning'
-      })
-      if (shouldSave) {
-        const saved = await saveFile()
-        if (!saved) return
+    // 处理未保存的文件
+    if (openFile && openFile.type !== 'unsupported' && 'isModified' in openFile && openFile.isModified) {
+      // 在弹窗前重新比对内容，避免不必要的弹窗（用户可能撤销了所有修改）
+      const actuallyModified = openFile.htmlContent !== originalContentRef.current
+      
+      if (actuallyModified) {
+        const shouldSave = await confirm({
+          title: '文件未保存',
+          message: `文件 "${openFile.name}" 已修改但未保存，是否要先保存？`,
+          confirmText: '保存',
+          cancelText: '不保存',
+          type: 'warning'
+        })
+        if (shouldSave) {
+          const saved = await saveFile()
+          if (!saved) return
+        }
       }
     }
 
@@ -49,40 +60,43 @@ export function useFileEditor() {
     setIsLoading(true)
     
     try {
-      // 3. 调用后端统一API读取文件
-      const result = await (window as any).electronAPI.readFileAuto(filePath)
+      const result = await window.electronAPI.readFileAuto(filePath)
       
       if (!result.success) {
         setError(result.error || '读取文件失败')
+        setOpenFile({
+          type: 'unsupported',
+          path: filePath,
+          name: fileName,
+          reason: result.error
+        })
         return
       }
 
-      // 4. 根据后端返回的类型构建 FileContent
       if (result.type === 'document' || result.type === 'text') {
-        // 文档或文本文件：content 是 HTML 字符串
+        const htmlContent = result.content as string
+        
+        // 清空原始内容，等待编辑器标准化后第一次updateContent时记录
+        originalContentRef.current = ''
+        
         setOpenFile({
-          type: 'document',
+          type: result.type,
           path: filePath,
           name: fileName,
-          htmlContent: result.content,
+          htmlContent,
           isModified: false
         })
         
       } else if (result.type === 'image') {
-        // 图片文件：content 是图片数据对象
+        const imageData = result.content as any
         setOpenFile({
           type: 'image',
           path: filePath,
           name: fileName,
-          imageData: {
-            dataUrl: result.content.dataUrl,
-            mimeType: result.content.mimeType,
-            size: result.content.size
-          }
+          imageData
         })
         
       } else {
-        // 不支持的格式
         setOpenFile({
           type: 'unsupported',
           path: filePath,
@@ -90,8 +104,6 @@ export function useFileEditor() {
         })
       }
       
-      // 重置首次更新标志
-      setIsFirstUpdate(true)
     } catch (err) {
       setError(`打开文件失败: ${err}`)
       console.error('打开文件失败:', err)
@@ -102,34 +114,50 @@ export function useFileEditor() {
 
   /**
    * 更新文档内容
+   * 优化策略：
+   * 1. 第一次调用时记录编辑器标准化后的内容作为基准
+   * 2. 每次更新时检查是否回到原始状态
+   * 3. 使用编辑器防抖（150ms）避免频繁调用此函数
    */
   const updateContent = useCallback((newHtmlContent: string) => {
-    if (!openFile || openFile.type !== 'document') return
+    if (!openFile || (openFile.type !== 'document' && openFile.type !== 'text')) return
     
-    // 首次更新是编辑器标准化后的 HTML，用它作为原始内容基准
-    if (isFirstUpdate) {
+    // 第一次调用：记录编辑器标准化后的内容作为基准
+    if (originalContentRef.current === '') {
+      originalContentRef.current = newHtmlContent
       setOpenFile({
         ...openFile,
         htmlContent: newHtmlContent,
         isModified: false
       })
-      setIsFirstUpdate(false)
-    } else {
-      const currentContent = openFile.htmlContent || ''
-      setOpenFile({
-        ...openFile,
-        htmlContent: newHtmlContent,
-        isModified: newHtmlContent !== currentContent
-      })
+      return
     }
-  }, [openFile, isFirstUpdate])
+    
+    // 实时检测修改状态（支持撤销回到原始状态）
+    // 由于编辑器已有150ms防抖，这里的比较不会造成性能问题
+    const isModified = newHtmlContent !== originalContentRef.current
+    
+    setOpenFile(prev => {
+      if (!prev || (prev.type !== 'document' && prev.type !== 'text')) return prev
+      
+      // 内容和状态都没变化，不更新
+      if (prev.htmlContent === newHtmlContent && prev.isModified === isModified) {
+        return prev
+      }
+      
+      return {
+        ...prev,
+        htmlContent: newHtmlContent,
+        isModified
+      }
+    })
+  }, [openFile])
 
   /**
    * 保存文件
-   * 使用后端统一的保存API
    */
   const saveFile = useCallback(async (): Promise<boolean> => {
-    if (!openFile || openFile.type !== 'document' || !openFile.isModified) {
+    if (!openFile || (openFile.type !== 'document' && openFile.type !== 'text') || !openFile.isModified) {
       return true
     }
 
@@ -137,8 +165,7 @@ export function useFileEditor() {
     setError(null)
     
     try {
-      // 调用后端统一API保存文件
-      const result = await (window as any).electronAPI.saveFileAuto(
+      const result = await window.electronAPI.saveFileAuto(
         openFile.path, 
         openFile.htmlContent
       )
@@ -148,13 +175,14 @@ export function useFileEditor() {
         return false
       }
       
-      // 保存成功，更新状态
-      setOpenFile(prev => prev ? {
-        ...prev,
+      // 保存成功后，更新原始内容
+      originalContentRef.current = openFile.htmlContent
+      
+      setOpenFile({
+        ...openFile,
         isModified: false
-      } : null)
+      })
 
-      // 清除缓存
       fileContentCache.remove(openFile.path)
       
       return true
@@ -172,21 +200,26 @@ export function useFileEditor() {
    * 关闭文件
    */
   const closeFile = useCallback(async () => {
-    if (openFile?.type === 'document' && openFile?.isModified) {
-      const shouldClose = await confirm({
-        title: '关闭文件',
-        message: '文件已修改但未保存，确定要关闭吗？',
-        confirmText: '确认',
-        cancelText: '取消',
-        type: 'warning'
-      })
-      if (!shouldClose) return false
+    if (openFile && openFile.type !== 'unsupported' && 'isModified' in openFile && openFile.isModified) {
+      // 在弹窗前重新比对内容，避免不必要的弹窗（用户可能撤销了所有修改）
+      const actuallyModified = openFile.htmlContent !== originalContentRef.current
+      
+      if (actuallyModified) {
+        const shouldClose = await confirm({
+          title: '关闭文件',
+          message: '文件已修改但未保存，确定要关闭吗？',
+          confirmText: '确认',
+          cancelText: '取消',
+          type: 'warning'
+        })
+        if (!shouldClose) return false
+      }
     }
     
     setOpenFile(null)
     setError(null)
     setWordCount({ characters: 0, words: 0 })
-    setIsFirstUpdate(true)
+    originalContentRef.current = ''
     return true
   }, [openFile, confirm])
 
@@ -198,15 +231,14 @@ export function useFileEditor() {
   }, [])
 
   /**
-   * 检查文件是否为支持的格式
-   * 现在使用后端API进行检查
+   * 检查文件是否支持
    */
   const isSupportedFile = useCallback(async (filePath: string): Promise<{ isSupported: boolean; reason?: string }> => {
     try {
-      const formatInfo = await (window as any).electronAPI.getFileFormatInfo(filePath)
+      const fileInfo = await window.electronAPI.getFileFormatInfo(filePath)
       return {
-        isSupported: formatInfo.isSupported,
-        reason: formatInfo.reason
+        isSupported: fileInfo.supported,
+        reason: fileInfo.supported ? undefined : `不支持的文件格式: .${fileInfo.extension}`
       }
     } catch (error) {
       return {

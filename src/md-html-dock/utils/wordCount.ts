@@ -1,26 +1,44 @@
-// 字数统计工具函数
+/**
+ * 字数统计工具 - 重构版
+ * 
+ * 使用前端DOM API提取文本，避免不必要的IPC调用
+ */
+
 import type { WordCountResult } from '../types'
 
 export type { WordCountResult }
 
 /**
- * 从HTML内容中提取纯文本并统计字数
- * @param htmlContent HTML内容
- * @returns 字数统计信息
+ * 从HTML内容中提取纯文本
+ * 使用浏览器原生DOM API，比IPC调用更高效
  */
+function extractTextFromHtml(htmlContent: string): string {
+  if (!htmlContent || !htmlContent.trim()) {
+    return ''
+  }
+  
+  try {
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = htmlContent
+    return tempDiv.textContent || tempDiv.innerText || ''
+  } catch (error) {
+    console.error('提取文本失败:', error)
+    return ''
+  }
+}
 
-export function countWords(htmlContent: string): WordCountResult {
-  if (!htmlContent.trim()) {
+/**
+ * 从HTML内容中统计字数
+ */
+export async function countWords(htmlContent: string): Promise<WordCountResult> {
+  const textContent = extractTextFromHtml(htmlContent)
+  
+  if (!textContent.trim()) {
     return {
       characters: 0,
       words: 0
     }
   }
-
-  // 创建临时DOM元素来提取纯文本
-  const tempDiv = document.createElement('div')
-  tempDiv.innerHTML = htmlContent
-  const textContent = tempDiv.textContent || tempDiv.innerText || ''
 
   // 计算字符数
   const characters = textContent.length
@@ -46,8 +64,6 @@ export function countWords(htmlContent: string): WordCountResult {
 
 /**
  * 格式化字数统计信息为可读字符串
- * @param wordCount 字数统计结果
- * @returns 格式化的统计信息
  */
 export function formatWordCount(wordCount: WordCountResult): string {
   return `${wordCount.words}字 / ${wordCount.characters}字符`

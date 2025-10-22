@@ -3,7 +3,7 @@ const WindowManager = require('./window')
 const StorageManager = require('./storage')
 const FileSystemManager = require('./file-system')
 const GlobalContextMenuManager = require('./GlobalContextMenu')
-const { converterManager } = require('./converters')
+const fileConverter = require('./converters')
 
 /**
  * 应用主入口
@@ -15,7 +15,7 @@ class Application {
     this.storageManager = new StorageManager()
     this.fileSystemManager = null
     this.contextMenuManager = null
-    this.converterManager = converterManager
+    this.fileConverter = fileConverter
   }
 
   /**
@@ -49,43 +49,46 @@ class Application {
     // 文件系统管理
     this.fileSystemManager.registerIpcHandlers(ipcMain)
 
-    // 文件转换器（DOCX、图片、文本等）
-    this.converterManager.registerAllIpcHandlers(ipcMain)
-
-    // 注册统一的文件处理API
-    this._registerUnifiedFileHandlers()
+    // 文件转换API
+    this._registerFileConverterHandlers()
 
     // 右键菜单
     this._registerContextMenuHandlers()
   }
 
   /**
-   * 注册统一的文件处理API
+   * 注册文件转换API处理器
+   * 简化的三个核心接口：read / save / getInfo
    */
-  _registerUnifiedFileHandlers() {
-    // 获取支持的文件格式信息
-    ipcMain.handle('get-supported-formats-info', async () => {
-      return this.converterManager.getSupportedFormatsInfo()
+  _registerFileConverterHandlers() {
+    // 读取文件
+    ipcMain.handle('file:read', async (event, filePath) => {
+      return await this.fileConverter.readFile(filePath)
     })
 
-    // 获取文件格式信息
-    ipcMain.handle('get-file-format-info', async (event, filePath) => {
-      return this.converterManager.getFileFormatInfo(filePath)
+    // 保存文件
+    ipcMain.handle('file:save', async (event, filePath, content) => {
+      return await this.fileConverter.saveFile(filePath, content)
     })
 
-    // 统一的文件读取接口
-    ipcMain.handle('read-file-auto', async (event, filePath) => {
-      return await this.converterManager.readFileAuto(filePath)
+    // 读取文件为纯文本
+    ipcMain.handle('file:readAsText', async (event, filePath) => {
+      return await this.fileConverter.readFileAsText(filePath)
     })
 
-    // 统一的文件保存接口
-    ipcMain.handle('save-file-auto', async (event, filePath, content) => {
-      return await this.converterManager.saveFileAuto(filePath, content)
+    // 获取文件信息
+    ipcMain.handle('file:getInfo', async (event, filePath) => {
+      return this.fileConverter.getFileInfo(filePath)
     })
 
-    // 读取文件为纯文本（用于AI对话等场景）
-    ipcMain.handle('read-file-as-text', async (event, filePath) => {
-      return await this.converterManager.readFileAsText(filePath)
+    // 获取支持的格式信息
+    ipcMain.handle('file:getSupportedFormats', async () => {
+      return this.fileConverter.getSupportedFormatsInfo()
+    })
+
+    // 从HTML提取纯文本
+    ipcMain.handle('file:extractText', async (event, html) => {
+      return this.fileConverter.extractTextFromHtml(html)
     })
   }
 

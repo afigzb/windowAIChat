@@ -1,42 +1,32 @@
 /**
- * 后端文件处理API的类型定义
- * 对应 electron/converters/converter-manager.js 的返回值
+ * 文件系统API类型定义 - 重构版
  * 
  * 架构说明：
- * - readFileAuto: 读取文件并返回HTML格式（用于编辑器）
- * - readFileAsText: 读取文件并返回纯文本（用于AI对话等场景）
- * - saveFileAuto: 保存文件（自动处理格式转换）
+ * 1. 使用TypeScript联合类型（Union Types）明确区分不同文件类型
+ * 2. 后端负责文件IO和格式转换，前端负责展示
+ * 3. 移除所有补丁逻辑和可选字段
  */
 
-/**
- * 支持的文件格式信息
- */
-export interface SupportedFormatsInfo {
-  documents: string[]
-  images: string[]
-  texts: string[]
-  all: string[]
-}
+// ==================== 后端API返回类型 ====================
 
 /**
- * 文件格式信息
+ * 图片数据
  */
-export interface FileFormatInfo {
-  isSupported: boolean
-  type?: 'document' | 'image' | 'text' | 'unsupported'
-  extension?: string
-  converterName?: string
-  reason?: string
-}
-
-/**
- * 图片数据（从后端返回）
- */
-export interface ImageDataFromBackend {
+export interface ImageData {
   dataUrl: string
   mimeType: string
   size: number
-  extension?: string
+  extension: string
+}
+
+/**
+ * 文件信息
+ */
+export interface FileInfo {
+  supported: boolean
+  type: 'document' | 'text' | 'image' | 'unsupported'
+  extension: string
+  canSave?: boolean
 }
 
 /**
@@ -44,8 +34,8 @@ export interface ImageDataFromBackend {
  */
 export interface FileReadResult {
   success: boolean
-  content?: string | ImageDataFromBackend
-  type?: 'document' | 'image' | 'text'
+  content?: string | ImageData
+  type?: 'document' | 'text' | 'image'
   extension?: string
   error?: string
   supportedFormats?: string[]
@@ -60,38 +50,120 @@ export interface FileSaveResult {
 }
 
 /**
- * 文件读取为纯文本的结果
- * 用于AI对话等不需要HTML格式的场景
+ * 纯文本读取结果
  */
 export interface FileReadAsTextResult {
   success: boolean
-  content?: string  // 纯文本内容
-  type?: 'document' | 'image' | 'text'
+  content?: string
+  type?: 'document' | 'text' | 'image'
   extension?: string
   error?: string
 }
 
 /**
- * 扩展 window.electronAPI 的类型定义
+ * 支持的格式信息
  */
+export interface SupportedFormatsInfo {
+  documents: string[]
+  images: string[]
+  texts: string[]
+  all: string[]
+}
+
+// ==================== 前端文件内容类型（联合类型） ====================
+
+/**
+ * 文档内容
+ */
+export interface DocumentContent {
+  type: 'document'
+  path: string
+  name: string
+  htmlContent: string
+  isModified: boolean
+}
+
+/**
+ * 文本内容
+ */
+export interface TextContent {
+  type: 'text'
+  path: string
+  name: string
+  htmlContent: string
+  isModified: boolean
+}
+
+/**
+ * 图片内容
+ */
+export interface ImageContent {
+  type: 'image'
+  path: string
+  name: string
+  imageData: ImageData
+}
+
+/**
+ * 不支持的文件
+ */
+export interface UnsupportedContent {
+  type: 'unsupported'
+  path: string
+  name: string
+  reason?: string
+}
+
+/**
+ * 文件内容 - 使用联合类型
+ * TypeScript会根据type字段自动推导出正确的类型
+ */
+export type FileContent = 
+  | DocumentContent 
+  | TextContent 
+  | ImageContent 
+  | UnsupportedContent
+
+// ==================== 类型守卫函数 ====================
+
+export function isDocumentContent(content: FileContent): content is DocumentContent {
+  return content.type === 'document'
+}
+
+export function isTextContent(content: FileContent): content is TextContent {
+  return content.type === 'text'
+}
+
+export function isImageContent(content: FileContent): content is ImageContent {
+  return content.type === 'image'
+}
+
+export function isUnsupportedContent(content: FileContent): content is UnsupportedContent {
+  return content.type === 'unsupported'
+}
+
+export function isEditableContent(content: FileContent): content is DocumentContent | TextContent {
+  return content.type === 'document' || content.type === 'text'
+}
+
+// ==================== Electron API类型定义 ====================
+
 declare global {
   interface Window {
     electronAPI: {
-      // === 统一的文件处理API ===
-      getSupportedFormatsInfo: () => Promise<SupportedFormatsInfo>
-      getFileFormatInfo: (filePath: string) => Promise<FileFormatInfo>
-      
-      // 读取文件为HTML格式（用于编辑器）
+      // 系统信息
+      platform: string
+
+      // === 文件转换API ===
       readFileAuto: (filePath: string) => Promise<FileReadResult>
-      
-      // 保存文件（自动处理格式转换）
       saveFileAuto: (filePath: string, content: string) => Promise<FileSaveResult>
-      
-      // 读取文件为纯文本（用于AI对话等场景，避免前端重复实现HTML转换）
       readFileAsText: (filePath: string) => Promise<FileReadAsTextResult>
+      getFileFormatInfo: (filePath: string) => Promise<FileInfo>
+      getSupportedFormatsInfo: () => Promise<SupportedFormatsInfo>
+      extractTextFromHtml: (html: string) => Promise<string>
       
       // === 文件系统管理 ===
-      selectDirectory: () => Promise<any>
+      selectDirectory: () => Promise<string | null>
       isValidDirectory: (path: string) => Promise<boolean>
       getDirectoryTree: (path: string) => Promise<any>
       
@@ -121,7 +193,7 @@ declare global {
       onFileSystemChanged: (callback: (data: any) => void) => void
       onTriggerInlineEdit: (callback: (data: any) => void) => void
       
-      // === 通用子窗口管理 ===
+      // === 子窗口管理 ===
       openChildWindow: (windowId: string) => Promise<void>
       isChildWindowOpen: (windowId: string) => Promise<boolean>
       closeChildWindow: (windowId: string) => Promise<void>
@@ -130,7 +202,7 @@ declare global {
       getChildWindowAlwaysOnTop: (windowId: string) => Promise<boolean>
       onChildWindowStateChanged: (windowId: string, callback: (isOpen: boolean) => void) => void
       
-      // === 业务专用 API ===
+      // === 业务API ===
       notifyPromptCardsChanged: () => void
       onPromptCardsChanged: (callback: () => void) => void
     }
@@ -138,4 +210,3 @@ declare global {
 }
 
 export {}
-
