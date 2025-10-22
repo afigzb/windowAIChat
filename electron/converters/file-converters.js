@@ -44,8 +44,15 @@ async function readDocx(filePath) {
     console.log('DOCX转换警告:', result.messages)
   }
   
-  // 返回原始HTML，不做标准化
-  return result.value || '<p></p>'
+  let html = result.value || '<p></p>'
+  
+  // 只清理开头的编辑器标记和空段落（保留用户主动创建的空行）
+  html = html
+    .replace(/<p>\s*<br\s*\/?>\s*<\/p>/gi, '<p></p>')  // 统一 trailing break 为空段落
+    .replace(/^(\s*<p>\s*<\/p>\s*)+/, '')  // 只移除开头的空段落
+  
+  // 如果清理后为空，返回一个空段落
+  return html.trim() || '<p></p>'
 }
 
 /**
@@ -54,12 +61,17 @@ async function readDocx(filePath) {
  */
 async function saveDocx(filePath, htmlContent) {
   // 基础清理：移除编辑器特有属性
-  const cleaned = htmlContent
+  let cleaned = htmlContent
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
     .replace(/\s*class="[^"]*"/gi, '')
     .replace(/\s*contenteditable="[^"]*"/gi, '')
     .replace(/\s*data-[a-z-]+="[^"]*"/gi, '')
+  
+  // 只清理开头的空段落和带 br 的空段落（编辑器的 trailing break）
+  cleaned = cleaned
+    .replace(/<p>\s*<br\s*\/?>\s*<\/p>/gi, '<p></p>')  // 先把 <p><br></p> 转为 <p></p>
+    .replace(/^(\s*<p>\s*<\/p>\s*)+/, '')  // 只移除开头的空段落
 
   // 包装为完整HTML文档
   const fullHtml = `<!DOCTYPE html>
@@ -110,7 +122,14 @@ async function readText(filePath) {
     return `<p>${escaped}</p>`
   })
 
-  return htmlLines.join('')
+  let html = htmlLines.join('')
+  
+  // 只清理开头的编辑器标记（保留用户的空行）
+  html = html
+    .replace(/<p>\s*<br\s*\/?>\s*<\/p>/gi, '<p></p>')
+    .replace(/^(\s*<p>\s*<\/p>\s*)+/, '')
+  
+  return html || '<p></p>'
 }
 
 /**
@@ -132,6 +151,8 @@ async function saveText(filePath, htmlContent) {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&amp;/g, '&')
+    // 只移除开头的空行（保留用户的空行）
+    .replace(/^\n+/, '')
     // 移除结尾多余的换行
     .replace(/\n+$/, '')
   
