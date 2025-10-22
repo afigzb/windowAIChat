@@ -10,6 +10,7 @@ export function PromptTemplatePage() {
   const [cards, setCards] = useState<PromptCard[]>([])
   const [editingCard, setEditingCard] = useState<PromptCard | null>(null)
   const [isCreating, setIsCreating] = useState(false)
+  const [isPinned, setIsPinned] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string; isOpen: boolean }>({
     id: '',
     title: '',
@@ -23,6 +24,15 @@ export function PromptTemplatePage() {
 
   useEffect(() => {
     loadCards()
+
+    // 加载窗口置顶状态
+    const loadPinnedState = async () => {
+      if (typeof window !== 'undefined' && (window as any).electronAPI?.getChildWindowAlwaysOnTop) {
+        const pinned = await (window as any).electronAPI.getChildWindowAlwaysOnTop('prompt-window')
+        setIsPinned(pinned)
+      }
+    }
+    loadPinnedState()
 
     // 监听其他窗口的数据更新
     const handleCardsChanged = () => {
@@ -115,6 +125,14 @@ export function PromptTemplatePage() {
     loadCards()
   }
 
+  // 切换窗口置顶状态
+  const handleTogglePin = async () => {
+    if (typeof window !== 'undefined' && (window as any).electronAPI?.toggleChildWindowAlwaysOnTop) {
+      const newPinState = await (window as any).electronAPI.toggleChildWindowAlwaysOnTop('prompt-window')
+      setIsPinned(newPinState)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
@@ -125,12 +143,41 @@ export function PromptTemplatePage() {
               <h1 className="text-2xl font-semibold text-gray-900 mb-1">提示词管理</h1>
               <p className="text-gray-600 text-sm">创建和管理AI提示词卡片，多卡片可叠加生效</p>
             </div>
-            <button
-              onClick={handleCreate}
-              className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-            >
-              新建卡片
-            </button>
+            <div className="flex items-center gap-3">
+               {/* 固定按钮 */}
+               <button
+                 onClick={handleTogglePin}
+                 className={`p-2 rounded-md transition-colors ${
+                   isPinned
+                     ? 'bg-blue-500 text-white hover:bg-blue-600'
+                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                 }`}
+                 title={isPinned ? '取消置顶窗口' : '置顶窗口'}
+               >
+                 <svg
+                   className="w-4 h-4"
+                   fill="none"
+                   stroke="currentColor"
+                   viewBox="0 0 24 24"
+                   xmlns="http://www.w3.org/2000/svg"
+                 >
+                   <path
+                     strokeLinecap="round"
+                     strokeLinejoin="round"
+                     strokeWidth={2}
+                     d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+                     fill={isPinned ? 'currentColor' : 'none'}
+                   />
+                 </svg>
+               </button>
+              {/* 新建卡片按钮 */}
+              <button
+                onClick={handleCreate}
+                className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+              >
+                新建卡片
+              </button>
+            </div>
           </div>
         </div>
 

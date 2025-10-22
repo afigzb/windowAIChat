@@ -16,6 +16,7 @@ export default function EditorWorkspace() {
   })
   const [activeTool, setActiveTool] = useState<'workspace' | 'api' | 'docs' | 'settings' | 'prompt'>('workspace')
   const [isPromptWindowOpen, setIsPromptWindowOpen] = useState(false)
+  const [isTextEditorWindowOpen, setIsTextEditorWindowOpen] = useState(false)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
 
@@ -57,7 +58,14 @@ export default function EditorWorkspace() {
   const handleOpenPromptWindow = () => {
     if (typeof window !== 'undefined' && (window as any).electronAPI) {
       setIsPromptWindowOpen(true)
-      ;(window as any).electronAPI.openPromptTemplateWindow()
+      ;(window as any).electronAPI.openChildWindow('prompt-window')
+    }
+  }
+
+  const handleOpenTextEditorWindow = () => {
+    if (typeof window !== 'undefined' && (window as any).electronAPI) {
+      setIsTextEditorWindowOpen(true)
+      ;(window as any).electronAPI.openChildWindow('text-editor-window')
     }
   }
 
@@ -87,11 +95,20 @@ export default function EditorWorkspace() {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && (window as any).electronAPI) {
-      ;(window as any).electronAPI.isPromptWindowOpen().then((isOpen: boolean) => {
+      // 监听提示词窗口状态
+      ;(window as any).electronAPI.isChildWindowOpen('prompt-window').then((isOpen: boolean) => {
         setIsPromptWindowOpen(isOpen)
       })
-      ;(window as any).electronAPI.onPromptWindowStateChanged((isOpen: boolean) => {
+      ;(window as any).electronAPI.onChildWindowStateChanged('prompt-window', (isOpen: boolean) => {
         setIsPromptWindowOpen(isOpen)
+      })
+
+      // 监听文本编辑器窗口状态
+      ;(window as any).electronAPI.isChildWindowOpen('text-editor-window').then((isOpen: boolean) => {
+        setIsTextEditorWindowOpen(isOpen)
+      })
+      ;(window as any).electronAPI.onChildWindowStateChanged('text-editor-window', (isOpen: boolean) => {
+        setIsTextEditorWindowOpen(isOpen)
       })
     }
   }, [])
@@ -117,8 +134,10 @@ export default function EditorWorkspace() {
             <SideToolbar
               activeTool={activeTool}
               isPromptWindowOpen={isPromptWindowOpen}
+              isTextEditorWindowOpen={isTextEditorWindowOpen}
               onSelectTool={(tool: 'workspace' | 'api' | 'docs' | 'settings' | 'prompt') => setActiveTool(tool)}
               onOpenPromptWindow={handleOpenPromptWindow}
+              onOpenTextEditorWindow={handleOpenTextEditorWindow}
             />
 
             <div className="flex-1 relative">

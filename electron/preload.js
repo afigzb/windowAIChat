@@ -73,14 +73,33 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 监听内联编辑触发事件
   onTriggerInlineEdit: (callback) => ipcRenderer.on('trigger-inline-edit', (event, data) => callback(data)),
 
-  // 打开提示词功能窗口
-  openPromptTemplateWindow: () => ipcRenderer.invoke('open-prompt-template-window'),
+  // ========== 通用子窗口管理 API ==========
 
-  // 查询提示词窗口是否打开
-  isPromptWindowOpen: () => ipcRenderer.invoke('is-prompt-window-open'),
+  // 打开指定子窗口
+  openChildWindow: (windowId) => ipcRenderer.invoke('open-child-window', windowId),
 
-  // 监听提示词窗口状态变化
-  onPromptWindowStateChanged: (callback) => ipcRenderer.on('prompt-window-state-changed', (event, isOpen) => callback(isOpen)),
+  // 查询子窗口是否打开
+  isChildWindowOpen: (windowId) => ipcRenderer.invoke('is-child-window-open', windowId),
+
+  // 关闭指定子窗口
+  closeChildWindow: (windowId) => ipcRenderer.invoke('close-child-window', windowId),
+
+  // 聚焦指定子窗口
+  focusChildWindow: (windowId) => ipcRenderer.invoke('focus-child-window', windowId),
+
+  // 切换子窗口置顶状态
+  toggleChildWindowAlwaysOnTop: (windowId) => ipcRenderer.invoke('toggle-child-window-always-on-top', windowId),
+
+  // 获取子窗口置顶状态
+  getChildWindowAlwaysOnTop: (windowId) => ipcRenderer.invoke('get-child-window-always-on-top', windowId),
+
+  // 监听子窗口状态变化（通用）
+  onChildWindowStateChanged: (windowId, callback) => {
+    const channel = `${windowId}-state-changed`
+    ipcRenderer.on(channel, (event, isOpen) => callback(isOpen))
+  },
+
+  // ========== 业务专用 API ==========
 
   // 通知提示词卡片已更新（用于窗口间同步）
   notifyPromptCardsChanged: () => ipcRenderer.send('prompt-cards-changed'),

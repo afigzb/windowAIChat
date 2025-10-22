@@ -1,11 +1,13 @@
 interface SideToolbarProps {
   activeTool: 'workspace' | 'api' | 'docs' | 'settings' | 'prompt'
   isPromptWindowOpen: boolean
+  isTextEditorWindowOpen: boolean
   onSelectTool: (tool: 'workspace' | 'api' | 'docs' | 'settings' | 'prompt') => void
   onOpenPromptWindow: () => void
+  onOpenTextEditorWindow: () => void
 }
 
-export function SideToolbar({ activeTool, isPromptWindowOpen, onSelectTool, onOpenPromptWindow }: SideToolbarProps) {
+export function SideToolbar({ activeTool, isPromptWindowOpen, isTextEditorWindowOpen, onSelectTool, onOpenPromptWindow, onOpenTextEditorWindow }: SideToolbarProps) {
   return (
     <div className="w-14 bg-white border-r border-slate-300 flex flex-col items-center py-3">
       <div className="flex flex-col items-center gap-2">
@@ -29,9 +31,19 @@ export function SideToolbar({ activeTool, isPromptWindowOpen, onSelectTool, onOp
               <path d="M8.00096 8.00002L5.00096 8.00049C3.34411 8.00075 2.00075 6.65781 2.00049 5.00096C2.00023 3.34411 3.34316 2.00075 5.00002 2.00049C6.65687 2.00023 8.00023 3.34316 8.00049 5.00002L8.00096 8.00002Z" stroke="currentColor" strokeWidth={1.5}/>
             </svg>
           )},
+          { key: 'text-editor', label: '空白文本', icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          )},
         ] as const).map(item => {
-          const isActive = item.key === 'prompt' ? isPromptWindowOpen : activeTool === (item.key as SideToolbarProps['activeTool'])
-          const activeClass = item.key === 'prompt' && isPromptWindowOpen
+          const isActive = item.key === 'prompt' 
+            ? isPromptWindowOpen 
+            : item.key === 'text-editor'
+            ? isTextEditorWindowOpen
+            : activeTool === (item.key as SideToolbarProps['activeTool'])
+          
+          const activeClass = (item.key === 'prompt' && isPromptWindowOpen) || (item.key === 'text-editor' && isTextEditorWindowOpen)
             ? 'bg-emerald-600 text-white shadow-sm'
             : isActive
             ? 'bg-indigo-600 text-white shadow-sm'
@@ -43,6 +55,8 @@ export function SideToolbar({ activeTool, isPromptWindowOpen, onSelectTool, onOp
               onClick={() => {
                 if (item.key === 'prompt') {
                   onOpenPromptWindow()
+                } else if (item.key === 'text-editor') {
+                  onOpenTextEditorWindow()
                 } else {
                   onSelectTool(item.key as SideToolbarProps['activeTool'])
                 }

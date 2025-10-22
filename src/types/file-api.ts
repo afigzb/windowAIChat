@@ -121,10 +121,16 @@ declare global {
       onFileSystemChanged: (callback: (data: any) => void) => void
       onTriggerInlineEdit: (callback: (data: any) => void) => void
       
-      // === 提示词窗口 ===
-      openPromptTemplateWindow: () => Promise<void>
-      isPromptWindowOpen: () => Promise<boolean>
-      onPromptWindowStateChanged: (callback: (isOpen: boolean) => void) => void
+      // === 通用子窗口管理 ===
+      openChildWindow: (windowId: string) => Promise<void>
+      isChildWindowOpen: (windowId: string) => Promise<boolean>
+      closeChildWindow: (windowId: string) => Promise<void>
+      focusChildWindow: (windowId: string) => Promise<void>
+      toggleChildWindowAlwaysOnTop: (windowId: string) => Promise<boolean>
+      getChildWindowAlwaysOnTop: (windowId: string) => Promise<boolean>
+      onChildWindowStateChanged: (windowId: string, callback: (isOpen: boolean) => void) => void
+      
+      // === 业务专用 API ===
       notifyPromptCardsChanged: () => void
       onPromptCardsChanged: (callback: () => void) => void
     }

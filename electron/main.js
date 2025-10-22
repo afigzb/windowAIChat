@@ -115,26 +115,63 @@ class Application {
       }
     })
 
-    // 打开提示词功能窗口
-    ipcMain.handle('open-prompt-template-window', async () => {
-      if (this.windowManager) {
-        this.windowManager.createPromptTemplateWindow()
+    // ========== 通用子窗口管理 IPC ==========
+
+    // 获取子窗口管理器的辅助函数
+    const getChildWindowManager = () => {
+      return this.windowManager?.getChildWindowManager()
+    }
+
+    // 打开指定子窗口
+    ipcMain.handle('open-child-window', async (event, windowId) => {
+      const manager = getChildWindowManager()
+      if (manager) {
+        manager.createOrShow(windowId)
       }
     })
 
-    // 查询提示词窗口是否打开
-    ipcMain.handle('is-prompt-window-open', async () => {
-      if (this.windowManager) {
-        return this.windowManager.isPromptWindowOpen()
-      }
-      return false
+    // 查询子窗口是否打开
+    ipcMain.handle('is-child-window-open', async (event, windowId) => {
+      const manager = getChildWindowManager()
+      return manager ? manager.isOpen(windowId) : false
     })
+
+    // 关闭指定子窗口
+    ipcMain.handle('close-child-window', async (event, windowId) => {
+      const manager = getChildWindowManager()
+      if (manager) {
+        manager.close(windowId)
+      }
+    })
+
+    // 聚焦指定子窗口
+    ipcMain.handle('focus-child-window', async (event, windowId) => {
+      const manager = getChildWindowManager()
+      if (manager) {
+        manager.focus(windowId)
+      }
+    })
+
+    // 切换子窗口置顶状态
+    ipcMain.handle('toggle-child-window-always-on-top', async (event, windowId) => {
+      const manager = getChildWindowManager()
+      return manager ? manager.toggleAlwaysOnTop(windowId) : false
+    })
+
+    // 获取子窗口置顶状态
+    ipcMain.handle('get-child-window-always-on-top', async (event, windowId) => {
+      const manager = getChildWindowManager()
+      return manager ? manager.getAlwaysOnTop(windowId) : false
+    })
+
+    // ========== 业务专用 IPC ==========
 
     // 处理提示词卡片更新通知（窗口间同步）
+    // 使用通用的 broadcast 方法，业务逻辑与窗口管理解耦
     ipcMain.on('prompt-cards-changed', () => {
-      // 广播给所有窗口
-      if (this.windowManager) {
-        this.windowManager.broadcastPromptCardsChanged()
+      const manager = getChildWindowManager()
+      if (manager) {
+        manager.broadcast('prompt-cards-changed')
       }
     })
   }

@@ -1,15 +1,16 @@
 const { BrowserWindow, shell } = require('electron')
 const path = require('path')
+const ChildWindowManager = require('./child-window-manager')
 
 /**
  * 窗口管理模块
- * 负责创建和管理应用主窗口
+ * 负责创建和管理应用主窗口和子窗口
  */
 class WindowManager {
   constructor() {
     this.mainWindow = null
     this.contextMenuManager = null
-    this.promptWindow = null
+    this.childWindowManager = null
   }
 
   /**
@@ -35,8 +36,52 @@ class WindowManager {
 
     this._loadContent()
     this._setupEventHandlers()
+    this._initializeChildWindows()
     
     return this.mainWindow
+  }
+
+  /**
+   * 初始化子窗口管理器并注册所有子窗口配置
+   * @private
+   */
+  _initializeChildWindows() {
+    this.childWindowManager = new ChildWindowManager(this.mainWindow)
+
+    // 注册提示词功能窗口
+    this.childWindowManager.register({
+      id: 'prompt-window',
+      title: '提示词功能',
+      width: 900,
+      height: 700,
+      minWidth: 0,
+      minHeight: 0,
+      urlParam: 'page=prompt',
+      modal: false,
+      backgroundColor: '#ffffff'
+    })
+
+    // 注册空白文本编辑器窗口
+    this.childWindowManager.register({
+      id: 'text-editor-window',
+      title: '空白文本',
+      width: 800,
+      height: 600,
+      minWidth: 0,
+      minHeight: 0,
+      urlParam: 'page=text-editor',
+      modal: false,
+      backgroundColor: '#ffffff'
+    })
+
+    // 未来可以在这里注册更多子窗口
+    // this.childWindowManager.register({
+    //   id: 'settings-window',
+    //   title: '设置',
+    //   width: 800,
+    //   height: 600,
+    //   urlParam: 'page=settings'
+    // })
   }
 
   /**
@@ -111,116 +156,11 @@ class WindowManager {
   }
 
   /**
-   * 创建提示词功能窗口
+   * 获取子窗口管理器
+   * @returns {ChildWindowManager|null}
    */
-  createPromptTemplateWindow() {
-    // 如果窗口已存在，则恢复并聚焦
-    if (this.promptWindow && !this.promptWindow.isDestroyed()) {
-      // 如果窗口被最小化，先恢复它
-      if (this.promptWindow.isMinimized()) {
-        this.promptWindow.restore()
-      }
-      // 然后聚焦窗口
-      this.promptWindow.focus()
-      return this.promptWindow
-    }
-
-    this.promptWindow = new BrowserWindow({
-      width: 900,
-      height: 700,
-      minWidth: 600,
-      minHeight: 500,
-      // 移除 parent 属性，让窗口可以独立切换层级
-      // parent: this.mainWindow,
-      modal: false,
-      webPreferences: {
-        nodeIntegration: false,
-        contextIsolation: true,
-        enableRemoteModule: false,
-        preload: path.join(__dirname, 'preload.js')
-      },
-      icon: path.join(__dirname, '../public/app-icon-nebula-256.ico'),
-      autoHideMenuBar: true,
-      title: '提示词功能',
-      backgroundColor: '#ffffff',
-      show: false // 等待页面加载完成后再显示
-    })
-
-    // 加载提示词功能页面，使用 URL 参数区分页面
-    const isDev = process.env.NODE_ENV === 'development' || !require('electron').app.isPackaged
-    
-    if (isDev) {
-      // 开发环境：使用Vite开发服务器 + URL 参数
-      this.promptWindow.loadURL('http://localhost:5173?page=prompt')
-      this.promptWindow.webContents.openDevTools()
-    } else {
-      // 生产环境：加载构建后的文件 + URL 参数
-      const indexHtmlPath = path.join(__dirname, '../build/web/index.html')
-      this.promptWindow.loadFile(indexHtmlPath, { search: 'page=prompt' })
-    }
-
-    // 窗口准备好后显示
-    this.promptWindow.once('ready-to-show', () => {
-      this.promptWindow.show()
-      // 通知主窗口状态变化
-      this._notifyPromptWindowState(true)
-    })
-
-    // 窗口关闭时通知主窗口
-    this.promptWindow.on('closed', () => {
-      this._notifyPromptWindowState(false)
-      this.promptWindow = null
-    })
-
-    // 处理外部链接
-    this.promptWindow.webContents.setWindowOpenHandler(({ url }) => {
-      shell.openExternal(url)
-      return { action: 'deny' }
-    })
-
-    // 阻止导航到外部URL
-    this.promptWindow.webContents.on('will-navigate', (event, navigationUrl) => {
-      try {
-        const parsedUrl = new URL(navigationUrl)
-        if (parsedUrl.protocol !== 'file:') {
-          event.preventDefault()
-        }
-      } catch (_) {
-        event.preventDefault()
-      }
-    })
-
-    return this.promptWindow
-  }
-
-  /**
-   * 通知主窗口提示词窗口状态变化
-   */
-  _notifyPromptWindowState(isOpen) {
-    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-      this.mainWindow.webContents.send('prompt-window-state-changed', isOpen)
-    }
-  }
-
-  /**
-   * 检查提示词窗口是否打开
-   */
-  isPromptWindowOpen() {
-    return this.promptWindow && !this.promptWindow.isDestroyed()
-  }
-
-  /**
-   * 广播提示词卡片更新事件给所有窗口
-   */
-  broadcastPromptCardsChanged() {
-    // 通知主窗口
-    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-      this.mainWindow.webContents.send('prompt-cards-changed')
-    }
-    // 通知提示词窗口（如果打开的话）
-    if (this.promptWindow && !this.promptWindow.isDestroyed()) {
-      this.promptWindow.webContents.send('prompt-cards-changed')
-    }
+  getChildWindowManager() {
+    return this.childWindowManager
   }
 }
 
