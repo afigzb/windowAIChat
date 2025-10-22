@@ -3,7 +3,8 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import type { AIConfig } from '../chat'
 import { ChatPanel } from '../chat'
 import { FileTreePanel } from '../file-manager'
-import { FileContentViewer, type FileContent } from '../document-editor'
+import { FileContentViewer } from '../document-editor'
+import type { FileContent } from '../types/file-api'
 import type { WordCountResult } from '../md-html-dock/types'
 
 interface WordCount {
@@ -56,10 +57,10 @@ export function WorkspaceView({
   additionalContent
 }: WorkspaceViewProps) {
   
-  // 是否显示保存按钮（只有文档类型且已修改才显示）
-  const showSaveButton = openFile?.type === 'document' && openFile?.isModified
-  // 是否显示字数统计（只有文档类型才显示）
-  const showWordCount = openFile?.type === 'document'
+  // 是否显示保存按钮（只有文档和文本类型且已修改才显示）
+  const showSaveButton = (openFile?.type === 'document' || openFile?.type === 'text') && openFile?.isModified
+  // 是否显示字数统计（只有文档和文本类型才显示）
+  const showWordCount = openFile?.type === 'document' || openFile?.type === 'text'
   
   return (
     <PanelGroup direction="horizontal" style={{ height: '100%' }} autoSaveId="writing-page-panels">
@@ -94,7 +95,7 @@ export function WorkspaceView({
                 >
                   {openFile ? openFile.name : '文件查看器'}
                 </h2>
-                {openFile?.type === 'document' && openFile?.isModified && (
+                {(openFile?.type === 'document' || openFile?.type === 'text') && openFile?.isModified && (
                   <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded flex-shrink-0">未保存</span>
                 )}
                 {openFile?.type === 'image' && (

@@ -117,7 +117,7 @@ export default function EditorWorkspace() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault()
-        if (openFile?.type === 'document' && openFile?.isModified) {
+        if ((openFile?.type === 'document' || openFile?.type === 'text') && openFile?.isModified) {
           saveFile()
         }
       }

@@ -38,6 +38,8 @@ export const TiptapDocxEditor: React.FC<TiptapDocxEditorProps> = ({
   // 防抖定时器
   const onChangeTimerRef = useRef<NodeJS.Timeout | null>(null)
   const wordCountTimerRef = useRef<NodeJS.Timeout | null>(null)
+  // 标记是否是内部更新（用户编辑），避免循环更新
+  const isInternalUpdateRef = useRef(false)
   
   const editor = useEditor({
     extensions: [
@@ -57,6 +59,7 @@ export const TiptapDocxEditor: React.FC<TiptapDocxEditorProps> = ({
       // 编辑器初始化完成，获取标准化后的HTML
       // 立即触发，不防抖
       const html = editor.getHTML()
+      isInternalUpdateRef.current = true
       onChange(html)
       
       if (onWordCountChange) {
@@ -67,6 +70,9 @@ export const TiptapDocxEditor: React.FC<TiptapDocxEditorProps> = ({
     onUpdate: ({ editor }) => {
       // 性能优化：使用防抖减少onChange调用频率
       const html = editor.getHTML()
+      
+      // 标记为内部更新
+      isInternalUpdateRef.current = true
       
       // onChange防抖：150ms（快速响应，但避免每次按键都触发）
       if (onChangeTimerRef.current) {
@@ -102,8 +108,18 @@ export const TiptapDocxEditor: React.FC<TiptapDocxEditorProps> = ({
   }, [readOnly, editor])
 
   // 当content从外部改变时，更新编辑器内容
+  // 但要避免因内部编辑触发的循环更新
   useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
+    if (!editor) return
+    
+    // 如果是内部更新导致的 content 变化，忽略
+    if (isInternalUpdateRef.current) {
+      isInternalUpdateRef.current = false
+      return
+    }
+    
+    // 只有真正从外部改变时才更新（比如切换文件）
+    if (content !== editor.getHTML()) {
       editor.commands.setContent(content)
     }
   }, [content, editor])

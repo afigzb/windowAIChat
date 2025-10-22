@@ -116,7 +116,7 @@ export function useFileEditor() {
    * 更新文档内容
    * 优化策略：
    * 1. 第一次调用时记录编辑器标准化后的内容作为基准
-   * 2. 每次更新时检查是否回到原始状态
+   * 2. 每次更新时检查是否回到原始状态（支持撤销操作）
    * 3. 使用编辑器防抖（150ms）避免频繁调用此函数
    */
   const updateContent = useCallback((newHtmlContent: string) => {
