@@ -403,6 +403,7 @@ function PromptCardEditor({ card, isCreating, onChange, onSave, onCancel }: Prom
                 max="999"
                 value={card.priority ?? 5}
                 onChange={e => onChange({ ...card, priority: parseInt(e.target.value, 10) || 5 })}
+                onWheel={(e) => e.currentTarget.blur()}
                 placeholder="默认5"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               />

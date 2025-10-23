@@ -125,6 +125,7 @@ export function SettingsPanel({ config, onConfigChange, onRequestReset }: Settin
                       max="999"
                       value={config.fileContentPriority ?? 10}
                       onChange={(e) => onConfigChange({ ...config, fileContentPriority: parseInt(e.target.value, 10) || 10 })}
+                      onWheel={(e) => e.currentTarget.blur()}
                       className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                     <p className="text-xs text-gray-400">提示词卡片默认优先级为 5</p>
