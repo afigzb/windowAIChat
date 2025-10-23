@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { formatFileContent } from '../utils/fileHelper'
-import type { FileContent } from '../../document-editor'
+import type { FileContent } from '../../types/file-api'
 
 /**
  * 文件选择管理Hook
