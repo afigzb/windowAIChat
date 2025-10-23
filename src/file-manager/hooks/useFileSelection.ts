@@ -9,28 +9,39 @@ import type { FileContent } from '../../types/file-api'
  * - 管理多文件选择状态（用于AI对话的上下文）
  * - 协调打开文件和选中文件的内容获取
  * - 使用后端统一API读取文件，避免重复实现
+ * - 支持文件顺序管理（用于独立插入模式）
  * 
  * 属于：file-manager 模块
  * 原因：文件选择是文件管理的一部分功能
  */
 export function useFileSelection(openFile: FileContent | null) {
-  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set())
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([])
   const [loadingFiles, setLoadingFiles] = useState<Set<string>>(new Set())
 
   const handleFileSelect = useCallback((filePath: string, selected: boolean) => {
     setSelectedFiles(prev => {
-      const newSet = new Set(prev)
       if (selected) {
-        newSet.add(filePath)
+        // 添加到末尾（如果不存在）
+        if (!prev.includes(filePath)) {
+          return [...prev, filePath]
+        }
+        return prev
       } else {
-        newSet.delete(filePath)
+        // 移除
+        return prev.filter(f => f !== filePath)
       }
-      return newSet
     })
   }, [])
 
   const handleClearSelectedFiles = useCallback(() => {
-    setSelectedFiles(new Set())
+    setSelectedFiles([])
+  }, [])
+
+  /**
+   * 重新排序选中的文件（用于拖拽排序）
+   */
+  const handleReorderFiles = useCallback((newOrder: string[]) => {
+    setSelectedFiles(newOrder)
   }, [])
 
   /**
@@ -69,16 +80,15 @@ export function useFileSelection(openFile: FileContent | null) {
    * 这是唯一保留前端HTML转文本的场景，其他场景统一使用后端API。
    */
   const getAdditionalContent = async (): Promise<string> => {
-    if (selectedFiles.size === 0) return ''
+    if (selectedFiles.length === 0) return ''
     
     try {
-      const filePaths = Array.from(selectedFiles)
-      setLoadingFiles(new Set(filePaths))
+      setLoadingFiles(new Set(selectedFiles))
       
       try {
         const parts: string[] = []
         
-        for (const filePath of filePaths) {
+        for (const filePath of selectedFiles) {
           try {
             // 特殊处理：如果文件正在编辑器中打开且已修改，使用编辑器中的最新内容
             if (openFile && openFile.path === filePath && openFile.type === 'document') {
@@ -116,11 +126,60 @@ export function useFileSelection(openFile: FileContent | null) {
     }
   }
 
+  /**
+   * 获取选中文件的内容列表（用于独立插入模式）
+   * 返回按顺序排列的文件内容数组，每个元素包含完整的格式化文件内容
+   */
+  const getAdditionalContentList = async (): Promise<string[]> => {
+    if (selectedFiles.length === 0) return []
+
+    try {
+      setLoadingFiles(new Set(selectedFiles))
+      
+      try {
+        const contents: string[] = []
+        
+        for (const filePath of selectedFiles) {
+          try {
+            // 特殊处理：如果文件正在编辑器中打开且已修改，使用编辑器中的最新内容
+            if (openFile && openFile.path === filePath && openFile.type === 'document') {
+              const text = extractTextFromHtml(openFile.htmlContent || '')
+              contents.push(formatFileContent(filePath, text))
+            } else {
+              const content = await readFileContent(filePath)
+              contents.push(formatFileContent(filePath, content))
+            }
+          } catch (error) {
+            console.error(`读取文件失败: ${filePath}`, error)
+            // 继续处理其他文件，不中断整个流程
+          } finally {
+            setLoadingFiles(prev => {
+              const newSet = new Set(prev)
+              newSet.delete(filePath)
+              return newSet
+            })
+          }
+        }
+        
+        return contents
+      } finally {
+        setTimeout(() => {
+          setLoadingFiles(new Set())
+        }, 500)
+      }
+    } catch (error) {
+      console.error('读取选中文件失败:', error)
+      return []
+    }
+  }
+
   return {
     selectedFiles,
     loadingFiles,
     handleFileSelect,
     handleClearSelectedFiles,
-    getAdditionalContent
+    handleReorderFiles,
+    getAdditionalContent,
+    getAdditionalContentList
   }
 }

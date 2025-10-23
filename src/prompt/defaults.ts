@@ -24,6 +24,7 @@ export const DEFAULT_PROMPT_CARDS: PromptCard[] = [
         placement: 'system',
         enabled: true,
         order: 0,
+        priority: 5,
         createdAt: Date.now(),
         updatedAt: Date.now()
     },
@@ -46,6 +47,7 @@ export const DEFAULT_PROMPT_CARDS: PromptCard[] = [
         placement: 'system',
         enabled: false,
         order: 1,
+        priority: 5,
         createdAt: Date.now(),
         updatedAt: Date.now()
     },
@@ -90,6 +92,7 @@ export const DEFAULT_PROMPT_CARDS: PromptCard[] = [
         placement: 'system',
         enabled: false,
         order: 2,
+        priority: 5,
         createdAt: Date.now(),
         updatedAt: Date.now()
     }

@@ -86,6 +86,8 @@ export interface AIConfig {
   enableCompression?: boolean            // 是否启用消息内容压缩（移除多余空白、压缩换行等）
   compressionOptions?: import('./core/context/text-compressor').TextCompressionOptions  // 压缩选项配置
   fileContentPlacement?: 'append' | 'after_system'  // 选中文件内容的插入位置（默认：append）
+  fileContentPriority?: number           // 文件内容优先级（数值越大权重越高，默认：10）
+  fileContentMode?: 'merged' | 'separate'  // 文件插入模式：merged-合并为一条，separate-独立插入（默认：merged）
 }
 
 // ===== 组件Props =====

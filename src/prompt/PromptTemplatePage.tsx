@@ -58,6 +58,7 @@ export function PromptTemplatePage() {
       placement: 'system',
       enabled: true,
       order: 0,
+      priority: 5,
       createdAt: Date.now(),
       updatedAt: Date.now()
     })
@@ -79,7 +80,8 @@ export function PromptTemplatePage() {
         title: editingCard.title,
         content: editingCard.content,
         placement: editingCard.placement,
-        enabled: editingCard.enabled
+        enabled: editingCard.enabled,
+        priority: editingCard.priority
       })
     }
 
@@ -388,6 +390,27 @@ function PromptCardEditor({ card, isCreating, onChange, onSave, onCancel }: Prom
               ))}
             </div>
           </div>
+
+          {/* 优先级 */}
+          {card.placement === 'after_system' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                优先级（数值越大越靠前）
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="999"
+                value={card.priority ?? 5}
+                onChange={e => onChange({ ...card, priority: parseInt(e.target.value, 10) || 5 })}
+                placeholder="默认5"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                优先级决定在"System后"位置的插入顺序。文件内容默认优先级为10。
+              </p>
+            </div>
+          )}
 
           {/* 启用开关 */}
           <div className="flex items-center gap-2">

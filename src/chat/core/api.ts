@@ -18,13 +18,15 @@ interface ChatAdapter {
     onThinkingUpdate: (thinking: string) => void,
     onAnswerUpdate: (answer: string) => void,
     tempContent?: string,
-    tempPlacement?: 'append' | 'after_system'
+    tempPlacement?: 'append' | 'after_system',
+    tempContentList?: string[]
   ): Promise<{ reasoning_content?: string; content: string }>
   buildRequestData(
     messages: FlatMessage[],
     config: AIConfig,
     tempContent?: string,
-    tempPlacement?: 'append' | 'after_system'
+    tempPlacement?: 'append' | 'after_system',
+    tempContentList?: string[]
   ): { url: string; headers: Record<string, string>; body: Record<string, any> }
 }
 
@@ -44,7 +46,8 @@ export async function callAIAPI(
   onThinkingUpdate: (thinking: string) => void,
   onAnswerUpdate: (answer: string) => void,
   tempContent?: string,
-  tempPlacement: 'append' | 'after_system' = 'append'
+  tempPlacement: 'append' | 'after_system' = 'append',
+  tempContentList?: string[]
 ): Promise<{ reasoning_content?: string; content: string }> {
   const currentProvider = config.providers.find(p => p.id === config.currentProviderId)
   if (!currentProvider) {
@@ -60,7 +63,8 @@ export async function callAIAPI(
     onThinkingUpdate,
     onAnswerUpdate,
     tempContent,
-    tempPlacement
+    tempPlacement,
+    tempContentList
   )
 }
 
@@ -72,7 +76,8 @@ export function getPreviewData(
   messages: FlatMessage[],
   config: AIConfig = DEFAULT_CONFIG,
   tempContent?: string,
-  tempPlacement: 'append' | 'after_system' = 'append'
+  tempPlacement: 'append' | 'after_system' = 'append',
+  tempContentList?: string[]
 ): { url: string; headers: Record<string, string>; body: Record<string, any> } {
   const currentProvider = config.providers.find(p => p.id === config.currentProviderId)
   if (!currentProvider) {
@@ -81,5 +86,5 @@ export function getPreviewData(
 
   const adapter = createAdapter(currentProvider)
 
-  return adapter.buildRequestData(messages, config, tempContent, tempPlacement)
+  return adapter.buildRequestData(messages, config, tempContent, tempPlacement, tempContentList)
 } 

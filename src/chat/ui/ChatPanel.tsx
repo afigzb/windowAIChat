@@ -37,6 +37,7 @@ interface ChatPanelProps {
   config: AIConfig
   onConfigChange: (config: AIConfig) => void
   additionalContent?: (() => Promise<string>) | string // 额外的上下文内容（如选中的文件内容）
+  additionalContentList?: () => Promise<string[]> // 额外的上下文内容列表（用于独立插入模式）
 }
 
 /**
@@ -74,7 +75,8 @@ function getConversationHistoryText(tree: ConversationTree, config: AIConfig): s
 export function ChatPanel({
   config,
   onConfigChange,
-  additionalContent
+  additionalContent,
+  additionalContentList
 }: ChatPanelProps) {
   const [showHistoryDrawer, setShowHistoryDrawer] = useState(false)
   const [showPreviewDialog, setShowPreviewDialog] = useState(false)
@@ -177,9 +179,19 @@ export function ChatPanel({
     const content = conversationState.inputValue
     conversationActions.updateInputValue('')
     
-    // 获取额外内容
+    // 使用配置的文件内容插入位置和模式
+    const placement = config.fileContentPlacement ?? 'append'
+    const mode = config.fileContentMode ?? 'merged'
+    
+    // 根据模式获取文件内容
     let extraContent = ''
-    if (additionalContent) {
+    let extraContentList: string[] | undefined = undefined
+    
+    if (placement === 'after_system' && mode === 'separate' && additionalContentList) {
+      // 独立模式：获取文件列表
+      extraContentList = await additionalContentList()
+    } else if (additionalContent) {
+      // 合并模式或 append 模式：获取合并后的内容
       if (typeof additionalContent === 'function') {
         extraContent = await additionalContent()
       } else {
@@ -187,17 +199,22 @@ export function ChatPanel({
       }
     }
     
-    // 使用配置的文件内容插入位置
-    const placement = config.fileContentPlacement ?? 'append'
-    conversationActions.sendMessage(content, null, extraContent, placement)
+    conversationActions.sendMessage(content, null, extraContent, placement, extraContentList)
   }
 
   // 生成预览数据（不打开对话框）
   const generatePreviewData = async () => {
     try {
       // 获取额外内容（与实际发送时的逻辑完全一致）
+      const placement = config.fileContentPlacement ?? 'append'
+      const mode = config.fileContentMode ?? 'merged'
+      
       let extraContent = ''
-      if (additionalContent) {
+      let extraContentList: string[] | undefined = undefined
+      
+      if (placement === 'after_system' && mode === 'separate' && additionalContentList) {
+        extraContentList = await additionalContentList()
+      } else if (additionalContent) {
         if (typeof additionalContent === 'function') {
           extraContent = await additionalContent()
         } else {
@@ -230,13 +247,12 @@ export function ChatPanel({
       const historyWithCurrentMessage = [...history, tempUserMessage]
 
       // 使用与实际发送完全相同的逻辑获取预览数据
-      // 使用配置的文件内容插入位置
-      const placement = config.fileContentPlacement ?? 'append'
       const { url, headers, body } = getPreviewData(
         historyWithCurrentMessage,
         config,
         extraContent,
-        placement  // 与实际发送时的参数保持一致
+        placement,
+        extraContentList
       )
 
       setPreviewData({ 

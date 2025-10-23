@@ -15,10 +15,11 @@ interface WordCount {
 interface WorkspaceViewProps {
   // 文件状态
   selectedFile: string | null
-  selectedFiles: Set<string>
+  selectedFiles: string[]
   loadingFiles: Set<string>
   onFileSelect: (filePath: string, selected: boolean) => void
   onClearSelectedFiles: () => void
+  onReorderFiles?: (newOrder: string[]) => void
   
   // 编辑器状态
   openFile: FileContent | null
@@ -36,6 +37,7 @@ interface WorkspaceViewProps {
   config: AIConfig
   onConfigChange: (config: AIConfig) => void
   additionalContent: () => Promise<string>
+  additionalContentList?: () => Promise<string[]>
 }
 
 export function WorkspaceView({
@@ -44,6 +46,7 @@ export function WorkspaceView({
   loadingFiles,
   onFileSelect,
   onClearSelectedFiles,
+  onReorderFiles,
   openFile,
   isFileLoading,
   fileError,
@@ -54,7 +57,8 @@ export function WorkspaceView({
   onCloseFile,
   config,
   onConfigChange,
-  additionalContent
+  additionalContent,
+  additionalContentList
 }: WorkspaceViewProps) {
   
   // 是否显示保存按钮（只有文档和文本类型且已修改才显示）
@@ -75,6 +79,7 @@ export function WorkspaceView({
               selectedFiles={selectedFiles}
               onFileSelect={onFileSelect}
               onClearSelectedFiles={onClearSelectedFiles}
+              onReorderFiles={onReorderFiles}
               loadingFiles={loadingFiles}
             />
           </div>
@@ -179,6 +184,7 @@ export function WorkspaceView({
           config={config}
           onConfigChange={onConfigChange}
           additionalContent={additionalContent}
+          additionalContentList={additionalContentList}
         />
       </Panel>
     </PanelGroup>

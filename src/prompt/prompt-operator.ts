@@ -46,7 +46,7 @@ export function createPromptCardOperator(): MessageOperator {
     let result = editor
     if (cardsByPlacement.system.length > 0) {
       const combinedContent = cardsByPlacement.system.join('\n\n')
-      const systemIndex = result.findIndexWhere(m => m.role === 'system')
+      const systemIndex = result.findIndex(m => m.role === 'system')
       if (systemIndex >= 0) {
         result = result.modifyAt(systemIndex, m => ({
           ...m,
@@ -54,21 +54,23 @@ export function createPromptCardOperator(): MessageOperator {
         }))
       } else {
         // 如果没有system消息，则在开头插入一条
-        result = result.prepend({ role: 'system', content: combinedContent })
+        result = result.insert({ role: 'system', content: combinedContent }, 0)
       }
     }
 
     // 2. 处理 after_system 位置的卡片（在system后独立插入）
     if (cardsByPlacement.after_system.length > 0) {
       for (const content of cardsByPlacement.after_system) {
-        result = result.insertAfterSystem({ role: 'user', content })
+        const firstNonSystemIndex = result.findIndex(m => m.role !== 'system')
+        const position = firstNonSystemIndex >= 0 ? firstNonSystemIndex : result.count()
+        result = result.insert({ role: 'user', content }, position)
       }
     }
 
     // 3. 处理 user_end 位置的卡片（追加到最后一条user消息）
     if (cardsByPlacement.user_end.length > 0) {
       const combinedContent = '\n\n' + cardsByPlacement.user_end.join('\n\n')
-      const lastUserIndex = result.findLastIndexWhere(m => m.role === 'user')
+      const lastUserIndex = result.findLastIndex(m => m.role === 'user')
       if (lastUserIndex >= 0) {
         result = result.modifyAt(lastUserIndex, m => ({
           ...m,

@@ -16,6 +16,7 @@ export interface PromptCard {
   placement: PromptCardPlacement  // 插入位置
   enabled: boolean       // 是否启用
   order: number          // 排序顺序（数字越小越靠前）
+  priority: number       // 优先级（数值越大权重越高，越靠前）默认5
   createdAt: number      // 创建时间戳
   updatedAt: number      // 更新时间戳
 }
@@ -38,5 +39,6 @@ export interface UpdatePromptCardParams {
   content?: string
   placement?: PromptCardPlacement
   enabled?: boolean
+  priority?: number
 }
 

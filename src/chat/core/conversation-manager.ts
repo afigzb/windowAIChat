@@ -29,8 +29,8 @@ export interface ConversationState {
 
 // 对话管理器的操作接口
 export interface ConversationActions {
-  sendMessage: (content: string, parentNodeId?: string | null, tempContent?: string, tempPlacement?: 'append' | 'after_system') => Promise<void>
-  editUserMessage: (nodeId: string, newContent: string, tempContent?: string, tempPlacement?: 'append' | 'after_system') => Promise<void>
+  sendMessage: (content: string, parentNodeId?: string | null, tempContent?: string, tempPlacement?: 'append' | 'after_system', tempContentList?: string[]) => Promise<void>
+  editUserMessage: (nodeId: string, newContent: string, tempContent?: string, tempPlacement?: 'append' | 'after_system', tempContentList?: string[]) => Promise<void>
   editAssistantMessage: (nodeId: string, newContent: string) => void
   deleteNode: (nodeId: string) => void
   updateInputValue: (value: string) => void
@@ -52,7 +52,8 @@ async function generateAIMessage(
   onThinkingUpdate: (thinking: string) => void,
   onAnswerUpdate: (answer: string) => void,
   tempContent?: string,
-  tempPlacement: 'append' | 'after_system' = 'append'
+  tempPlacement: 'append' | 'after_system' = 'append',
+  tempContentList?: string[]
 ): Promise<FlatMessage> {
   let currentGeneratedContent = ''
   let currentReasoningContent = ''
@@ -73,7 +74,8 @@ async function generateAIMessage(
         onAnswerUpdate(answer)
       },
       tempContent,
-      tempPlacement
+      tempPlacement,
+      tempContentList
     )
 
     return {
@@ -162,7 +164,8 @@ export function useConversationManager(
     currentFlatMessages?: Map<string, FlatMessage>,
     currentActivePath?: string[],
     tempContent?: string,
-    tempPlacement: 'append' | 'after_system' = 'append'
+    tempPlacement: 'append' | 'after_system' = 'append',
+    tempContentList?: string[]
   ) => {
     const flatMessages = currentFlatMessages || conversationTree.flatMessages
     const activePath = currentActivePath || conversationTree.activePath
@@ -190,7 +193,8 @@ export function useConversationManager(
         setCurrentThinking,
         setCurrentAnswer,
         tempContent,
-        tempPlacement
+        tempPlacement,
+        tempContentList
       )
       
 
@@ -220,7 +224,7 @@ export function useConversationManager(
    * @param content 消息内容
    * @param parentNodeId 父节点ID，为空时添加到当前路径末尾
    */
-  const sendMessage = useCallback(async (content: string, parentNodeId: string | null = null, tempContent?: string, tempPlacement: 'append' | 'after_system' = 'append') => {
+  const sendMessage = useCallback(async (content: string, parentNodeId: string | null = null, tempContent?: string, tempPlacement: 'append' | 'after_system' = 'append', tempContentList?: string[]) => {
     if (isLoading || !content.trim()) return
 
     // 确定父节点ID
@@ -239,7 +243,7 @@ export function useConversationManager(
     )
 
     updateConversationTree(newFlatMessages, newActivePath)
-    await generateAIReply(userMessage, newFlatMessages, newActivePath, tempContent, tempPlacement)
+    await generateAIReply(userMessage, newFlatMessages, newActivePath, tempContent, tempPlacement, tempContentList)
   }, [conversationTree, isLoading, generateAIReply, updateConversationTree])
 
   /**
@@ -247,7 +251,7 @@ export function useConversationManager(
    * @param nodeId 要编辑的消息ID
    * @param newContent 新的消息内容
    */
-  const handleEditUserMessage = useCallback(async (nodeId: string, newContent: string, tempContent?: string, tempPlacement: 'append' | 'after_system' = 'append') => {
+  const handleEditUserMessage = useCallback(async (nodeId: string, newContent: string, tempContent?: string, tempPlacement: 'append' | 'after_system' = 'append', tempContentList?: string[]) => {
     if (isLoading) return
 
     const result = editUserMessage(
@@ -264,7 +268,7 @@ export function useConversationManager(
       const editedMessage = result.newFlatMessages.get(editedMessageId)
       
       if (editedMessage) {
-        await generateAIReply(editedMessage, result.newFlatMessages, result.newActivePath, tempContent, tempPlacement)
+        await generateAIReply(editedMessage, result.newFlatMessages, result.newActivePath, tempContent, tempPlacement, tempContentList)
       }
     }
   }, [conversationTree, isLoading, updateConversationTree, generateAIReply])

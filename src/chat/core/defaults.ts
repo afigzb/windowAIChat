@@ -57,7 +57,9 @@ export const DEFAULT_CONFIG: AIConfig = {
   systemPrompt: '', // 系统提示现在由提示词卡片系统管理
   summarizePrompt: DEFAULT_SUMMARIZE_PROMPT,
   enableCompression: false,  // 默认关闭压缩
-  fileContentPlacement: 'append'  // 默认将文件内容追加到用户消息尾部
+  fileContentPlacement: 'append',  // 默认将文件内容追加到用户消息尾部
+  fileContentPriority: 10,  // 文件内容默认优先级
+  fileContentMode: 'merged'  // 默认合并模式
 }
 
 

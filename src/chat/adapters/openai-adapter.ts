@@ -20,9 +20,10 @@ export class OpenAIAdapter {
     messages: FlatMessage[],
     config: AIConfig,
     tempContent?: string,
-    tempPlacement: 'append' | 'after_system' = 'append'
+    tempPlacement: 'append' | 'after_system' = 'append',
+    tempContentList?: string[]
   ): { url: string; headers: Record<string, string>; body: Record<string, any> } {
-    const body = this.buildRequestBody(messages, config, tempContent, tempPlacement)
+    const body = this.buildRequestBody(messages, config, tempContent, tempPlacement, tempContentList)
     
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -47,9 +48,10 @@ export class OpenAIAdapter {
     messages: FlatMessage[],
     config: AIConfig,
     tempContent?: string,
-    tempPlacement: 'append' | 'after_system' = 'append'
+    tempPlacement: 'append' | 'after_system' = 'append',
+    tempContentList?: string[]
   ): Record<string, any> {
-    const commonMessages = contextEngine.buildRequestMessages(messages, config, tempContent, tempPlacement)
+    const commonMessages = contextEngine.buildRequestMessages(messages, config, tempContent, tempPlacement, tempContentList)
     
     const base: Record<string, any> = {
       model: this.provider.model,
@@ -114,9 +116,10 @@ export class OpenAIAdapter {
     onThinkingUpdate: (thinking: string) => void,
     onAnswerUpdate: (answer: string) => void,
     tempContent?: string,
-    tempPlacement: 'append' | 'after_system' = 'append'
+    tempPlacement: 'append' | 'after_system' = 'append',
+    tempContentList?: string[]
   ): Promise<{ reasoning_content?: string; content: string }> {
-    const { url, headers, body } = this.buildRequestData(messages, config, tempContent, tempPlacement)
+    const { url, headers, body } = this.buildRequestData(messages, config, tempContent, tempPlacement, tempContentList)
 
     const response = await fetch(url, {
       method: 'POST',

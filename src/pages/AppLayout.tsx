@@ -38,7 +38,9 @@ export default function EditorWorkspace() {
     loadingFiles,
     handleFileSelect,
     handleClearSelectedFiles,
-    getAdditionalContent
+    handleReorderFiles,
+    getAdditionalContent,
+    getAdditionalContentList
   } = useFileSelection(openFile)
 
   const handleConfigChange = (newConfig: AIConfig) => {
@@ -148,6 +150,7 @@ export default function EditorWorkspace() {
                   loadingFiles={loadingFiles}
                   onFileSelect={handleFileSelect}
                   onClearSelectedFiles={handleClearSelectedFiles}
+                  onReorderFiles={handleReorderFiles}
                   openFile={openFile}
                   isFileLoading={isFileLoading}
                   fileError={fileError}
@@ -159,6 +162,7 @@ export default function EditorWorkspace() {
                   config={config}
                   onConfigChange={handleConfigChange}
                   additionalContent={getAdditionalContent}
+                  additionalContentList={getAdditionalContentList}
                 />
               </div>
 

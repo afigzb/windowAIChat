@@ -31,8 +31,8 @@ export function injectSystemPrompt(systemPrompt: string, position: number = 0): 
     
     // 移除已有的system消息，然后插入新的
     return editor
-      .removeByRole('system')
-      .insertSystemMessage(systemPrompt, position)
+      .removeWhere(m => m.role === 'system')
+      .insert({ role: 'system', content: systemPrompt }, position)
   }
 }
 
@@ -43,7 +43,7 @@ export function appendSystemPrompt(systemPrompt: string): MessageOperator {
   return (editor) => {
     if (!systemPrompt.trim()) return editor
     
-    const systemIndex = editor.findIndexWhere(m => m.role === 'system')
+    const systemIndex = editor.findIndex(m => m.role === 'system')
     if (systemIndex >= 0) {
       return editor.modifyAt(systemIndex, m => ({
         ...m,
@@ -51,7 +51,7 @@ export function appendSystemPrompt(systemPrompt: string): MessageOperator {
       }))
     }
     // 如果没有system消息，则插入一条
-    return editor.prepend({ role: 'system', content: systemPrompt })
+    return editor.insert({ role: 'system', content: systemPrompt }, 0)
   }
 }
 
@@ -94,14 +94,13 @@ export function addTemporaryContext(
       case 'after_system':
         // 在 system 后独立插入，使用 formatter 格式化
         const formattedContent = formatter(trimmed)
-        return editor.insertAfterSystem({
-          role: 'user',
-          content: formattedContent
-        })
+        const firstNonSystemIndex = editor.findIndex(m => m.role !== 'system')
+        const position = firstNonSystemIndex >= 0 ? firstNonSystemIndex : editor.count()
+        return editor.insert({ role: 'user', content: formattedContent }, position)
 
       case 'append':
         // 追加到最后一条用户消息，不使用 formatter
-        const lastUserIndex = editor.findLastIndexWhere(m => m.role === 'user')
+        const lastUserIndex = editor.findLastIndex(m => m.role === 'user')
         if (lastUserIndex >= 0) {
           return editor.modifyAt(lastUserIndex, m => ({
             ...m,
@@ -143,13 +142,12 @@ export function addFileContext(
     const contextMessage = `【文件内容】\n${trimmed}`
 
     if (placement === 'after_system') {
-      return editor.insertAfterSystem({
-        role: 'user',
-        content: contextMessage
-      })
+      const firstNonSystemIndex = editor.findIndex(m => m.role !== 'system')
+      const position = firstNonSystemIndex >= 0 ? firstNonSystemIndex : editor.count()
+      return editor.insert({ role: 'user', content: contextMessage }, position)
     } else {
       // append: 追加到最后一条用户消息
-      const lastUserIndex = editor.findLastIndexWhere(m => m.role === 'user')
+      const lastUserIndex = editor.findLastIndex(m => m.role === 'user')
       if (lastUserIndex >= 0) {
         return editor.modifyAt(lastUserIndex, m => ({
           ...m,
@@ -172,10 +170,9 @@ export function addSummaryContext(summaryContent: string | undefined): MessageOp
     if (!trimmed) return editor
 
     const formattedContent = `【对话历史摘要】\n${trimmed}`
-    return editor.insertAfterSystem({
-      role: 'user',
-      content: formattedContent
-    })
+    const firstNonSystemIndex = editor.findIndex(m => m.role !== 'system')
+    const position = firstNonSystemIndex >= 0 ? firstNonSystemIndex : editor.count()
+    return editor.insert({ role: 'user', content: formattedContent }, position)
   }
 }
 
@@ -184,10 +181,11 @@ export function addSummaryContext(summaryContent: string | undefined): MessageOp
  */
 export function ensureSystemMessage(defaultPrompt: string = '你是一个有帮助的AI助手。'): MessageOperator {
   return (editor) => {
-    if (editor.hasRole('system')) {
+    const hasSystem = editor.findIndex(m => m.role === 'system') >= 0
+    if (hasSystem) {
       return editor
     }
-    return editor.insertSystemMessage(defaultPrompt, 0)
+    return editor.insert({ role: 'system', content: defaultPrompt }, 0)
   }
 }
 

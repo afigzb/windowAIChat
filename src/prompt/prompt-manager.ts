@@ -28,7 +28,16 @@ class PromptCardManager {
       this.save() // 保存默认配置到存储
       console.log('初始化默认提示词卡片')
     } else {
-      this.cards = storedCards
+      // 迁移：为没有 priority 字段的旧卡片添加默认值
+      this.cards = storedCards.map(card => ({
+        ...card,
+        priority: card.priority ?? 5
+      }))
+      // 如果有卡片被迁移，保存更新
+      if (storedCards.some(card => card.priority === undefined)) {
+        this.save()
+        console.log('迁移提示词卡片：添加默认 priority')
+      }
     }
   }
 
@@ -111,6 +120,7 @@ class PromptCardManager {
       placement: params.placement || 'system',
       enabled: params.enabled !== undefined ? params.enabled : true,
       order: maxOrder + 1,
+      priority: 5,  // 默认优先级
       createdAt: now,
       updatedAt: now
     }

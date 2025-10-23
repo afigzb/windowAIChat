@@ -2,11 +2,9 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
-import { initializePromptCards, promptCardManager } from './prompt'
-import { contextEngine } from './chat/core/context'
+import { promptCardManager } from './prompt'
 
-// 初始化提示词功能
-initializePromptCards(contextEngine)
+// 提示词卡片现在由 ContextEngine 直接处理，无需注册操作符
 
 // 监听提示词卡片更新事件（窗口间同步）
 if (typeof window !== 'undefined' && (window as any).electronAPI?.onPromptCardsChanged) {

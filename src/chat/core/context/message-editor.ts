@@ -8,14 +8,20 @@ import type { RequestMessage } from './types'
  * 设计理念：
  * 1. 链式调用：所有操作返回新的编辑器实例，支持链式调用
  * 2. 不可变性：所有操作不修改原始数据，返回新的消息列表
- * 3. 灵活性：支持按索引、角色、条件等多种方式操作消息
+ * 3. 精简核心：只保留核心方法，避免冗余的语法糖
+ * 
+ * 核心操作模式：
+ * - insert(message, position): 在指定位置插入
+ * - removeAt(position) / removeWhere(predicate): 按位置或条件删除
+ * - modifyAt(position, fn) / modifyWhere(predicate, fn): 按位置或条件修改
  * 
  * @example
  * ```ts
  * const editor = MessageEditor.from(conversationHistory)
- *   .insertSystemMessage('You are a helpful assistant', 0)
- *   .insertUserMessage('Context: ...', 1)
- *   .modifyLast(msg => ({ ...msg, content: msg.content + '\n额外内容' }))
+ *   .insert({ role: 'system', content: 'You are a helpful assistant' }, 0)
+ *   .insert({ role: 'user', content: 'Context: ...' }, 1)
+ *   .modifyAt(-1, msg => ({ ...msg, content: msg.content + '\n额外内容' }))
+ *   .removeWhere(m => m.role === 'system' && m.content === '')
  *   .limit(10)
  * 
  * const finalMessages = editor.build()
@@ -72,81 +78,24 @@ export class MessageEditor {
   }
 
   /**
-   * 在开头插入消息
-   */
-  prepend(message: RequestMessage): MessageEditor {
-    return this.insert(message, 0)
-  }
-
-  /**
    * 在末尾追加消息
    */
   append(message: RequestMessage): MessageEditor {
     return new MessageEditor([...this.messages, message])
   }
 
-  /**
-   * 在开头插入system消息
-   */
-  insertSystemMessage(content: string, position: number = 0): MessageEditor {
-    return this.insert({ role: 'system', content }, position)
-  }
-
-  /**
-   * 在指定位置插入user消息
-   */
-  insertUserMessage(content: string, position: number): MessageEditor {
-    return this.insert({ role: 'user', content }, position)
-  }
-
-  /**
-   * 在指定位置插入assistant消息
-   */
-  insertAssistantMessage(content: string, position: number): MessageEditor {
-    return this.insert({ role: 'assistant', content }, position)
-  }
-
-  /**
-   * 在第一个非system消息之后插入消息（常用于插入上下文）
-   */
-  insertAfterSystem(message: RequestMessage): MessageEditor {
-    const firstNonSystemIndex = this.messages.findIndex(m => m.role !== 'system')
-    const position = firstNonSystemIndex >= 0 ? firstNonSystemIndex : this.messages.length
-    return this.insert(message, position)
-  }
-
   // ===== 删除操作 =====
 
   /**
    * 删除指定位置的消息
+   * @param position 位置索引（支持负数，-1表示最后一条）
    */
   removeAt(position: number): MessageEditor {
     const newMessages = [...this.messages]
-    if (position >= 0 && position < newMessages.length) {
-      newMessages.splice(position, 1)
+    const actualPosition = position < 0 ? newMessages.length + position : position
+    if (actualPosition >= 0 && actualPosition < newMessages.length) {
+      newMessages.splice(actualPosition, 1)
     }
-    return new MessageEditor(newMessages)
-  }
-
-  /**
-   * 删除第一条消息
-   */
-  removeFirst(): MessageEditor {
-    return this.removeAt(0)
-  }
-
-  /**
-   * 删除最后一条消息
-   */
-  removeLast(): MessageEditor {
-    return this.removeAt(this.messages.length - 1)
-  }
-
-  /**
-   * 删除所有指定角色的消息
-   */
-  removeByRole(role: 'system' | 'user' | 'assistant'): MessageEditor {
-    const newMessages = this.messages.filter(m => m.role !== role)
     return new MessageEditor(newMessages)
   }
 
@@ -162,39 +111,14 @@ export class MessageEditor {
 
   /**
    * 修改指定位置的消息
+   * @param position 位置索引（支持负数，-1表示最后一条）
    */
   modifyAt(position: number, modifier: (message: RequestMessage) => RequestMessage): MessageEditor {
     const newMessages = [...this.messages]
-    if (position >= 0 && position < newMessages.length) {
-      newMessages[position] = modifier(newMessages[position])
+    const actualPosition = position < 0 ? newMessages.length + position : position
+    if (actualPosition >= 0 && actualPosition < newMessages.length) {
+      newMessages[actualPosition] = modifier(newMessages[actualPosition])
     }
-    return new MessageEditor(newMessages)
-  }
-
-  /**
-   * 修改第一条消息
-   */
-  modifyFirst(modifier: (message: RequestMessage) => RequestMessage): MessageEditor {
-    return this.modifyAt(0, modifier)
-  }
-
-  /**
-   * 修改最后一条消息
-   */
-  modifyLast(modifier: (message: RequestMessage) => RequestMessage): MessageEditor {
-    return this.modifyAt(this.messages.length - 1, modifier)
-  }
-
-  /**
-   * 修改所有指定角色的消息
-   */
-  modifyByRole(
-    role: 'system' | 'user' | 'assistant',
-    modifier: (message: RequestMessage) => RequestMessage
-  ): MessageEditor {
-    const newMessages = this.messages.map(m => 
-      m.role === role ? modifier(m) : m
-    )
     return new MessageEditor(newMessages)
   }
 
@@ -216,34 +140,20 @@ export class MessageEditor {
   /**
    * 查找第一个满足条件的消息索引
    */
-  findIndexWhere(predicate: (message: RequestMessage, index: number) => boolean): number {
+  findIndex(predicate: (message: RequestMessage, index: number) => boolean): number {
     return this.messages.findIndex(predicate)
   }
 
   /**
    * 查找最后一个满足条件的消息索引
    */
-  findLastIndexWhere(predicate: (message: RequestMessage, index: number) => boolean): number {
+  findLastIndex(predicate: (message: RequestMessage, index: number) => boolean): number {
     for (let i = this.messages.length - 1; i >= 0; i--) {
       if (predicate(this.messages[i], i)) {
         return i
       }
     }
     return -1
-  }
-
-  /**
-   * 获取指定角色的消息数量
-   */
-  countByRole(role: 'system' | 'user' | 'assistant'): number {
-    return this.messages.filter(m => m.role === role).length
-  }
-
-  /**
-   * 检查是否包含指定角色的消息
-   */
-  hasRole(role: 'system' | 'user' | 'assistant'): boolean {
-    return this.messages.some(m => m.role === role)
   }
 
   // ===== 截断与限制 =====

@@ -12,13 +12,53 @@ import { getFileName } from '../utils/fileHelper'
 interface FileTreePanelProps {
   selectedFile?: string | null
   // 新增：文件选择相关
-  selectedFiles?: Set<string>
+  selectedFiles?: string[]
   onFileSelect?: (filePath: string, selected: boolean) => void
   onClearSelectedFiles?: () => void
+  onReorderFiles?: (newOrder: string[]) => void
   loadingFiles?: Set<string>
 }
 
-export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onClearSelectedFiles, loadingFiles }: FileTreePanelProps) {
+export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onClearSelectedFiles, onReorderFiles, loadingFiles }: FileTreePanelProps) {
+  const [draggedIndex, setDraggedIndex] = React.useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = React.useState<number | null>(null)
+
+  // 拖拽处理
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    if (draggedIndex === null || draggedIndex === index) return
+    setDragOverIndex(index)
+  }
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null)
+  }
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault()
+    setDragOverIndex(null)
+    
+    if (draggedIndex === null || draggedIndex === dropIndex || !selectedFiles || !onReorderFiles) return
+    
+    const newOrder = [...selectedFiles]
+    const draggedItem = newOrder[draggedIndex]
+    newOrder.splice(draggedIndex, 1)
+    newOrder.splice(dropIndex, 0, draggedItem)
+    
+    onReorderFiles(newOrder)
+    setDraggedIndex(null)
+  }
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null)
+    setDragOverIndex(null)
+  }
+
   const {
     workspace,
     fileTree,
@@ -75,10 +115,10 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
                 已选择文件
               </h3>
               <span className="text-sm font-medium text-blue-600 whitespace-nowrap ml-1 flex-shrink-0">
-                ({selectedFiles?.size || 0})
+                ({selectedFiles?.length || 0})
               </span>
             </div>
-            {onClearSelectedFiles && selectedFiles && selectedFiles.size > 0 && (
+            {onClearSelectedFiles && selectedFiles && selectedFiles.length > 0 && (
               <button
                 onClick={onClearSelectedFiles}
                 className="text-sm font-medium text-blue-600 hover:text-red-600 transition-all duration-200 flex-shrink-0 whitespace-nowrap hover:underline"
@@ -91,8 +131,28 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
           {/* 固定高度的文件列表区域 */}
           <div className="h-24 overflow-y-auto scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-blue-100 bg-white rounded-lg p-1 mt-2">
             <div className="space-y-1">
-              {selectedFiles && Array.from(selectedFiles).map(filePath => (
-                <div key={filePath} className="flex items-center justify-between text-sm py-1 px-1.5 rounded hover:bg-blue-100 transition-all duration-200 group min-w-0">
+              {selectedFiles && selectedFiles.map((filePath, index) => (
+                <div 
+                  key={filePath}
+                  draggable={onReorderFiles !== undefined}
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, index)}
+                  onDragEnd={handleDragEnd}
+                  className={`flex items-center justify-between text-sm py-1 px-1.5 rounded hover:bg-blue-100 transition-all duration-200 group min-w-0 ${
+                    draggedIndex === index ? 'opacity-50' : ''
+                  } ${
+                    dragOverIndex === index ? 'border-t-2 border-blue-500' : ''
+                  } ${
+                    onReorderFiles ? 'cursor-move' : ''
+                  }`}
+                >
+                  {onReorderFiles && (
+                    <svg className="w-3 h-3 text-gray-400 flex-shrink-0 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M9 3h2v18H9V3zm4 0h2v18h-2V3z"/>
+                    </svg>
+                  )}
                   <div className="text-blue-800 flex items-center flex-1 mr-1 min-w-0" title={filePath}>
                     <svg className="w-3.5 h-3.5 text-blue-600 flex-shrink-0 mr-1" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M4 22V2h10l6 6v6h-2V9h-5V4H6v16h9v2zm17.95.375L19 19.425v2.225h-2V16h5.65v2H20.4l2.95 2.95zM6 20V4z"/>
@@ -113,7 +173,7 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
                 </div>
               ))}
               {/* 空状态提示 */}
-              {(!selectedFiles || selectedFiles.size === 0) && (
+              {(!selectedFiles || selectedFiles.length === 0) && (
                 <div className="h-full flex flex-col items-center justify-center text-blue-400 space-y-2">
                   <svg className="w-8 h-8 text-blue-300" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M1 21V6h2v13h17v2zm4-4V2h7l2 2h9v13zm2-2h14V6h-7.825l-2-2H7zm0 0V4z"/>

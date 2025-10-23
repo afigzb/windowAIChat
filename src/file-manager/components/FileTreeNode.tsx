@@ -27,7 +27,7 @@ interface FileTreeNodeProps {
   onInlineEditConfirm?: (name: string) => void
   onInlineEditCancel?: () => void
   // 新增：文件选择相关
-  selectedFiles?: Set<string>
+  selectedFiles?: string[]
   onFileSelect?: (filePath: string, selected: boolean) => void
   loadingFiles?: Set<string>
 }
@@ -95,7 +95,7 @@ export function FileTreeNode({
                     inlineEdit.parentPath === node.path
   
   const isSelected = selectedFile === node.path
-  const isFileSelected = selectedFiles?.has(node.path) || false
+  const isFileSelected = selectedFiles?.includes(node.path) || false
   const isLoading = loadingFiles?.has(node.path) || false
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {

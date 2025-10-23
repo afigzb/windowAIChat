@@ -25,3 +25,12 @@ export interface RequestMessage {
   content: string
 }
 
+/**
+ * 带优先级的插入项（用于 after_system 模式的排序）
+ * 数值越大，权重越高，插入位置越靠前
+ */
+export interface PrioritizedInsertion {
+  priority: number
+  message: RequestMessage
+}
+
