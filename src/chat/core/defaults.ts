@@ -59,7 +59,7 @@ export const DEFAULT_CONFIG: AIConfig = {
   enableCompression: false,  // 默认关闭压缩
   fileContentPlacement: 'append',  // 默认将文件内容追加到用户消息尾部
   fileContentPriority: 10,  // 文件内容默认优先级
-  fileContentMode: 'merged'  // 默认合并模式
+  fileContentMode: 'separate'  // 默认独立模式
 }
 
 

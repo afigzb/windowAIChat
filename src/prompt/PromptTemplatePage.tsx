@@ -319,7 +319,7 @@ function PromptCardEditor({ card, isCreating, onChange, onSave, onCancel }: Prom
 
   return (
     <div 
-      className="fixed inset-0 bg-gray-100 bg-opacity-75 flex items-center justify-center z-[9999] p-4"
+      className="fixed inset-0 flex items-center justify-center z-[9999] p-4"
     >
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[95vh] overflow-y-auto border border-gray-200">
         {/* 头部 */}
