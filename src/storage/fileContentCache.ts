@@ -70,6 +70,79 @@ class FileContentCache {
   }
   
   /**
+   * 移除所有以指定路径前缀开头的缓存项
+   * 用于删除文件夹时清理其下所有文件的缓存
+   */
+  removeByPrefix(pathPrefix: string): void {
+    // 标准化路径分隔符为 /
+    const normalizedPrefix = pathPrefix.replace(/\\/g, '/')
+    const keysToRemove: string[] = []
+    
+    for (const [key, entry] of this.cache.entries()) {
+      const normalizedKey = key.replace(/\\/g, '/')
+      // 检查是否以指定前缀开头
+      if (normalizedKey === normalizedPrefix || normalizedKey.startsWith(normalizedPrefix + '/')) {
+        keysToRemove.push(key)
+        this.currentSize -= entry.size
+      }
+    }
+    
+    keysToRemove.forEach(key => this.cache.delete(key))
+  }
+  
+  /**
+   * 更新单个文件的路径key
+   * 用于重命名或移动文件时更新缓存
+   */
+  updatePath(oldPath: string, newPath: string): void {
+    const entry = this.cache.get(oldPath)
+    if (entry) {
+      this.cache.delete(oldPath)
+      this.cache.set(newPath, entry)
+    }
+  }
+  
+  /**
+   * 更新所有以指定路径前缀开头的缓存项的路径
+   * 用于重命名或移动文件夹时更新其下所有文件的缓存路径
+   */
+  updatePathPrefix(oldPrefix: string, newPrefix: string): void {
+    // 标准化路径分隔符为 /
+    const normalizedOldPrefix = oldPrefix.replace(/\\/g, '/')
+    const normalizedNewPrefix = newPrefix.replace(/\\/g, '/')
+    const updates: Array<{ oldKey: string; newKey: string; entry: CacheEntry }> = []
+    
+    for (const [key, entry] of this.cache.entries()) {
+      const normalizedKey = key.replace(/\\/g, '/')
+      
+      // 检查是否匹配（完全匹配或前缀匹配）
+      if (normalizedKey === normalizedOldPrefix) {
+        // 完全匹配：直接替换
+        updates.push({
+          oldKey: key,
+          newKey: newPrefix,
+          entry
+        })
+      } else if (normalizedKey.startsWith(normalizedOldPrefix + '/')) {
+        // 前缀匹配：替换前缀部分
+        const relativePath = normalizedKey.substring(normalizedOldPrefix.length)
+        const newKey = normalizedNewPrefix + relativePath
+        updates.push({
+          oldKey: key,
+          newKey,
+          entry
+        })
+      }
+    }
+    
+    // 执行更新
+    updates.forEach(({ oldKey, newKey, entry }) => {
+      this.cache.delete(oldKey)
+      this.cache.set(newKey, entry)
+    })
+  }
+  
+  /**
    * 清空所有缓存
    */
   clear(): void {

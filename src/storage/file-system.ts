@@ -2,6 +2,7 @@
 // 提供类似VSCode的文件管理功能
 
 import storage from './index'
+import { fileContentCache } from './fileContentCache'
 
 // 文件系统节点类型
 export interface FileSystemNode {
@@ -87,6 +88,9 @@ export class FileSystemManager {
    * 设置当前工作区
    */
   async setWorkspace(workspace: Workspace): Promise<void> {
+    // 切换工作区时清空所有文件缓存
+    fileContentCache.clear()
+    
     this.currentWorkspace = workspace
     workspace.lastAccessed = new Date()
     
@@ -194,6 +198,9 @@ export class FileSystemManager {
    * 删除文件或文件夹
    */
   async delete(path: string): Promise<void> {
+    // 删除前先清理缓存（包括文件夹下所有文件的缓存）
+    fileContentCache.removeByPrefix(path)
+    
     return this.executeWithRefresh(
       () => (window as any).electronAPI.deleteFileOrDirectory(path),
       '删除失败:'
@@ -204,20 +211,42 @@ export class FileSystemManager {
    * 重命名文件或文件夹
    */
   async rename(oldPath: string, newName: string): Promise<string> {
-    return this.executeWithRefresh(
-      () => (window as any).electronAPI.rename(oldPath, newName),
-      '重命名失败:'
-    )
+    try {
+      // 执行重命名并获取新路径
+      const newPath = await (window as any).electronAPI.rename(oldPath, newName)
+      
+      // 更新缓存路径（包括文件夹下所有文件的缓存路径）
+      fileContentCache.updatePathPrefix(oldPath, newPath)
+      
+      // 刷新文件树
+      await this.loadFileTree()
+      
+      return newPath
+    } catch (error) {
+      console.error('重命名失败:', error)
+      throw error
+    }
   }
 
   /**
    * 移动文件或文件夹到目标目录
    */
   async move(sourcePath: string, targetDirPath: string, newName?: string): Promise<string> {
-    return this.executeWithRefresh(
-      () => (window as any).electronAPI.movePath(sourcePath, targetDirPath, newName),
-      '移动失败:'
-    )
+    try {
+      // 执行移动并获取新路径
+      const newPath = await (window as any).electronAPI.movePath(sourcePath, targetDirPath, newName)
+      
+      // 更新缓存路径（包括文件夹下所有文件的缓存路径）
+      fileContentCache.updatePathPrefix(sourcePath, newPath)
+      
+      // 刷新文件树
+      await this.loadFileTree()
+      
+      return newPath
+    } catch (error) {
+      console.error('移动失败:', error)
+      throw error
+    }
   }
 
   /**
