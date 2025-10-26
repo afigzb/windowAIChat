@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片处理工具 - 裁剪/圆角/SVG转ICO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Cropper.js CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" />
+    <!-- Cropper.js JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    <style>
+        .cropper-container {
+            max-height: 500px;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen py-8 px-4">
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-white rounded-lg shadow-xl p-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2 text-center">图片处理工具</h1>
+            <p class="text-gray-600 text-center mb-8">支持图片裁剪、圆角效果、SVG 转 ICO</p>
+            
+            <!-- 功能选择 -->
+            <div id="modeSelection" class="mb-8">
+                <div class="flex justify-center gap-4 mb-6">
+                    <button id="cropModeBtn" class="mode-btn bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors font-semibold shadow-md">
+                        🖼️ 裁剪 & 圆角
+                    </button>
+                    <button id="svg2icoModeBtn" class="mode-btn bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition-colors font-semibold">
+                        🎨 SVG 转 ICO
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 上传区域 -->
+            <div id="uploadSection" class="mb-8">
+                <label class="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                        <svg class="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                        <p class="mb-2 text-sm text-gray-700"><span class="font-semibold">点击上传</span> 或拖拽文件</p>
+                        <p id="uploadHint" class="text-xs text-gray-500">支持 PNG、JPG 格式</p>
+                    </div>
+                    <input id="fileInput" type="file" accept="image/*" class="hidden" />
+                </label>
+            </div>
+
+            <!-- 裁剪区域 -->
+            <div id="cropSection" class="mb-8 hidden">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">步骤 1: 裁剪图片</h2>
+                <div class="bg-gray-50 rounded-lg p-6">
+                    <!-- 比例选择 -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">选择裁剪比例：</label>
+                        <div class="flex flex-wrap gap-2">
+                            <button class="aspect-btn bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors" data-ratio="free">自由</button>
+                            <button class="aspect-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors" data-ratio="1">1:1</button>
+                            <button class="aspect-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors" data-ratio="1.333">4:3</button>
+                            <button class="aspect-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors" data-ratio="1.777">16:9</button>
+                            <button class="aspect-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors" data-ratio="0.75">3:4</button>
+                            <button class="aspect-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors" data-ratio="0.5625">9:16</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 裁剪预览 -->
+                    <div class="mb-4 bg-gray-100 rounded-lg p-4 flex justify-center">
+                        <img id="cropImage" class="max-w-full" style="max-height: 500px;" />
+                    </div>
+                    
+                    <!-- 操作按钮 -->
+                    <div class="flex gap-3 justify-center flex-wrap">
+                        <button id="rotateLeftBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                            <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
+                            </svg>
+                            左旋转
+                        </button>
+                        <button id="rotateRightBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                            <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10H11a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6"></path>
+                            </svg>
+                            右旋转
+                        </button>
+                        <button id="flipHBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                            ↔️ 水平翻转
+                        </button>
+                        <button id="flipVBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                            ↕️ 垂直翻转
+                        </button>
+                        <button id="resetCropBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                            🔄 重置
+                        </button>
+                        <button id="confirmCropBtn" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                            ✓ 确认裁剪
+                        </button>
+                        <button id="skipCropBtn" class="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                            ⏭️ 跳过裁剪
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 圆角控制 -->
+            <div id="roundedSection" class="mb-8 hidden">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">步骤 2: 设置圆角</h2>
+                <div class="bg-gray-50 rounded-lg p-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        圆角半径: <span id="radiusValue" class="text-indigo-600 font-bold">20</span>px
+                    </label>
+                    <input 
+                        type="range" 
+                        id="radiusSlider" 
+                        min="0" 
+                        max="500" 
+                        value="20" 
+                        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>直角</span>
+                        <span>圆形</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 预览区域 -->
+            <div id="previewSection" class="mb-8 hidden">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">步骤 3: 预览效果</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <p class="text-sm text-gray-600 mb-2">处理前</p>
+                        <div class="bg-gray-100 rounded-lg p-4 flex items-center justify-center min-h-[200px]">
+                            <img id="originalPreview" class="max-w-full max-h-[300px] object-contain" />
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600 mb-2">圆角效果</p>
+                        <div class="bg-gray-100 rounded-lg p-4 flex items-center justify-center min-h-[200px]" style="background-image: linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;">
+                            <canvas id="canvas" class="max-w-full max-h-[300px]"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 下载按钮 -->
+            <div id="downloadSection" class="hidden text-center">
+                <button id="downloadBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg transition-colors duration-200 transform hover:scale-105">
+                    <svg class="w-5 h-5 inline-block mr-2 -mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    下载圆角图片
+                </button>
+                <button id="restartBtn" class="ml-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg transition-colors duration-200 transform hover:scale-105">
+                    🔄 重新开始
+                </button>
+            </div>
+
+            <!-- SVG 转 ICO 区域 -->
+            <div id="svg2icoSection" class="hidden">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">SVG 预览</h2>
+                <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                    <div class="flex justify-center mb-4" style="background-image: linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;">
+                        <div id="svgPreview" class="p-4"></div>
+                    </div>
+                </div>
+
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">选择 ICO 尺寸</h2>
+                <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="checkbox" class="ico-size" value="16" checked />
+                            <span class="text-sm">16x16</span>
+                        </label>
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="checkbox" class="ico-size" value="32" checked />
+                            <span class="text-sm">32x32</span>
+                        </label>
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="checkbox" class="ico-size" value="48" checked />
+                            <span class="text-sm">48x48</span>
+                        </label>
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="checkbox" class="ico-size" value="64" />
+                            <span class="text-sm">64x64</span>
+                        </label>
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="checkbox" class="ico-size" value="128" />
+                            <span class="text-sm">128x128</span>
+                        </label>
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="checkbox" class="ico-size" value="256" checked />
+                            <span class="text-sm">256x256</span>
+                        </label>
+                    </div>
+                </div>
+
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">预览各尺寸</h2>
+                <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                    <div id="icoPreviewGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+                </div>
+
+                <div class="text-center">
+                    <button id="generateIcoBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg transition-colors duration-200 transform hover:scale-105">
+                        <svg class="w-5 h-5 inline-block mr-2 -mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        生成并下载 ICO
+                    </button>
+                    <button id="restartBtn2" class="ml-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg transition-colors duration-200 transform hover:scale-105">
+                        🔄 重新开始
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let cropper = null;
+        let originalFileName = '';
+        let croppedImage = null;
+        let scaleX = 1;
+        let scaleY = 1;
+        let currentMode = 'crop'; // 'crop' or 'svg2ico'
+        let svgContent = null;
+
+        // 获取DOM元素
+        const fileInput = document.getElementById('fileInput');
+        const uploadSection = document.getElementById('uploadSection');
+        const cropSection = document.getElementById('cropSection');
+        const roundedSection = document.getElementById('roundedSection');
+        const previewSection = document.getElementById('previewSection');
+        const downloadSection = document.getElementById('downloadSection');
+        const svg2icoSection = document.getElementById('svg2icoSection');
+        const cropImage = document.getElementById('cropImage');
+        const originalPreview = document.getElementById('originalPreview');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const radiusSlider = document.getElementById('radiusSlider');
+        const radiusValue = document.getElementById('radiusValue');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const restartBtn2 = document.getElementById('restartBtn2');
+        const uploadHint = document.getElementById('uploadHint');
+        const cropModeBtn = document.getElementById('cropModeBtn');
+        const svg2icoModeBtn = document.getElementById('svg2icoModeBtn');
+        const svgPreview = document.getElementById('svgPreview');
+        const icoPreviewGrid = document.getElementById('icoPreviewGrid');
+        const generateIcoBtn = document.getElementById('generateIcoBtn');
+
+        // 模式切换
+        cropModeBtn.addEventListener('click', function() {
+            currentMode = 'crop';
+            updateModeUI();
+        });
+
+        svg2icoModeBtn.addEventListener('click', function() {
+            currentMode = 'svg2ico';
+            updateModeUI();
+        });
+
+        function updateModeUI() {
+            // 更新按钮样式
+            if (currentMode === 'crop') {
+                cropModeBtn.classList.add('bg-indigo-600', 'text-white');
+                cropModeBtn.classList.remove('bg-gray-200', 'text-gray-700');
+                svg2icoModeBtn.classList.remove('bg-indigo-600', 'text-white');
+                svg2icoModeBtn.classList.add('bg-gray-200', 'text-gray-700');
+                
+                // 更新上传提示和文件类型
+                uploadHint.textContent = '支持 PNG、JPG 格式';
+                fileInput.accept = 'image/*';
+            } else {
+                svg2icoModeBtn.classList.add('bg-indigo-600', 'text-white');
+                svg2icoModeBtn.classList.remove('bg-gray-200', 'text-gray-700');
+                cropModeBtn.classList.remove('bg-indigo-600', 'text-white');
+                cropModeBtn.classList.add('bg-gray-200', 'text-gray-700');
+                
+                // 更新上传提示和文件类型
+                uploadHint.textContent = '支持 SVG 格式';
+                fileInput.accept = '.svg,image/svg+xml';
+            }
+            
+            // 重置状态
+            resetAll();
+        }
+
+        // 文件选择
+        fileInput.addEventListener('change', handleFileSelect);
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            originalFileName = file.name.replace(/\.[^/.]+$/, '');
+
+            if (currentMode === 'crop') {
+                // 裁剪模式
+            if (!file.type.match('image/.*')) {
+                alert('请上传图片文件！');
+                return;
+            }
+
+            const reader = new FileReader();
+            
+            reader.onload = function(event) {
+                // 销毁旧的cropper实例
+                if (cropper) {
+                    cropper.destroy();
+                    cropper = null;
+                }
+                
+                // 重置变量
+                scaleX = 1;
+                scaleY = 1;
+                
+                // 显示裁剪区域
+                uploadSection.classList.add('hidden');
+                cropSection.classList.remove('hidden');
+                roundedSection.classList.add('hidden');
+                previewSection.classList.add('hidden');
+                downloadSection.classList.add('hidden');
+                    svg2icoSection.classList.add('hidden');
+                
+                // 加载图片到裁剪器
+                cropImage.src = event.target.result;
+                
+                // 初始化Cropper
+                cropper = new Cropper(cropImage, {
+                    aspectRatio: NaN, // 自由比例
+                    viewMode: 1,
+                    autoCropArea: 0.8,
+                    responsive: true,
+                    background: false,
+                    center: true,
+                    highlight: true,
+                    cropBoxMovable: true,
+                    cropBoxResizable: true,
+                    toggleDragModeOnDblclick: false,
+                });
+            };
+            
+            reader.readAsDataURL(file);
+            } else {
+                // SVG 转 ICO 模式
+                if (!file.name.toLowerCase().endsWith('.svg')) {
+                    alert('请上传 SVG 文件！');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    svgContent = event.target.result;
+                    showSvg2IcoSection();
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        // 比例按钮
+        document.querySelectorAll('.aspect-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // 更新按钮样式
+                document.querySelectorAll('.aspect-btn').forEach(b => {
+                    b.classList.remove('bg-indigo-600', 'text-white');
+                    b.classList.add('bg-gray-200', 'text-gray-700');
+                });
+                this.classList.remove('bg-gray-200', 'text-gray-700');
+                this.classList.add('bg-indigo-600', 'text-white');
+                
+                // 设置比例
+                const ratio = this.dataset.ratio;
+                if (cropper) {
+                    if (ratio === 'free') {
+                        cropper.setAspectRatio(NaN);
+                    } else {
+                        cropper.setAspectRatio(parseFloat(ratio));
+                    }
+                }
+            });
+        });
+
+        // 旋转按钮
+        document.getElementById('rotateLeftBtn').addEventListener('click', () => {
+            if (cropper) cropper.rotate(-90);
+        });
+
+        document.getElementById('rotateRightBtn').addEventListener('click', () => {
+            if (cropper) cropper.rotate(90);
+        });
+
+        // 翻转按钮
+        document.getElementById('flipHBtn').addEventListener('click', () => {
+            if (cropper) {
+                scaleX = -scaleX;
+                cropper.scaleX(scaleX);
+            }
+        });
+
+        document.getElementById('flipVBtn').addEventListener('click', () => {
+            if (cropper) {
+                scaleY = -scaleY;
+                cropper.scaleY(scaleY);
+            }
+        });
+
+        // 重置按钮
+        document.getElementById('resetCropBtn').addEventListener('click', () => {
+            if (cropper) {
+                cropper.reset();
+                scaleX = 1;
+                scaleY = 1;
+            }
+        });
+
+        // 确认裁剪按钮
+        document.getElementById('confirmCropBtn').addEventListener('click', () => {
+            if (!cropper) return;
+            
+            // 获取裁剪后的canvas
+            const croppedCanvas = cropper.getCroppedCanvas({
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high',
+            });
+            
+            // 转换为图片
+            croppedCanvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const img = new Image();
+                img.onload = function() {
+                    croppedImage = img;
+                    showRoundedSection();
+                };
+                img.src = url;
+            }, 'image/png');
+        });
+
+        // 跳过裁剪按钮
+        document.getElementById('skipCropBtn').addEventListener('click', () => {
+            if (!cropper) return;
+            
+            // 获取原始图片（不裁剪）
+            const imageData = cropper.getImageData();
+            const img = new Image();
+            img.onload = function() {
+                croppedImage = img;
+                showRoundedSection();
+            };
+            img.src = cropImage.src;
+        });
+
+        // 显示圆角设置部分
+        function showRoundedSection() {
+            cropSection.classList.add('hidden');
+            roundedSection.classList.remove('hidden');
+            previewSection.classList.remove('hidden');
+            downloadSection.classList.remove('hidden');
+            
+            // 显示预览
+            originalPreview.src = croppedImage.src;
+            
+            // 初始渲染
+            renderRoundedImage();
+        }
+
+        // 圆角滑块变化
+        radiusSlider.addEventListener('input', function() {
+            radiusValue.textContent = this.value;
+            renderRoundedImage();
+        });
+
+        // 渲染圆角图片
+        function renderRoundedImage() {
+            if (!croppedImage) return;
+
+            const radius = parseInt(radiusSlider.value);
+            const width = croppedImage.width;
+            const height = croppedImage.height;
+
+            canvas.width = width;
+            canvas.height = height;
+
+            // 清除画布
+            ctx.clearRect(0, 0, width, height);
+
+            // 创建圆角路径
+            ctx.beginPath();
+            ctx.moveTo(radius, 0);
+            ctx.lineTo(width - radius, 0);
+            ctx.quadraticCurveTo(width, 0, width, radius);
+            ctx.lineTo(width, height - radius);
+            ctx.quadraticCurveTo(width, height, width - radius, height);
+            ctx.lineTo(radius, height);
+            ctx.quadraticCurveTo(0, height, 0, height - radius);
+            ctx.lineTo(0, radius);
+            ctx.quadraticCurveTo(0, 0, radius, 0);
+            ctx.closePath();
+
+            // 裁剪并绘制图片
+            ctx.clip();
+            ctx.drawImage(croppedImage, 0, 0);
+        }
+
+        // 下载图片
+        downloadBtn.addEventListener('click', function() {
+            const link = document.createElement('a');
+            link.download = `${originalFileName}_rounded.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+
+        // SVG 转 ICO 相关函数
+        function showSvg2IcoSection() {
+            uploadSection.classList.add('hidden');
+            cropSection.classList.add('hidden');
+            roundedSection.classList.add('hidden');
+            previewSection.classList.add('hidden');
+            downloadSection.classList.add('hidden');
+            svg2icoSection.classList.remove('hidden');
+            
+            // 显示 SVG 预览
+            svgPreview.innerHTML = svgContent;
+            const svgElement = svgPreview.querySelector('svg');
+            if (svgElement) {
+                svgElement.style.maxWidth = '200px';
+                svgElement.style.maxHeight = '200px';
+            }
+            
+            // 生成预览
+            updateIcoPreview();
+        }
+
+        function updateIcoPreview() {
+            icoPreviewGrid.innerHTML = '';
+            const sizes = [16, 32, 48, 64, 128, 256];
+            
+            sizes.forEach(size => {
+                const checkbox = document.querySelector(`.ico-size[value="${size}"]`);
+                if (checkbox && checkbox.checked) {
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'text-center';
+                    previewItem.innerHTML = `
+                        <div class="bg-white border-2 border-gray-300 rounded-lg p-4 flex items-center justify-center mb-2" style="height: ${Math.min(size * 1.5, 150)}px;">
+                            <canvas id="preview-${size}" width="${size}" height="${size}" style="image-rendering: pixelated;"></canvas>
+                        </div>
+                        <p class="text-sm text-gray-600">${size}x${size}</p>
+                    `;
+                    icoPreviewGrid.appendChild(previewItem);
+                    
+                    // 渲染 SVG 到 Canvas
+                    setTimeout(() => {
+                        const previewCanvas = document.getElementById(`preview-${size}`);
+                        renderSvgToCanvas(svgContent, previewCanvas, size);
+                    }, 0);
+                }
+            });
+        }
+
+        function renderSvgToCanvas(svgText, canvas, size) {
+            const img = new Image();
+            const blob = new Blob([svgText], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            
+            img.onload = function() {
+                const ctx = canvas.getContext('2d');
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.clearRect(0, 0, size, size);
+                ctx.drawImage(img, 0, 0, size, size);
+                URL.revokeObjectURL(url);
+            };
+            
+            img.src = url;
+        }
+
+        // 尺寸复选框变化
+        document.querySelectorAll('.ico-size').forEach(checkbox => {
+            checkbox.addEventListener('change', updateIcoPreview);
+        });
+
+        // 生成 ICO
+        generateIcoBtn.addEventListener('click', async function() {
+            const selectedSizes = Array.from(document.querySelectorAll('.ico-size:checked'))
+                .map(cb => parseInt(cb.value))
+                .sort((a, b) => a - b);
+            
+            if (selectedSizes.length === 0) {
+                alert('请至少选择一个尺寸！');
+                return;
+            }
+
+            // 生成各尺寸的 PNG 数据
+            const pngDataArray = [];
+            for (const size of selectedSizes) {
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                await new Promise(resolve => {
+                    renderSvgToCanvas(svgContent, canvas, size);
+                    setTimeout(() => {
+                        canvas.toBlob(blob => {
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                pngDataArray.push({
+                                    size: size,
+                                    data: new Uint8Array(e.target.result)
+                                });
+                                resolve();
+                            };
+                            reader.readAsArrayBuffer(blob);
+                        }, 'image/png');
+                    }, 100);
+                });
+            }
+
+            // 生成 ICO 文件
+            const icoBlob = createIcoFile(pngDataArray);
+            
+            // 下载
+            const link = document.createElement('a');
+            link.download = `${originalFileName}.ico`;
+            link.href = URL.createObjectURL(icoBlob);
+            link.click();
+            URL.revokeObjectURL(link.href);
+        });
+
+        // 创建 ICO 文件
+        function createIcoFile(pngDataArray) {
+            // ICO 文件格式：
+            // Header (6 bytes): 0-1: Reserved (0), 2-3: Type (1), 4-5: Count
+            // Directory Entry (16 bytes per image)
+            // Image Data
+
+            const count = pngDataArray.length;
+            const headerSize = 6;
+            const directorySize = count * 16;
+            
+            // 计算总大小
+            let totalSize = headerSize + directorySize;
+            const imageOffsets = [];
+            
+            for (const png of pngDataArray) {
+                imageOffsets.push(totalSize);
+                totalSize += png.data.length;
+            }
+            
+            // 创建缓冲区
+            const buffer = new ArrayBuffer(totalSize);
+            const view = new DataView(buffer);
+            const bytes = new Uint8Array(buffer);
+            
+            // 写入头部
+            view.setUint16(0, 0, true); // Reserved
+            view.setUint16(2, 1, true); // Type (1 = ICO)
+            view.setUint16(4, count, true); // Count
+            
+            // 写入目录条目
+            let offset = headerSize;
+            for (let i = 0; i < count; i++) {
+                const png = pngDataArray[i];
+                const size = png.size;
+                
+                view.setUint8(offset, size === 256 ? 0 : size); // Width
+                view.setUint8(offset + 1, size === 256 ? 0 : size); // Height
+                view.setUint8(offset + 2, 0); // Color palette
+                view.setUint8(offset + 3, 0); // Reserved
+                view.setUint16(offset + 4, 1, true); // Color planes
+                view.setUint16(offset + 6, 32, true); // Bits per pixel
+                view.setUint32(offset + 8, png.data.length, true); // Image size
+                view.setUint32(offset + 12, imageOffsets[i], true); // Image offset
+                
+                offset += 16;
+            }
+            
+            // 写入图像数据
+            for (let i = 0; i < count; i++) {
+                bytes.set(pngDataArray[i].data, imageOffsets[i]);
+            }
+            
+            return new Blob([buffer], { type: 'image/x-icon' });
+        }
+
+        // 重置所有状态
+        function resetAll() {
+            // 销毁cropper
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+            
+            // 重置所有状态
+            croppedImage = null;
+            svgContent = null;
+            originalFileName = '';
+            scaleX = 1;
+            scaleY = 1;
+            fileInput.value = '';
+            
+            // 重置UI
+            uploadSection.classList.remove('hidden');
+            cropSection.classList.add('hidden');
+            roundedSection.classList.add('hidden');
+            previewSection.classList.add('hidden');
+            downloadSection.classList.add('hidden');
+            svg2icoSection.classList.add('hidden');
+            
+            // 重置圆角滑块
+            radiusSlider.value = 20;
+            radiusValue.textContent = '20';
+            
+            // 重置比例按钮
+            document.querySelectorAll('.aspect-btn').forEach((b, i) => {
+                if (i === 0) {
+                    b.classList.remove('bg-gray-200', 'text-gray-700');
+                    b.classList.add('bg-indigo-600', 'text-white');
+                } else {
+                    b.classList.remove('bg-indigo-600', 'text-white');
+                    b.classList.add('bg-gray-200', 'text-gray-700');
+                }
+            });
+        }
+
+        // 重新开始按钮
+        restartBtn.addEventListener('click', resetAll);
+        restartBtn2.addEventListener('click', resetAll);
+
+        // 拖拽上传
+        const dropZone = document.querySelector('label');
+        
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('bg-gray-100');
+        });
+
+        dropZone.addEventListener('dragleave', function() {
+            this.classList.remove('bg-gray-100');
+        });
+
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('bg-gray-100');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect({ target: { files: files } });
+            }
+        });
+    </script>
+</body>
+</html>
