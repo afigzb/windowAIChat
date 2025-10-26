@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
 
+const FIRST_LOAD_KEY = 'app-first-load-completed'
+
 export function AppLoader({ onComplete }: { onComplete: () => void }) {
   const [text, setText] = useState('')
   const [fadeOut, setFadeOut] = useState(false)
+  const [typingComplete, setTypingComplete] = useState(false)
   const fullText = 'AI 写作助手'
-  const typingSpeed = 150 // 每个字符的间隔时间（毫秒）
+  const typingSpeed = 200 // 每个字符的间隔时间（毫秒）
+  const isFirstLoad = !localStorage.getItem(FIRST_LOAD_KEY)
 
   useEffect(() => {
     let index = 0
@@ -15,6 +19,9 @@ export function AppLoader({ onComplete }: { onComplete: () => void }) {
         setText(fullText.slice(0, index + 1))
         index++
         timeoutId = setTimeout(typeNextChar, typingSpeed)
+      } else {
+        // 打字完成
+        setTypingComplete(true)
       }
     }
 
@@ -27,14 +34,34 @@ export function AppLoader({ onComplete }: { onComplete: () => void }) {
   }, [])
 
   useEffect(() => {
-    // 应用加载完成，开始淡出
-    setFadeOut(true)
-    const timer = setTimeout(() => {
-      onComplete()
-    }, 500) // 等待淡出动画完成
+    // 如果是首次加载，等待打字动画完成后再淡出
+    if (isFirstLoad) {
+      if (typingComplete) {
+        // 打字完成后，等待一小段时间再开始淡出
+        const waitTimer = setTimeout(() => {
+          setFadeOut(true)
+          // 标记为已完成首次加载
+          localStorage.setItem(FIRST_LOAD_KEY, 'true')
+        }, 1000) // 打字完成后停留 1000ms
 
-    return () => clearTimeout(timer)
-  }, [onComplete])
+        return () => clearTimeout(waitTimer)
+      }
+    } else {
+      // 非首次加载，立即开始淡出
+      setFadeOut(true)
+    }
+  }, [isFirstLoad, typingComplete])
+
+  useEffect(() => {
+    // 淡出动画完成后调用 onComplete
+    if (fadeOut) {
+      const timer = setTimeout(() => {
+        onComplete()
+      }, 500) // 等待淡出动画完成
+
+      return () => clearTimeout(timer)
+    }
+  }, [fadeOut, onComplete])
 
   return (
     <div
