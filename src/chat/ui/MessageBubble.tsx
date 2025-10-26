@@ -70,24 +70,22 @@ function ThinkingContent({ content, isExpanded, onToggle }: {
   onToggle: () => void
 }) {
   return (
-    <div className="mb-6 w-full min-w-[8rem] bg-gradient-to-br from-gray-50 to-slate-50 border-2 border-gray-200 rounded-2xl p-6 shadow-sm">
+    <div className="w-full min-w-[8rem] bg-white border-2 border-gray-200 rounded-2xl shadow-sm overflow-hidden">
       <button
         onClick={onToggle}
-        className="flex items-center gap-3 mb-4 w-full text-left"
+        className={`flex items-center gap-2 w-full text-left px-6 hover:bg-gray-50 ${
+          isExpanded ? 'py-3' : 'py-6'
+        }`}
       >
-        <div className="w-3 h-3 bg-blue-500 rounded-full shadow-sm animate-pulse" />
-        <span className="text-base font-semibold text-gray-800 whitespace-nowrap">💭 思考过程</span>
-        <div className="ml-auto flex items-center gap-2 text-sm text-gray-600">
-          <span className="whitespace-nowrap">{isExpanded ? '收起' : '展开'}</span>
-          <div className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
-            <Icon name="chevronDown" className="w-4 h-4" />
-          </div>
+        <span className="text-sm text-gray-700 whitespace-nowrap">思考过程</span>
+        <div className={`ml-auto transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+          <Icon name="chevronDown" className="w-4 h-4 text-gray-500" />
         </div>
       </button>
       
       {isExpanded && (
-        <div className="text-sm text-gray-700 font-mono leading-relaxed whitespace-pre-wrap bg-white rounded-xl p-6 border-2 border-gray-200 shadow-md min-w-[4rem] break-words">
-          {content}
+        <div className="px-6 pb-4 text-sm text-gray-800 leading-relaxed whitespace-pre-wrap border-t border-gray-200 break-words">
+          <div className="pt-4">{content}</div>
         </div>
       )}
     </div>
@@ -189,13 +187,12 @@ export function MessageBubble({
           {!isUser && (
             <>
               {isGenerating && currentThinking && (
-                <div className="mb-6 w-full min-w-[8rem] bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-6 shadow-md">
-                  <div className="flex items-center gap-4 mb-4">
-                    <AnimatedDots color="teal" />
-                    <span className="text-base font-semibold text-blue-700 whitespace-nowrap">💭 正在思考</span>
+                <div className="mb-4 w-full min-w-[8rem] bg-white border-2 border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                  <div className="px-6 py-3 bg-gray-50">
+                    <span className="text-sm text-gray-700 whitespace-nowrap">思考过程</span>
                   </div>
-                  <div className="text-sm text-gray-700 font-mono leading-relaxed whitespace-pre-wrap bg-white rounded-xl p-5 border-2 border-blue-200 shadow-sm min-w-[4rem] break-words">
-                    {currentThinking}
+                  <div className="px-6 pb-4 text-sm text-gray-800 leading-relaxed whitespace-pre-wrap border-t border-gray-200 break-words">
+                    <div className="pt-4">{currentThinking}</div>
                   </div>
                 </div>
               )}
@@ -218,11 +215,11 @@ export function MessageBubble({
             <div className={`${isEditing ? 'w-full min-w-[8rem]' : ''}`}>
               <div className={`${
                 isEditing 
-                  ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-2xl p-6 shadow-md' 
+                  ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-2xl p-4 shadow-md' 
                   : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl px-6 py-4 shadow-lg hover:shadow-xl transition-all duration-300'
               }`}>
                 {isEditing ? (
-                  <div className="space-y-4">
+                  <div className="space-y-2.5">
                     <textarea
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
@@ -234,21 +231,21 @@ export function MessageBubble({
                           handleEditCancel()
                         }
                       }}
-                      className="w-full bg-white text-gray-900 placeholder-gray-400 border-2 border-gray-300 rounded-xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none text-base leading-relaxed"
+                      className="w-full bg-white text-gray-900 placeholder-gray-400 border-2 border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-y text-base leading-relaxed"
                       placeholder="修改消息内容..."
-                      rows={Math.max(2, editContent.split('\n').length)}
+                      rows={Math.max(5, Math.min(editContent.split('\n').length, 15))}
                       autoFocus
                     />
-                    <div className="flex gap-3 justify-end min-w-[6rem]">
+                    <div className="flex gap-2 justify-end">
                       <button 
                         onClick={handleEditCancel} 
-                        className="px-5 py-2.5 text-gray-600 hover:text-gray-800 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-100 min-w-[2rem] whitespace-nowrap"
+                        className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 whitespace-nowrap"
                       >
                         取消
                       </button>
                       <button 
                         onClick={handleEditSave} 
-                        className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-semibold rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 min-w-[6rem] whitespace-nowrap"
+                        className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 whitespace-nowrap"
                       >
                         保存并重新生成
                       </button>
@@ -263,12 +260,12 @@ export function MessageBubble({
             /* AI消息 - 卡片样式 */
             <div className={`w-full min-w-[8rem] ${
               isEditing 
-                ? 'bg-gradient-to-br from-gray-50 to-slate-50 border-2 border-blue-300 rounded-2xl shadow-md' 
+                ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-2xl shadow-md' 
                 : 'bg-white border-2 border-gray-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300'
             } overflow-hidden`}>
-              <div className="p-8">
+              <div className={isEditing ? "p-4" : "p-8"}>
                 {isEditing ? (
-                  <div className="space-y-4">
+                  <div className="space-y-2.5">
                     <textarea
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
@@ -280,21 +277,21 @@ export function MessageBubble({
                           handleEditCancel()
                         }
                       }}
-                      className="w-full bg-white text-gray-900 placeholder-gray-400 border-2 border-gray-300 rounded-xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none text-base leading-relaxed"
+                      className="w-full bg-white text-gray-900 placeholder-gray-400 border-2 border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-y text-base leading-relaxed"
                       placeholder="修改AI回答内容..."
-                      rows={Math.max(3, editContent.split('\n').length)}
+                      rows={Math.max(8, Math.min(editContent.split('\n').length + 2, 20))}
                       autoFocus
                     />
-                    <div className="flex gap-3 justify-end min-w-[6rem]">
+                    <div className="flex gap-2 justify-end">
                       <button 
                         onClick={handleEditCancel} 
-                        className="px-5 py-2.5 text-gray-600 hover:text-gray-800 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-100 min-w-[2rem] whitespace-nowrap"
+                        className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 whitespace-nowrap"
                       >
                         取消
                       </button>
                       <button 
                         onClick={handleEditSave} 
-                        className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-semibold rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 min-w-[6rem] whitespace-nowrap"
+                        className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 whitespace-nowrap"
                       >
                         保存修改
                       </button>
@@ -306,7 +303,7 @@ export function MessageBubble({
                       <MarkdownRenderer content={currentAnswer} />
                     </div>
                   ) : (
-                    <div className="flex items-center gap-5 p-10 bg-gradient-to-br from-gray-50 to-slate-50 rounded-2xl border-2 border-gray-200">
+                    <div className="flex items-center gap-5">
                       <AnimatedDots size="md" color="teal" />
                       <span className="text-lg text-gray-700 font-medium whitespace-nowrap">正在准备回复...</span>
                     </div>
@@ -324,21 +321,16 @@ export function MessageBubble({
           )}
           
           {/* 底部操作控件 */}
-          <div className={`flex items-center gap-4 mt-5 min-w-[4rem] transition-opacity duration-300 ${
+          <div className={`flex flex-col gap-3 mt-5 min-w-[4rem] transition-opacity duration-300 ${
             isHovered || showBranchControls ? 'opacity-100' : 'opacity-0'
-          } ${isUser ? 'justify-end' : 'justify-start'}`}>
-            {/* 分支导航 */}
-            {showBranchControls && branchNavigation && onBranchNavigate && (
-              <BranchNavigation navigation={branchNavigation} onNavigate={onBranchNavigate} />
-            )}
-            
-            {/* 操作按钮 */}
+          } ${isUser ? 'items-end' : 'items-start'}`}>
+            {/* 操作按钮组 */}
             {!isUser && !isGenerating && !isEditing && (
-              <div className="flex items-center gap-2 min-w-[4rem]">
+              <div className="flex items-center shadow-sm rounded-lg overflow-hidden border border-gray-300">
                 {onRegenerate && (
                   <button
                     onClick={() => onRegenerate(node.id)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md transform hover:scale-105 min-w-[3rem] whitespace-nowrap"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors duration-200 border-r border-gray-300 whitespace-nowrap"
                     title="重新生成回答"
                   >
                     <Icon name="regenerate" className="w-3 h-3 flex-shrink-0" />
@@ -352,7 +344,7 @@ export function MessageBubble({
                       setEditContent(node.content)
                       setIsEditing(true)
                     }}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md transform hover:scale-105 min-w-[3rem] whitespace-nowrap"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-purple-600 hover:bg-purple-50 transition-colors duration-200 border-r border-gray-300 whitespace-nowrap"
                     title="编辑AI回答"
                   >
                     <Icon name="edit" className="w-3 h-3 flex-shrink-0" />
@@ -391,7 +383,7 @@ export function MessageBubble({
                       }
                     }
                   }}
-                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-all duration-300 shadow-sm hover:shadow-md transform hover:scale-105 min-w-[3rem] whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors duration-200 border-r border-gray-300 whitespace-nowrap ${
                     copySuccess 
                       ? 'text-green-600 bg-green-50' 
                       : 'text-gray-600 hover:text-green-600 hover:bg-green-50'
@@ -405,7 +397,7 @@ export function MessageBubble({
                 {onDelete && (
                   <button
                     onClick={() => onDelete(node.id)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md transform hover:scale-105 min-w-[3rem] whitespace-nowrap"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors duration-200 whitespace-nowrap"
                     title="删除此节点及其兄弟节点"
                   >
                     <Icon name="delete" className="w-3 h-3 flex-shrink-0" />
@@ -416,14 +408,14 @@ export function MessageBubble({
             )}
             
             {isUser && !isGenerating && !isEditing && (
-              <div className="flex items-center gap-2 min-w-[4rem]">
+              <div className="flex items-center shadow-sm rounded-lg overflow-hidden border border-gray-300">
                 {onEditUserMessage && (
                   <button
                     onClick={() => {
                       setEditContent(node.content)
                       setIsEditing(true)
                     }}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md transform hover:scale-105 min-w-[3rem] whitespace-nowrap"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors duration-200 border-r border-gray-300 whitespace-nowrap"
                     title="修改消息并重新生成"
                   >
                     <Icon name="edit" className="w-3 h-3 flex-shrink-0" />
@@ -434,7 +426,7 @@ export function MessageBubble({
                 {onDelete && (
                   <button
                     onClick={() => onDelete(node.id)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md transform hover:scale-105 min-w-[3rem] whitespace-nowrap"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors duration-200 whitespace-nowrap"
                     title="删除此节点及其兄弟节点"
                   >
                     <Icon name="delete" className="w-3 h-3 flex-shrink-0" />
@@ -442,6 +434,11 @@ export function MessageBubble({
                   </button>
                 )}
               </div>
+            )}
+            
+            {/* 分支导航 */}
+            {showBranchControls && branchNavigation && onBranchNavigate && (
+              <BranchNavigation navigation={branchNavigation} onNavigate={onBranchNavigate} />
             )}
           </div>
         </div>

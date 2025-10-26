@@ -32,6 +32,7 @@ import { contextEngine, setSystemPrompt, clearSystemPrompt, buildSummarizePlan }
 import { MessagePreviewDialog } from './MessagePreviewDialog'
 import { getPreviewData } from '../core/api'
 import { getConversationHistory, createFlatMessage } from '../core/tree-utils'
+import { useSmartScroll } from './useSmartScroll'
 
 interface ChatPanelProps {
   config: AIConfig
@@ -85,7 +86,6 @@ export function ChatPanel({
     headers: Record<string, string>
     url: string
   } | null>(null)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatInputRef = useRef<{ focus: () => void }>(null)
   const historyDrawerRef = useRef<HTMLDivElement>(null)
   const { confirm, confirmProps } = useConfirm()
@@ -111,6 +111,12 @@ export function ChatPanel({
   const branchManager = useBranchManager({
     conversationTree: conversationState.conversationTree,
     updateActivePath: conversationActions.updateActivePath
+  })
+
+  // 智能滚动管理
+  const { scrollContainerRef } = useSmartScroll({
+    trigger: conversationState.conversationTree.flatMessages.size,
+    isGenerating: conversationState.isLoading
   })
 
   // 当前选中的对话 ID
@@ -147,11 +153,6 @@ export function ChatPanel({
       conversationHistory.updateConversation(currentConversationId, conversationState.conversationTree)
     }
   }, [conversationState.conversationTree])
-
-  // 自动滚动到底部
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [conversationState.conversationTree.activePath])
 
   // 点击外部关闭抽屉
   useEffect(() => {
@@ -622,7 +623,7 @@ export function ChatPanel({
       
       {/* 当前对话区域 - 占据全部空间 */}
       <div className="flex-1 flex flex-col min-h-0">
-        <div className="flex-1 overflow-y-auto bg-gradient-to-b from-white to-gray-50 min-h-0">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto bg-gradient-to-b from-white to-gray-50 min-h-0">
           {/* 上下文统计条（由 ContextEngine 提供数据）*/}
           {(() => {
             const meta = contextEngine.getContextMetadataFromTree(conversationState.conversationTree, config)
@@ -717,8 +718,6 @@ export function ChatPanel({
                 />
               )
             })}
-            
-            <div ref={messagesEndRef} />
           </div>
         </div>
 
