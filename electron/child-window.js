@@ -71,7 +71,7 @@ class ChildWindow {
         enableRemoteModule: false,
         preload: path.join(__dirname, 'preload.js')
       },
-      icon: path.join(__dirname, '../public/app-icon-nebula-256.ico'),
+      icon: path.join(__dirname, '../public/A.ico'),
       autoHideMenuBar: true,
       title: this.config.title,
       backgroundColor: this.config.backgroundColor,

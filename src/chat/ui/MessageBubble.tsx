@@ -14,7 +14,7 @@
  * - ThinkingContent: AI思考过程展示
  */
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import type { MessageBubbleProps } from '../types'
 import { MarkdownRenderer } from '../../md-html-dock/renderers/MarkdownRenderer'
 import { Icon, AnimatedDots } from './components'
@@ -114,8 +114,23 @@ export function MessageBubble({
   const [editContent, setEditContent] = useState(node.content)
   const [isHovered, setIsHovered] = useState(false)
   const [copySuccess, setCopySuccess] = useState(false)
+  const [thinkingCompleted, setThinkingCompleted] = useState(false) // 标记思考是否已完成
   const isUser = node.role === 'user'
   const contentRef = useRef<HTMLDivElement>(null)
+
+  // 监听思考过程是否完成：当有思考内容且开始生成答案时，认为思考完成
+  useEffect(() => {
+    if (isGenerating && currentThinking && currentAnswer) {
+      // 思考过程完成，开始生成答案了
+      if (!thinkingCompleted) {
+        setThinkingCompleted(true)
+        setShowThinkingExpanded(false) // 立即自动折叠
+      }
+    } else if (!isGenerating) {
+      // 生成结束，重置标记
+      setThinkingCompleted(false)
+    }
+  }, [isGenerating, currentThinking, currentAnswer, thinkingCompleted])
 
   const handleEditSave = () => {
     if (editContent.trim() && editContent.trim() !== node.content) {
@@ -186,7 +201,8 @@ export function MessageBubble({
           {/* AI思考过程 */}
           {!isUser && (
             <>
-              {isGenerating && currentThinking && (
+              {/* 思考过程生成中（展开状态） - 仅当思考尚未完成时显示 */}
+              {isGenerating && currentThinking && !thinkingCompleted && (
                 <div className="mb-4 w-full min-w-[8rem] bg-white border-2 border-gray-200 rounded-2xl shadow-sm overflow-hidden">
                   <div className="px-6 py-3 bg-gray-50">
                     <span className="text-sm text-gray-700 whitespace-nowrap">思考过程</span>
@@ -197,10 +213,11 @@ export function MessageBubble({
                 </div>
               )}
               
-              {!isGenerating && node.reasoning_content && (
+              {/* 思考过程已完成（可折叠状态） - 一旦完成立即显示 */}
+              {(thinkingCompleted || node.reasoning_content) && (currentThinking || node.reasoning_content) && (
                 <div className="mb-6 w-full min-w-[8rem]">
                   <ThinkingContent
-                    content={node.reasoning_content}
+                    content={node.reasoning_content || currentThinking}
                     isExpanded={showThinkingExpanded}
                     onToggle={() => setShowThinkingExpanded(!showThinkingExpanded)}
                   />
@@ -263,7 +280,7 @@ export function MessageBubble({
                 ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-2xl shadow-md' 
                 : 'bg-white border-2 border-gray-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300'
             } overflow-hidden`}>
-              <div className={isEditing ? "p-4" : "p-8"}>
+              <div className={isEditing ? "p-4" : "p-8 pb-4"}>
                 {isEditing ? (
                   <div className="space-y-2.5">
                     <textarea
