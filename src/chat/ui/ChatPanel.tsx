@@ -659,7 +659,7 @@ export function ChatPanel({
             {activeNodes.map((node) => {
               const branchNavigation = branchManager.getBranchNavigationForNode(node.id)
               const isInActivePath = conversationState.conversationTree.activePath.includes(node.id)
-              const isGeneratingNode = conversationState.isLoading && node.content === '正在生成...'
+              const isGeneratingNode = conversationState.isLoading && (node.content === '正在生成...' || node.content === '正在优化输入...')
               
               // 计算是否计入上下文：由 ContextEngine 提供
               let isInContext: boolean | undefined = undefined
@@ -714,6 +714,7 @@ export function ChatPanel({
                   isGenerating={isGeneratingNode}
                   currentThinking={isGeneratingNode ? conversationState.currentThinking : ''}
                   currentAnswer={isGeneratingNode ? conversationState.currentAnswer : ''}
+                  currentAgentOptimizing={isGeneratingNode ? conversationState.currentAgentOptimizing : ''}
                   isInContext={isInContext}
                 />
               )

@@ -2,7 +2,8 @@ import type {
   FlatMessage, 
   MessageNode, 
   ConversationTree, 
-  BranchNavigation 
+  BranchNavigation,
+  MessageComponents
 } from '../types'
 
 // ===== 工具函数 =====
@@ -17,7 +18,8 @@ export function createFlatMessage(
   content: string, 
   role: FlatMessage['role'], 
   parentId: string | null,
-  reasoning_content?: string
+  reasoning_content?: string,
+  components?: MessageComponents
 ): FlatMessage {
   return {
     id: generateId(),
@@ -25,7 +27,8 @@ export function createFlatMessage(
     role,
     timestamp: new Date(),
     parentId,
-    reasoning_content
+    reasoning_content,
+    components
   }
 }
 
@@ -245,7 +248,8 @@ export function editUserMessage(
   flatMessages: Map<string, FlatMessage>,
   activePath: string[],
   targetNodeId: string,
-  newContent: string
+  newContent: string,
+  components?: MessageComponents
 ): { newFlatMessages: Map<string, FlatMessage>, newActivePath: string[] } | null {
   const targetMessage = flatMessages.get(targetNodeId)
   if (!targetMessage || targetMessage.role !== 'user') {
@@ -253,7 +257,13 @@ export function editUserMessage(
   }
 
   // 创建编辑后的新用户消息（作为兄弟节点）
-  const editedMessage = createFlatMessage(newContent.trim(), 'user', targetMessage.parentId)
+  const editedMessage = createFlatMessage(
+    newContent.trim(), 
+    'user', 
+    targetMessage.parentId,
+    undefined,
+    components
+  )
   
   // 复制现有的扁平消息映射并添加新消息
   const newFlatMessages = new Map(flatMessages)

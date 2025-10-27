@@ -2,10 +2,12 @@ import { useState, useRef, useCallback } from 'react'
 import type { 
   FlatMessage, 
   ConversationTree, 
-  AIConfig
+  AIConfig,
+  MessageComponents
 } from '../types'
 import { callAIAPI } from './api'
 import { contextEngine } from './context'
+import { agentEngine } from '../agents'
 import {
   createInitialConversationTree,
   createFlatMessage,
@@ -25,6 +27,7 @@ export interface ConversationState {
   isLoading: boolean
   currentThinking: string
   currentAnswer: string
+  currentAgentOptimizing: string  // Agent 优化过程中的实时内容
 }
 
 // 对话管理器的操作接口
@@ -106,6 +109,156 @@ async function generateAIMessage(
 }
 
 /**
+ * 处理Agent优化和AI回复的通用函数
+ * 抽取sendMessage和editUserMessage中的重复逻辑
+ */
+async function processWithAgent(
+  userMessage: FlatMessage,
+  userContent: string,
+  components: MessageComponents,
+  flatMessages: Map<string, FlatMessage>,
+  activePath: string[],
+  config: AIConfig,
+  abortControllerRef: React.MutableRefObject<AbortController | null>,
+  setIsLoading: (loading: boolean) => void,
+  setCurrentAgentOptimizing: (content: string) => void,
+  setCurrentThinking: (thinking: string) => void,
+  setCurrentAnswer: (answer: string) => void,
+  clearStreamState: () => void,
+  updateConversationTree: (flatMessages: Map<string, FlatMessage>, activePath: string[]) => void,
+  tempContent?: string,
+  tempPlacement: 'append' | 'after_system' = 'append',
+  tempContentList?: string[]
+): Promise<void> {
+  // 创建占位AI消息，显示"正在优化输入"
+  const placeholderAI = createFlatMessage('正在优化输入...', 'assistant', userMessage.id)
+  const { newFlatMessages: withPlaceholder, newActivePath: pathWithAI } = addMessageToTree(
+    flatMessages,
+    activePath,
+    placeholderAI
+  )
+  updateConversationTree(withPlaceholder, pathWithAI)
+  setIsLoading(true)
+
+  try {
+    // 调用 Agent 进行输入优化
+    const agentResult = await agentEngine.processUserInput(
+      userContent,
+      components,
+      config.agentConfig!,
+      config,
+      undefined,
+      (optimizedContent) => {
+        setCurrentAgentOptimizing(optimizedContent)
+      }
+    )
+    
+    // 使用 agent 优化后的输入
+    const finalContent = agentResult.finalInput || userContent
+    
+    // 更新用户消息：保持原始 content 不变，将优化后的内容存到 components.optimizedInput
+    const updatedUserMessage = {
+      ...userMessage,
+      components: {
+        ...userMessage.components,
+        optimizedInput: finalContent !== userContent ? finalContent : undefined
+      }
+    }
+    const updatedFlatMessages = new Map(withPlaceholder)
+    updatedFlatMessages.set(userMessage.id, updatedUserMessage)
+    
+    // 更新占位AI消息，添加 Agent 处理结果到 components
+    const aiComponents: MessageComponents = {
+      agentResults: agentResult.results.length > 0 ? agentResult.results : undefined
+    }
+    const updatedPlaceholderAI = {
+      ...placeholderAI,
+      content: '正在生成...',
+      components: aiComponents
+    }
+    updatedFlatMessages.set(placeholderAI.id, updatedPlaceholderAI)
+    
+    updateConversationTree(updatedFlatMessages, pathWithAI)
+    
+    // 继续生成 AI 回复
+    const conversationHistory = getConversationHistory(updatedUserMessage.id, updatedFlatMessages)
+    
+    abortControllerRef.current = new AbortController()
+    let currentGeneratedContent = ''
+    let currentReasoningContent = ''
+    
+    try {
+      const result = await callAIAPI(
+        conversationHistory,
+        config,
+        abortControllerRef.current.signal,
+        (thinking) => {
+          currentReasoningContent = thinking
+          setCurrentThinking(thinking)
+        },
+        (answer) => {
+          currentGeneratedContent = answer
+          setCurrentAnswer(answer)
+        },
+        tempContent,
+        tempPlacement,
+        tempContentList
+      )
+      
+      // 更新最终消息
+      const finalAIMessage = {
+        ...updatedPlaceholderAI,
+        content: result.content,
+        reasoning_content: result.reasoning_content,
+        components: aiComponents
+      }
+      updatedFlatMessages.set(placeholderAI.id, finalAIMessage)
+      updateConversationTree(updatedFlatMessages, pathWithAI)
+    } catch (error: any) {
+      // 处理中断或错误
+      if (error.name === 'AbortError') {
+        const finalContent = currentGeneratedContent.trim() || '生成被中断'
+        const finalReasoning = currentReasoningContent.trim() || undefined
+        const finalAIMessage = {
+          ...updatedPlaceholderAI,
+          content: finalContent,
+          reasoning_content: finalReasoning,
+          components: aiComponents
+        }
+        updatedFlatMessages.set(placeholderAI.id, finalAIMessage)
+        updateConversationTree(updatedFlatMessages, pathWithAI)
+      } else {
+        const errorMessage = {
+          ...updatedPlaceholderAI,
+          content: `生成失败: ${error.message || '未知错误'}`,
+          components: aiComponents
+        }
+        updatedFlatMessages.set(placeholderAI.id, errorMessage)
+        updateConversationTree(updatedFlatMessages, pathWithAI)
+      }
+    } finally {
+      setIsLoading(false)
+      clearStreamState()
+      abortControllerRef.current = null
+    }
+  } catch (error) {
+    console.error('Agent 处理失败:', error)
+    
+    // 移除占位AI消息
+    const updatedFlatMessages = new Map(withPlaceholder)
+    updatedFlatMessages.delete(placeholderAI.id)
+    const finalPath = pathWithAI.slice(0, -1)
+    
+    updateConversationTree(updatedFlatMessages, finalPath)
+    setIsLoading(false)
+    clearStreamState()
+    
+    // 重新抛出错误，让调用者处理
+    throw error
+  }
+}
+
+/**
  * 对话管理器主Hook
  * 管理整个对话的状态和逻辑
  * @param config AI配置
@@ -125,6 +278,7 @@ export function useConversationManager(
   const [isLoading, setIsLoading] = useState(false)
   const [currentThinking, setCurrentThinking] = useState('')    // 实时思考过程
   const [currentAnswer, setCurrentAnswer] = useState('')       // 实时回答内容
+  const [currentAgentOptimizing, setCurrentAgentOptimizing] = useState('')  // Agent 优化过程的实时内容
   
 
 
@@ -136,6 +290,7 @@ export function useConversationManager(
   const clearStreamState = useCallback(() => {
     setCurrentThinking('')
     setCurrentAnswer('')
+    setCurrentAgentOptimizing('')
   }, [])
 
   // 更新对话树的通用方法
@@ -234,17 +389,65 @@ export function useConversationManager(
         : null
     )
 
-    // 创建用户消息并添加到树中（注意：这里只保存原始内容，不包含临时内容）
-    const userMessage = createFlatMessage(content.trim(), 'user', actualParentId)
+    // 构建初始消息组件
+    let components: MessageComponents = {
+      userInput: content.trim()
+    }
+    
+    // 添加附加文件内容（如果有）
+    if (tempContentList && tempContentList.length > 0) {
+      components.attachedFiles = tempContentList
+    } else if (tempContent && tempContent.trim()) {
+      components.attachedFiles = [tempContent]
+    }
+
+    // 先创建用户消息并立即显示（使用原始输入）
+    const userMessage = createFlatMessage(
+      content.trim(), 
+      'user', 
+      actualParentId,
+      undefined,
+      components
+    )
     const { newFlatMessages, newActivePath } = addMessageToTree(
       conversationTree.flatMessages,
       conversationTree.activePath,
       userMessage
     )
 
+    // 立即更新UI，不阻塞用户
     updateConversationTree(newFlatMessages, newActivePath)
-    await generateAIReply(userMessage, newFlatMessages, newActivePath, tempContent, tempPlacement, tempContentList)
-  }, [conversationTree, isLoading, generateAIReply, updateConversationTree])
+
+    // ===== Agent 处理（异步，不阻塞UI） =====
+    if (config.agentConfig && config.agentConfig.enabled) {
+      try {
+        await processWithAgent(
+          userMessage,
+          content.trim(),
+          components,
+          newFlatMessages,
+          newActivePath,
+          config,
+          abortControllerRef,
+          setIsLoading,
+          setCurrentAgentOptimizing,
+          setCurrentThinking,
+          setCurrentAnswer,
+          clearStreamState,
+          updateConversationTree,
+          tempContent,
+          tempPlacement,
+          tempContentList
+        )
+      } catch (error) {
+        // Agent 处理失败，使用原始输入继续
+        await generateAIReply(userMessage, newFlatMessages, newActivePath, tempContent, tempPlacement, tempContentList)
+      }
+    } else {
+      // 如果 Agent 未启用，直接生成 AI 回复
+      await generateAIReply(userMessage, newFlatMessages, newActivePath, tempContent, tempPlacement, tempContentList)
+    }
+  }, [conversationTree, isLoading, generateAIReply, updateConversationTree, config, clearStreamState])
 
   /**
    * 编辑用户消息并重新生成AI回复
@@ -254,24 +457,70 @@ export function useConversationManager(
   const handleEditUserMessage = useCallback(async (nodeId: string, newContent: string, tempContent?: string, tempPlacement: 'append' | 'after_system' = 'append', tempContentList?: string[]) => {
     if (isLoading) return
 
+    // 获取原消息，保留或更新 components
+    const originalMessage = conversationTree.flatMessages.get(nodeId)
+    let components: MessageComponents = {
+      userInput: newContent.trim(),
+      // 保留原有的附加文件（如果有），否则使用新传入的
+      attachedFiles: originalMessage?.components?.attachedFiles
+    }
+    
+    // 更新附加文件内容（如果有新的）
+    if (tempContentList && tempContentList.length > 0) {
+      components.attachedFiles = tempContentList
+    } else if (tempContent && tempContent.trim()) {
+      components.attachedFiles = [tempContent]
+    }
+
+    // 先使用原始输入创建编辑后的消息
     const result = editUserMessage(
       conversationTree.flatMessages,
       conversationTree.activePath,
       nodeId,
-      newContent
+      newContent.trim(),
+      components
     )
 
-    if (result) {
-      updateConversationTree(result.newFlatMessages, result.newActivePath)
-      
-      const editedMessageId = result.newActivePath[result.newActivePath.length - 1]
-      const editedMessage = result.newFlatMessages.get(editedMessageId)
-      
-      if (editedMessage) {
+    if (!result) return
+
+    // 立即更新UI
+    updateConversationTree(result.newFlatMessages, result.newActivePath)
+
+    const editedMessageId = result.newActivePath[result.newActivePath.length - 1]
+    let editedMessage = result.newFlatMessages.get(editedMessageId)
+    
+    if (!editedMessage) return
+
+    // ===== Agent 处理（异步，不阻塞UI） =====
+    if (config.agentConfig && config.agentConfig.enabled) {
+      try {
+        await processWithAgent(
+          editedMessage,
+          newContent.trim(),
+          components,
+          result.newFlatMessages,
+          result.newActivePath,
+          config,
+          abortControllerRef,
+          setIsLoading,
+          setCurrentAgentOptimizing,
+          setCurrentThinking,
+          setCurrentAnswer,
+          clearStreamState,
+          updateConversationTree,
+          tempContent,
+          tempPlacement,
+          tempContentList
+        )
+      } catch (error) {
+        // Agent 处理失败，使用原始输入继续
         await generateAIReply(editedMessage, result.newFlatMessages, result.newActivePath, tempContent, tempPlacement, tempContentList)
       }
+    } else {
+      // 如果 Agent 未启用，直接生成 AI 回复
+      await generateAIReply(editedMessage, result.newFlatMessages, result.newActivePath, tempContent, tempPlacement, tempContentList)
     }
-  }, [conversationTree, isLoading, updateConversationTree, generateAIReply])
+  }, [conversationTree, isLoading, updateConversationTree, generateAIReply, config, clearStreamState])
 
   /**
    * 直接编辑AI消息（不创建分支，不重新发送）
@@ -382,7 +631,8 @@ export function useConversationManager(
     inputValue,
     isLoading,
     currentThinking,
-    currentAnswer
+    currentAnswer,
+    currentAgentOptimizing
   }
 
   // 操作对象

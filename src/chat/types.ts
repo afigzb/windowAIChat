@@ -6,14 +6,35 @@ export type MessageRole = 'user' | 'assistant' | 'system'
 
 // ===== 消息相关 =====
 
+// 消息组件：区分不同类型的内容来源
+export interface MessageComponents {
+  userInput?: string           // 用户真实输入（仅 user 消息）
+  optimizedInput?: string      // Agent优化后的输入（用于发送给AI，不显示给用户）
+  attachedFiles?: string[]     // 附加的文件内容列表
+  promptCards?: {              // 使用的提示词卡片
+    id: string
+    title: string
+    content: string
+    placement: 'system' | 'after_system' | 'user_end'
+  }[]
+  systemPrompt?: string        // 使用的系统提示词（仅 system 消息或第一条 user 消息）
+  agentResults?: import('./agents').AgentTaskResult[]  // Agent 处理结果（用于 UI 展示）
+  // 未来可扩展：
+  // contextSnapshot?: string  // 上下文快照
+  // toolCalls?: ToolCall[]    // 工具调用记录
+}
+
 // 扁平结构的聊天消息
 export interface FlatMessage {
   id: string
-  content: string
+  content: string              // 合并后的完整内容（用于快速访问和向后兼容）
   role: MessageRole
   timestamp: Date
-  reasoning_content?: string  // 思考过程（支持思考的模型使用）
-  parentId: string | null     // 父消息ID，根消息为null
+  reasoning_content?: string   // 思考过程（支持思考的模型使用）
+  parentId: string | null      // 父消息ID，根消息为null
+  
+  // 结构化内容组件（新增）
+  components?: MessageComponents  // 可选，旧消息可能没有
 }
 
 // 树结构的聊天消息节点
@@ -26,6 +47,9 @@ export interface MessageNode {
   parentId: string | null
   children: MessageNode[]     // 子节点列表
   depth: number              // 节点深度（根节点为0）
+  
+  // 结构化内容组件（新增）
+  components?: MessageComponents  // 可选，旧消息可能没有
 }
 
 // 对话树状态
@@ -88,6 +112,7 @@ export interface AIConfig {
   fileContentPlacement?: 'append' | 'after_system'  // 选中文件内容的插入位置（默认：append）
   fileContentPriority?: number           // 文件内容优先级（数值越大权重越高，默认：10）
   fileContentMode?: 'merged' | 'separate'  // 文件插入模式：merged-合并为一条，separate-独立插入（默认：merged）
+  agentConfig?: import('./agents').AgentEngineConfig  // Agent 系统配置（可选）
 }
 
 // ===== 组件Props =====
@@ -107,6 +132,7 @@ export interface MessageBubbleProps {
   isGenerating?: boolean
   currentThinking?: string
   currentAnswer?: string
+  currentAgentOptimizing?: string  // Agent 优化过程的实时内容
   // 是否计入本次上下文（基于 historyLimit 计算）
   isInContext?: boolean
 }

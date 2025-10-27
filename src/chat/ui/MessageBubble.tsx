@@ -11,7 +11,7 @@
  * 
  * 子组件：
  * - BranchNavigation: 分支切换控件
- * - ThinkingContent: AI思考过程展示
+ * - CollapsibleSection: 通用可折叠内容展示组件
  */
 
 import { useState, useRef, useEffect } from 'react'
@@ -62,9 +62,15 @@ function BranchNavigation({ navigation, onNavigate }: {
   )
 }
 
-// ===== 子组件：思考过程展示 =====
+// ===== 子组件：可折叠内容展示 =====
 
-function ThinkingContent({ content, isExpanded, onToggle }: {
+function CollapsibleSection({ 
+  title, 
+  content, 
+  isExpanded, 
+  onToggle 
+}: {
+  title: string
   content: string
   isExpanded: boolean
   onToggle: () => void
@@ -77,7 +83,7 @@ function ThinkingContent({ content, isExpanded, onToggle }: {
           isExpanded ? 'py-3' : 'py-6'
         }`}
       >
-        <span className="text-sm text-gray-700 whitespace-nowrap">思考过程</span>
+        <span className="text-sm text-gray-700 whitespace-nowrap">{title}</span>
         <div className={`ml-auto transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
           <Icon name="chevronDown" className="w-4 h-4 text-gray-500" />
         </div>
@@ -91,6 +97,7 @@ function ThinkingContent({ content, isExpanded, onToggle }: {
     </div>
   )
 }
+
 
 // ===== 主组件：消息气泡 =====
 
@@ -107,15 +114,20 @@ export function MessageBubble({
   isGenerating = false,
   currentThinking = '',
   currentAnswer = '',
+  currentAgentOptimizing = '',
   isInContext
 }: MessageBubbleProps) {
   const [showThinkingExpanded, setShowThinkingExpanded] = useState(false)
+  const [showAgentResultExpanded, setShowAgentResultExpanded] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
-  const [editContent, setEditContent] = useState(node.content)
+  const isUser = node.role === 'user'
+  // 对于用户消息，使用 userInput；对于 AI 消息，使用 content
+  const [editContent, setEditContent] = useState(
+    isUser && node.components?.userInput ? node.components.userInput : node.content
+  )
   const [isHovered, setIsHovered] = useState(false)
   const [copySuccess, setCopySuccess] = useState(false)
   const [thinkingCompleted, setThinkingCompleted] = useState(false) // 标记思考是否已完成
-  const isUser = node.role === 'user'
   const contentRef = useRef<HTMLDivElement>(null)
 
   // 监听思考过程是否完成：当有思考内容且开始生成答案时，认为思考完成
@@ -144,7 +156,7 @@ export function MessageBubble({
   }
 
   const handleEditCancel = () => {
-    setEditContent(node.content)
+    setEditContent(isUser && node.components?.userInput ? node.components.userInput : node.content)
     setIsEditing(false)
   }
   
@@ -198,6 +210,79 @@ export function MessageBubble({
             )}
           </div>
 
+          {/* AI消息的 Agent 优化结果展示（放在思考过程上面） */}
+          {!isUser && (() => {
+            // 如果正在显示"正在优化输入..."且有流式内容
+            if (isGenerating && node.content === '正在优化输入...' && currentAgentOptimizing) {
+              return (
+                <div className="mb-4 w-full min-w-[8rem] bg-white border-2 border-blue-200 rounded-2xl shadow-sm overflow-hidden">
+                  <div className="px-6 py-3 bg-gradient-to-r from-blue-50 to-indigo-50">
+                    <span className="text-sm text-blue-700 font-medium whitespace-nowrap">正在优化输入</span>
+                  </div>
+                  <div className="px-6 py-4 text-sm text-gray-700 leading-relaxed">
+                    <div className="whitespace-pre-wrap break-words">
+                      <MarkdownRenderer content={currentAgentOptimizing} />
+                    </div>
+                    <div className="flex items-center gap-3 mt-3 text-blue-500">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                      <span className="text-xs">生成中...</span>
+                    </div>
+                  </div>
+                </div>
+              )
+            }
+            
+            // 如果正在优化但还没有流式内容
+            if (isGenerating && node.content === '正在优化输入...') {
+              return (
+                <div className="mb-4 w-full min-w-[8rem] bg-white border-2 border-blue-200 rounded-2xl shadow-sm overflow-hidden">
+                  <div className="px-6 py-3 bg-gradient-to-r from-blue-50 to-indigo-50">
+                    <span className="text-sm text-blue-700 font-medium whitespace-nowrap">正在优化输入</span>
+                  </div>
+                  <div className="px-6 py-4 text-sm text-gray-700 leading-relaxed">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                      <span>AI 正在分析并优化您的输入...</span>
+                    </div>
+                  </div>
+                </div>
+              )
+            }
+            
+            // Agent 处理完成后，显示结果（可折叠）
+            if (node.components?.agentResults && node.components.agentResults.length > 0) {
+              const result = node.components.agentResults.find(r => r.success && r.metadata)
+              
+              if (!result || !result.metadata) return null
+              
+              // 检查是否有实际修改
+              const hasModification = result.optimizedInput && 
+                result.optimizedInput.trim().length > 0 &&
+                result.metadata.originalInput.trim() !== result.optimizedInput.trim()
+              
+              // 构建显示内容
+              let displayContent: string
+              if (hasModification) {
+                displayContent = `优化后：\n${result.optimizedInput}`
+              } else {
+                displayContent = `输入已优化，无需修改\n\n原始输入：\n${result.metadata.originalInput}`
+              }
+              
+              return (
+                <div className="mb-4 w-full">
+                  <CollapsibleSection
+                    title={hasModification ? "AI 优化" : "AI 检查"}
+                    content={displayContent}
+                    isExpanded={showAgentResultExpanded}
+                    onToggle={() => setShowAgentResultExpanded(!showAgentResultExpanded)}
+                  />
+                </div>
+              )
+            }
+            
+            return null
+          })()}
+          
           {/* AI思考过程 */}
           {!isUser && (
             <>
@@ -216,7 +301,8 @@ export function MessageBubble({
               {/* 思考过程已完成（可折叠状态） - 一旦完成立即显示 */}
               {(thinkingCompleted || node.reasoning_content) && (currentThinking || node.reasoning_content) && (
                 <div className="mb-6 w-full min-w-[8rem]">
-                  <ThinkingContent
+                  <CollapsibleSection
+                    title="思考过程"
                     content={node.reasoning_content || currentThinking}
                     isExpanded={showThinkingExpanded}
                     onToggle={() => setShowThinkingExpanded(!showThinkingExpanded)}
@@ -269,7 +355,9 @@ export function MessageBubble({
                     </div>
                   </div>
                 ) : (
-                  <div className="whitespace-pre-wrap leading-relaxed text-base break-words">{node.content}</div>
+                  <div className="whitespace-pre-wrap leading-relaxed text-base break-words">
+                    {node.content}
+                  </div>
                 )}
               </div>
             </div>
@@ -429,7 +517,7 @@ export function MessageBubble({
                 {onEditUserMessage && (
                   <button
                     onClick={() => {
-                      setEditContent(node.content)
+                      setEditContent(node.components?.userInput || node.content)
                       setIsEditing(true)
                     }}
                     className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors duration-200 border-r border-gray-300 whitespace-nowrap"

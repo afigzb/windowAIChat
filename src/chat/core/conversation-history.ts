@@ -53,12 +53,35 @@ function generatePreview(tree: ConversationTree): string {
   return '空对话'
 }
 
+// 数据迁移：为旧消息添加 components 字段（向后兼容）
+function migrateMessage(msg: FlatMessage): FlatMessage {
+  // 如果消息已经有 components，直接返回
+  if (msg.components) {
+    return msg
+  }
+
+  // 为旧消息生成 components
+  // 对于 user 消息，将 content 作为 userInput
+  if (msg.role === 'user') {
+    return {
+      ...msg,
+      components: {
+        userInput: msg.content
+        // attachedFiles 为空，因为旧消息没有区分
+      }
+    }
+  }
+
+  // assistant 和 system 消息不需要特殊处理
+  return msg
+}
+
 export function useConversationHistory(): ConversationHistoryManager {
   // 从存储加载对话历史
   const [conversations, setConversations] = useState<ConversationHistoryItem[]>(() => {
     try {
       const saved = storage.loadGenericData<ConversationHistoryItem[]>(STORAGE_KEY, [])
-      // 反序列化日期对象
+      // 反序列化日期对象并迁移旧数据
       return saved.map(conv => ({
         ...conv,
         timestamp: new Date(conv.timestamp),
@@ -67,7 +90,7 @@ export function useConversationHistory(): ConversationHistoryManager {
           flatMessages: new Map(
             Object.entries(conv.conversationTree.flatMessages as any).map(([id, msg]: [string, any]) => [
               id,
-              { ...msg, timestamp: new Date(msg.timestamp) }
+              migrateMessage({ ...msg, timestamp: new Date(msg.timestamp) })
             ])
           )
         }

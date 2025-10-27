@@ -36,13 +36,19 @@ export class MessageEditor {
 
   /**
    * 从FlatMessage列表创建编辑器
+   * 
+   * 注意：对于用户消息，如果有 optimizedInput（Agent优化后的内容），
+   * 则使用它而不是原始 content。这样页面显示原始输入，但 API 使用优化后的内容。
    */
   static from(flatMessages: FlatMessage[]): MessageEditor {
     const requestMessages: RequestMessage[] = flatMessages
       .filter(m => m.role === 'user' || m.role === 'assistant' || m.role === 'system')
       .map(m => ({
         role: m.role as 'user' | 'assistant' | 'system',
-        content: m.content
+        // 优先使用 optimizedInput（如果有），否则使用 content
+        content: (m.role === 'user' && m.components?.optimizedInput) 
+          ? m.components.optimizedInput 
+          : m.content
       }))
     return new MessageEditor(requestMessages)
   }
