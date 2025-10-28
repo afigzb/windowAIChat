@@ -13,9 +13,13 @@ import type {
 } from './types'
 import { shouldOptimizeTask } from './steps/should-optimize-step'
 import { optimizeInputTask } from './steps/optimize-input-step'
+import { generateStructureTask } from './steps/generate-structure-step'
+import { mainGenerationTask } from './steps/main-generation-step'
 import {
   DEFAULT_SHOULD_OPTIMIZE_CONFIG,
-  DEFAULT_OPTIMIZE_INPUT_CONFIG
+  DEFAULT_OPTIMIZE_INPUT_CONFIG,
+  DEFAULT_GENERATE_STRUCTURE_CONFIG,
+  DEFAULT_MAIN_GENERATION_CONFIG
 } from './defaults'
 
 /**
@@ -141,9 +145,23 @@ export const defaultOptimizeWorkflow: AgentWorkflow = async (
     DEFAULT_OPTIMIZE_INPUT_CONFIG
   )
 
+  const generateStructureConfig = getTaskConfigFromContext(
+    context,
+    'generate-structure',
+    DEFAULT_GENERATE_STRUCTURE_CONFIG
+  )
+
+  const mainGenerationConfig = getTaskConfigFromContext(
+    context,
+    'main-generation',
+    DEFAULT_MAIN_GENERATION_CONFIG
+  )
+
   // 检查任务是否启用（默认为 true）
   const isShouldOptimizeEnabled = shouldOptimizeConfig.enabled !== false
   const isOptimizeInputEnabled = optimizeInputConfig.enabled !== false
+  const isGenerateStructureEnabled = generateStructureConfig.enabled !== false
+  const isMainGenerationEnabled = mainGenerationConfig.enabled !== false
 
   // 任务1: 判断是否需要优化（如果启用）
   let shouldOptimize = true // 默认需要优化
@@ -174,6 +192,8 @@ export const defaultOptimizeWorkflow: AgentWorkflow = async (
   }
 
   // 任务2: 根据判断结果决定是否优化
+  let finalInput = context.userInput // 最终输入（可能是优化后的）
+  
   if (shouldOptimize && isOptimizeInputEnabled) {
     console.log('[DefaultWorkflow] 开始优化输入')
     
@@ -188,10 +208,80 @@ export const defaultOptimizeWorkflow: AgentWorkflow = async (
     )
     
     results.push(optimizeResult)
+    
+    // 如果优化成功，使用优化后的输入
+    if (optimizeResult.status === 'completed' && optimizeResult.output) {
+      finalInput = optimizeResult.output
+    }
   } else if (!shouldOptimize) {
     console.log('[DefaultWorkflow] 无需优化，跳过优化步骤')
   } else if (!isOptimizeInputEnabled) {
     console.log('[DefaultWorkflow] 优化任务已禁用，跳过')
+  }
+
+  // 如果中止，直接返回
+  if (abortSignal?.aborted) {
+    return results
+  }
+
+  // 任务3: 生成文章结构（如果启用）
+  let generatedStructure: string | undefined = undefined
+  if (isGenerateStructureEnabled) {
+    console.log('[DefaultWorkflow] 开始生成文章结构')
+    
+    const structureResult = await executeTask(
+      generateStructureTask,
+      finalInput, // 使用优化后的输入（如果有）
+      context,
+      generateStructureConfig,
+      results,
+      abortSignal,
+      onProgress
+    )
+    
+    results.push(structureResult)
+    
+    // 如果生成了文章结构，保存到变量中（不修改 context）
+    if (structureResult.status === 'completed' && structureResult.output) {
+      generatedStructure = structureResult.output
+      console.log('[DefaultWorkflow] 文章结构生成完成，将传递给主模型')
+    }
+  } else {
+    console.log('[DefaultWorkflow] 文章结构任务已禁用，跳过')
+  }
+
+  // 如果中止，直接返回
+  if (abortSignal?.aborted) {
+    return results
+  }
+
+  // 任务4: 主模型生成（如果启用）
+  if (isMainGenerationEnabled) {
+    console.log('[DefaultWorkflow] 开始主模型生成')
+    
+    // 创建一个临时的 context 副本，合并生成的文章结构（如果有）
+    const mainGenerationContext = {
+      ...context,
+      // 如果有生成的结构，将其添加到附加文件列表的开头
+      // 使用新数组，避免修改原始的 context.attachedFiles
+      attachedFiles: generatedStructure
+        ? [`# 生成的文章结构\n\n${generatedStructure}`, ...(context.attachedFiles || [])]
+        : context.attachedFiles
+    }
+    
+    const mainGenerationResult = await executeTask(
+      mainGenerationTask,
+      finalInput, // 使用优化后的输入（如果有）
+      mainGenerationContext,
+      mainGenerationConfig,
+      results,
+      abortSignal,
+      onProgress
+    )
+    
+    results.push(mainGenerationResult)
+  } else {
+    console.log('[DefaultWorkflow] 主模型生成任务已禁用，跳过')
   }
 
   return results

@@ -135,6 +135,9 @@ interface GenerateWithAgentParams {
   tempContent?: string
   tempPlacement?: 'append' | 'after_system'
   tempContentList?: string[]
+  
+  // 可选：覆盖用户消息中的附加文件（用于重新生成时传入最新文件）
+  overrideAttachedFiles?: string[]
 }
 
 async function generateAIReplyWithAgent(
@@ -154,38 +157,49 @@ async function generateAIReplyWithAgent(
     onAnswerUpdate,
     tempContent,
     tempPlacement = 'append',
-    tempContentList
+    tempContentList,
+    overrideAttachedFiles
   } = params
   
-  let finalHistory = conversationHistory
-  let agentComponents: MessageComponents | undefined
-  
-  // 如果 Agent Pipeline 启用，先执行处理
+  // 如果 Agent Pipeline 启用，执行完整的 Pipeline（包括主模型生成）
   if (shouldExecuteAgentPipeline(config)) {
     try {
-      console.log('[generateAIReplyWithAgent] 开始调用 executeAgentPipeline...')
+      console.log('[generateAIReplyWithAgent] 开始调用 executeAgentPipeline（包含主模型生成）...')
+      
       // 使用 Agent 集成层执行 Pipeline
+      // Pipeline 内部会处理所有任务，包括主模型生成
       const result = await executeAgentPipeline({
         userMessage,
         conversationHistory,
         config,
         abortSignal: abortController.signal,
-        onProgress: onAgentProgress
+        onProgress: onAgentProgress,
+        overrideAttachedFiles
       })
+      
       console.log('[generateAIReplyWithAgent] executeAgentPipeline 完成')
       
-      finalHistory = result.optimizedHistory
-      agentComponents = result.agentComponents
+      // 直接从 Pipeline 结果中获取最终内容
+      const finalMessage: FlatMessage = {
+        ...placeholderAIMessage,
+        content: result.finalContent,
+        reasoning_content: result.reasoning_content
+      }
+      
+      return {
+        finalMessage,
+        agentComponents: result.agentComponents
+      }
     } catch (error) {
-      console.error('Pipeline 执行失败，使用原始输入:', error)
-      // 失败时继续使用原始历史
+      console.log('Pipeline 执行失败，回退到传统流程:', error)
+      // 失败时回退到传统流程
     }
   }
   
-  // 生成AI回复
-  console.log('[generateAIReplyWithAgent] 开始生成主AI回复...')
+  // 回退方案：Agent 未启用或执行失败时，使用传统流程
+  console.log('[generateAIReplyWithAgent] 使用传统流程生成回复...')
   const finalMessage = await generateAIMessage(
-    finalHistory,
+    conversationHistory,
     placeholderAIMessage,
     config,
     abortController,
@@ -195,11 +209,10 @@ async function generateAIReplyWithAgent(
     tempPlacement,
     tempContentList
   )
-  console.log('[generateAIReplyWithAgent] 主AI回复生成完成')
   
   return {
     finalMessage,
-    agentComponents
+    agentComponents: undefined
   }
 }
 
@@ -586,7 +599,12 @@ export function useConversationManager(
   }, [conversationTree, isLoading, updateConversationTree])
 
   // 重新生成消息（合并regeneration功能）
-  const regenerateMessage = useCallback(async (nodeId: string, tempContent?: string, tempPlacement: 'append' | 'after_system' = 'append') => {
+  const regenerateMessage = useCallback(async (
+    nodeId: string, 
+    tempContent?: string, 
+    tempPlacement: 'append' | 'after_system' = 'append',
+    tempContentList?: string[]
+  ) => {
     if (isLoading) return
 
     const targetMessage = conversationTree.flatMessages.get(nodeId)
@@ -651,6 +669,14 @@ export function useConversationManager(
         abortControllerRef.current = new AbortController()
 
         try {
+          // 构建覆盖的文件列表（优先使用 tempContentList，否则使用 tempContent）
+          let overrideFiles: string[] | undefined = undefined
+          if (tempContentList && tempContentList.length > 0) {
+            overrideFiles = tempContentList
+          } else if (tempContent && tempContent.trim()) {
+            overrideFiles = [tempContent]
+          }
+          
           // 使用核心抽象执行Agent优化+AI生成
           const { finalMessage, agentComponents } = await generateAIReplyWithAgent({
             userMessage: userMessageForRegeneration,
@@ -666,7 +692,8 @@ export function useConversationManager(
             onThinkingUpdate: setCurrentThinking,
             onAnswerUpdate: setCurrentAnswer,
             tempContent,
-            tempPlacement
+            tempPlacement,
+            overrideAttachedFiles: overrideFiles
           })
 
           // 如果有Agent结果，添加到消息组件中

@@ -73,9 +73,10 @@ export class AgentPipeline {
     const startTime = Date.now()
 
     // 创建执行上下文
+    // 注意：使用数组浅拷贝，避免工作流修改原始输入
     const context: AgentContext = {
       userInput: input.userInput,
-      attachedFiles: input.attachedFiles,
+      attachedFiles: input.attachedFiles ? [...input.attachedFiles] : undefined,
       conversationHistory: input.conversationHistory,
       aiConfig: input.aiConfig,
       taskResults: new Map(),

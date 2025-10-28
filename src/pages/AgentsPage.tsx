@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import type { AIConfig } from '../chat/types'
-import type { AgentTaskConfig, AgentTaskType } from '../chat/agents/types'
+import type { AgentTaskConfig } from '../chat/agents/types'
 import { 
-  DEFAULT_OPTIMIZE_SYSTEM_PROMPT,
-  DEFAULT_SHOULD_OPTIMIZE_SYSTEM_PROMPT 
+  AGENT_TASK_METADATA,
+  DEFAULT_TASK_CONFIGS
 } from '../chat/agents/defaults'
 import { useConfirm, ConfirmDialog } from '../components'
 import { CustomSelect, type SelectOption } from '../chat/ui/components'
@@ -11,27 +11,6 @@ import { CustomSelect, type SelectOption } from '../chat/ui/components'
 interface AgentsPageProps {
   config: AIConfig
   onConfigChange: (config: AIConfig) => void
-}
-
-// Agent 任务元数据
-const AGENT_TASK_METADATA: Record<string, {
-  name: string
-  description: string
-  defaultPrompt: string
-  dependencies: AgentTaskType[]
-}> = {
-  'should-optimize': {
-    name: '判断是否优化',
-    description: '使用 AI 判断用户输入是否需要优化',
-    defaultPrompt: DEFAULT_SHOULD_OPTIMIZE_SYSTEM_PROMPT,
-    dependencies: ['optimize-input'] // 依赖优化任务
-  },
-  'optimize-input': {
-    name: '输入优化',
-    description: '使用 AI 优化用户输入，修正语法错误并使表达更清晰',
-    defaultPrompt: DEFAULT_OPTIMIZE_SYSTEM_PROMPT,
-    dependencies: []
-  }
 }
 
 export function AgentsPage({ config, onConfigChange }: AgentsPageProps) {
@@ -51,23 +30,8 @@ export function AgentsPage({ config, onConfigChange }: AgentsPageProps) {
     let taskConfigs = (agentConfig.options?.taskConfigs as AgentTaskConfig[]) || []
     
     if (taskConfigs.length === 0) {
-      // 初次启用，创建默认任务配置（默认都启用）
-      taskConfigs = [
-        {
-          type: 'should-optimize',
-          name: AGENT_TASK_METADATA['should-optimize'].name,
-          enabled: true,
-          description: AGENT_TASK_METADATA['should-optimize'].description,
-          systemPrompt: AGENT_TASK_METADATA['should-optimize'].defaultPrompt
-        },
-        {
-          type: 'optimize-input',
-          name: AGENT_TASK_METADATA['optimize-input'].name,
-          enabled: true,
-          description: AGENT_TASK_METADATA['optimize-input'].description,
-          systemPrompt: AGENT_TASK_METADATA['optimize-input'].defaultPrompt
-        }
-      ]
+      // 初次启用，使用默认任务配置
+      taskConfigs = DEFAULT_TASK_CONFIGS.map(config => ({ ...config }))
     }
     
     onConfigChange({
@@ -225,6 +189,32 @@ export function AgentsPage({ config, onConfigChange }: AgentsPageProps) {
     setEditingName('')
   }
 
+  const handleResetToDefault = async () => {
+    const result = await confirm({
+      title: '恢复默认配置',
+      message: `此操作将：\n\n1. 重置所有任务配置为默认值\n2. 清除所有自定义的提示词\n3. 重置任务启用状态\n\n当前的 ${taskConfigs.length} 个任务配置将被 ${DEFAULT_TASK_CONFIGS.length} 个默认任务替换。\n\n是否继续？`,
+      confirmText: '恢复默认',
+      cancelText: '取消',
+      type: 'warning'
+    })
+    
+    if (!result) {
+      return
+    }
+    
+    // 重置为默认配置
+    onConfigChange({
+      ...config,
+      agentConfig: {
+        ...agentConfig,
+        options: {
+          ...agentConfig.options,
+          taskConfigs: DEFAULT_TASK_CONFIGS.map(config => ({ ...config }))
+        }
+      }
+    })
+  }
+
 
   return (
     <div className="h-full flex flex-col bg-slate-50">
@@ -238,6 +228,18 @@ export function AgentsPage({ config, onConfigChange }: AgentsPageProps) {
             </p>
           </div>
           <div className="flex items-center space-x-3">
+            {taskConfigs.length > 0 && (
+              <button
+                onClick={handleResetToDefault}
+                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 hover:border-slate-400 transition-colors flex items-center space-x-2"
+                title="恢复到默认任务配置"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>恢复默认</span>
+              </button>
+            )}
             <label className="flex items-center space-x-2 cursor-pointer">
               <input
                 type="checkbox"

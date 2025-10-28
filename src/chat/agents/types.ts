@@ -13,6 +13,8 @@ import type { FlatMessage } from '../types'
 export type AgentTaskType = 
   | 'should-optimize'
   | 'optimize-input'
+  | 'generate-structure'
+  | 'main-generation'
   | 'retrieve-info'
   | 'analyze-intent'
   | 'custom'

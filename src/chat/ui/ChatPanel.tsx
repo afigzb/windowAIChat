@@ -173,13 +173,15 @@ export function ChatPanel({
     }
   }, [showHistoryDrawer, confirmProps.isOpen])
 
-  // 处理发送
-  const handleSendMessage = async () => {
-    if (!conversationState.inputValue.trim() || conversationState.isLoading) return
-    
-    const content = conversationState.inputValue
-    conversationActions.updateInputValue('')
-    
+  /**
+   * 统一的文件内容获取函数
+   * 根据配置获取额外的文件内容，支持合并模式和独立模式
+   */
+  const getFileContent = async (): Promise<{
+    extraContent: string
+    extraContentList: string[] | undefined
+    placement: 'append' | 'after_system'
+  }> => {
     // 使用配置的文件内容插入位置和模式
     const placement = config.fileContentPlacement ?? 'append'
     const mode = config.fileContentMode ?? 'merged'
@@ -200,28 +202,25 @@ export function ChatPanel({
       }
     }
     
+    return { extraContent, extraContentList, placement }
+  }
+
+  // 处理发送
+  const handleSendMessage = async () => {
+    if (!conversationState.inputValue.trim() || conversationState.isLoading) return
+    
+    const content = conversationState.inputValue
+    conversationActions.updateInputValue('')
+    
+    const { extraContent, extraContentList, placement } = await getFileContent()
     conversationActions.sendMessage(content, null, extraContent, placement, extraContentList)
   }
 
   // 生成预览数据（不打开对话框）
   const generatePreviewData = async () => {
     try {
-      // 获取额外内容（与实际发送时的逻辑完全一致）
-      const placement = config.fileContentPlacement ?? 'append'
-      const mode = config.fileContentMode ?? 'merged'
-      
-      let extraContent = ''
-      let extraContentList: string[] | undefined = undefined
-      
-      if (placement === 'after_system' && mode === 'separate' && additionalContentList) {
-        extraContentList = await additionalContentList()
-      } else if (additionalContent) {
-        if (typeof additionalContent === 'function') {
-          extraContent = await additionalContent()
-        } else {
-          extraContent = additionalContent
-        }
-      }
+      // 获取额外内容（使用统一的文件内容获取函数）
+      const { extraContent, extraContentList, placement } = await getFileContent()
 
       // 获取对话历史（与实际发送时的逻辑完全一致）
       // 从活跃路径获取最后一个节点ID，如果没有则使用null
@@ -670,29 +669,13 @@ export function ChatPanel({
               
               // 创建包装函数以传递临时内容
               const handleRegenerate = async (nodeId: string) => {
-                let extraContent = ''
-                if (additionalContent) {
-                  if (typeof additionalContent === 'function') {
-                    extraContent = await additionalContent()
-                  } else {
-                    extraContent = additionalContent
-                  }
-                }
-                const placement = config.fileContentPlacement ?? 'append'
-                return regenerateMessage(nodeId, extraContent, placement)
+                const { extraContent, extraContentList, placement } = await getFileContent()
+                return regenerateMessage(nodeId, extraContent, placement, extraContentList)
               }
 
               const handleEditUserMessage = async (nodeId: string, newContent: string) => {
-                let extraContent = ''
-                if (additionalContent) {
-                  if (typeof additionalContent === 'function') {
-                    extraContent = await additionalContent()
-                  } else {
-                    extraContent = additionalContent
-                  }
-                }
-                const placement = config.fileContentPlacement ?? 'append'
-                return conversationActions.editUserMessage(nodeId, newContent, extraContent, placement)
+                const { extraContent, extraContentList, placement } = await getFileContent()
+                return conversationActions.editUserMessage(nodeId, newContent, extraContent, placement, extraContentList)
               }
 
               const handleEditAssistantMessage = (nodeId: string, newContent: string) => {

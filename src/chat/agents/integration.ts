@@ -14,10 +14,13 @@ export interface ExecutePipelineParams {
   config: AIConfig
   abortSignal?: AbortSignal
   onProgress?: (content: string | AgentProgressUpdate) => void
+  // 可选：覆盖 userMessage 中的附加文件（用于重新生成时传入最新文件）
+  overrideAttachedFiles?: string[]
 }
 
 export interface PipelineExecutionResult {
-  optimizedHistory: FlatMessage[]
+  finalContent: string
+  reasoning_content?: string
   agentComponents: MessageComponents
 }
 
@@ -27,11 +30,17 @@ export interface PipelineExecutionResult {
 export async function executeAgentPipeline(
   params: ExecutePipelineParams
 ): Promise<PipelineExecutionResult> {
-  const { userMessage, conversationHistory, config, abortSignal, onProgress } = params
+  const { userMessage, conversationHistory, config, abortSignal, onProgress, overrideAttachedFiles } = params
   
   const userContent = userMessage.components?.userInput || userMessage.content
   
-  console.log('[AgentPipeline] 开始执行工作流')
+  // 使用 overrideAttachedFiles（如果提供）或原始的 attachedFiles
+  const attachedFiles = overrideAttachedFiles ?? userMessage.components?.attachedFiles
+  
+  console.log('[AgentPipeline] 开始执行工作流', {
+    hasOverrideFiles: !!overrideAttachedFiles,
+    filesCount: attachedFiles?.length || 0
+  })
   
   // 包装 onProgress，将结构化数据转换为字符串
   const wrappedOnProgress = onProgress ? (update: string | AgentProgressUpdate) => {
@@ -53,7 +62,7 @@ export async function executeAgentPipeline(
   const pipelineResult = await agentPipeline.execute(
     {
       userInput: userContent,
-      attachedFiles: userMessage.components?.attachedFiles,
+      attachedFiles: attachedFiles,
       conversationHistory: conversationHistory,
       aiConfig: config
     },
@@ -68,22 +77,15 @@ export async function executeAgentPipeline(
     totalTime: `${pipelineResult.totalTime}ms`
   })
   
-  // 从任务结果中提取优化后的输入
-  const optimizeTask = pipelineResult.taskResults.find(r => r.type === 'optimize-input')
-  const finalContent = (optimizeTask?.output as string) || userContent
+  // 从任务结果中提取主模型生成的内容
+  const mainGenerationTask = pipelineResult.taskResults.find(r => r.type === 'main-generation')
   
-  const optimizedUserMessage: FlatMessage = {
-    ...userMessage,
-    content: finalContent,
-    components: {
-      ...userMessage.components,
-      optimizedInput: undefined
-    }
+  if (!mainGenerationTask || mainGenerationTask.status !== 'completed') {
+    throw new Error('主模型生成任务未完成或失败')
   }
   
-  const optimizedHistory = conversationHistory.map(msg => 
-    msg.id === userMessage.id ? optimizedUserMessage : msg
-  )
+  const finalContent = mainGenerationTask.output.content
+  const reasoning_content = mainGenerationTask.output.reasoning_content
   
   // 将任务结果转换为 UI 组件格式
   const agentComponents: MessageComponents = {
@@ -93,7 +95,8 @@ export async function executeAgentPipeline(
   }
   
   return {
-    optimizedHistory,
+    finalContent,
+    reasoning_content,
     agentComponents
   }
 }
