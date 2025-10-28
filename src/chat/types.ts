@@ -12,7 +12,8 @@ export interface AgentTaskResultForUI {
   optimizedInput?: string      // 优化后的输入（如果有）
   displayResult?: string       // 展示结果
   metadata?: {
-    taskType: string
+    taskType: string           // 任务类型（技术标识）
+    name: string               // 任务名称（用户友好）
     originalInput?: string
     processingTime: number
     error?: string

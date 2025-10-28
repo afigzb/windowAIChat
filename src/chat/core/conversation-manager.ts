@@ -7,7 +7,7 @@ import type {
 } from '../types'
 import { callAIAPI } from './api'
 import { contextEngine } from './context'
-import { executeAgentPipeline, shouldExecuteAgentPipeline } from '../agents'
+import { executeAgentPipeline, shouldExecuteAgentPipeline, type AgentProgressUpdate } from '../agents'
 import {
   createInitialConversationTree,
   createFlatMessage,
@@ -127,7 +127,7 @@ interface GenerateWithAgentParams {
   abortController: AbortController
   
   // 状态更新回调
-  onAgentProgress?: (content: string) => void
+  onAgentProgress?: (content: string | AgentProgressUpdate) => void
   onThinkingUpdate: (thinking: string) => void
   onAnswerUpdate: (answer: string) => void
   
@@ -247,7 +247,11 @@ async function processWithAgent(
       placeholderAIMessage: placeholderAI,
       config,
       abortController: abortControllerRef.current,
-      onAgentProgress: setCurrentAgentOptimizing,
+      onAgentProgress: (content: string | AgentProgressUpdate) => {
+        // 将结构化数据转换为 JSON 字符串
+        const stringContent = typeof content === 'string' ? content : JSON.stringify(content)
+        setCurrentAgentOptimizing(stringContent)
+      },
       onThinkingUpdate: setCurrentThinking,
       onAnswerUpdate: setCurrentAnswer,
       tempContent,
@@ -654,7 +658,11 @@ export function useConversationManager(
             placeholderAIMessage: newMessage,
             config,
             abortController: abortControllerRef.current,
-            onAgentProgress: setCurrentAgentOptimizing,
+            onAgentProgress: (content: string | AgentProgressUpdate) => {
+              // 将结构化数据转换为 JSON 字符串
+              const stringContent = typeof content === 'string' ? content : JSON.stringify(content)
+              setCurrentAgentOptimizing(stringContent)
+            },
             onThinkingUpdate: setCurrentThinking,
             onAnswerUpdate: setCurrentAnswer,
             tempContent,

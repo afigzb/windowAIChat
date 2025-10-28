@@ -68,7 +68,7 @@ export class AgentPipeline {
     input: PipelineInput,
     workflow: AgentWorkflow,
     abortSignal?: AbortSignal,
-    onProgress?: (message: string) => void
+    onProgress?: (update: string | import('./types').AgentProgressUpdate) => void
   ): Promise<PipelineResult> {
     const startTime = Date.now()
 
@@ -120,7 +120,7 @@ export class AgentPipeline {
     input: PipelineInput,
     workflowName: string,
     abortSignal?: AbortSignal,
-    onProgress?: (message: string) => void
+    onProgress?: (update: string | import('./types').AgentProgressUpdate) => void
   ): Promise<PipelineResult> {
     const workflow = this.workflows.get(workflowName)
     

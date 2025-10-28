@@ -6,14 +6,14 @@ import type { FlatMessage, AIConfig, MessageComponents, AgentTaskResultForUI } f
 import { agentPipeline } from './pipeline'
 import type { PipelineResult } from './pipeline'
 import { defaultOptimizeWorkflow } from './workflows'
-import type { AgentTaskResult } from './types'
+import type { AgentTaskResult, AgentProgressUpdate } from './types'
 
 export interface ExecutePipelineParams {
   userMessage: FlatMessage
   conversationHistory: FlatMessage[]
   config: AIConfig
   abortSignal?: AbortSignal
-  onProgress?: (content: string) => void
+  onProgress?: (content: string | AgentProgressUpdate) => void
 }
 
 export interface PipelineExecutionResult {
@@ -33,6 +33,22 @@ export async function executeAgentPipeline(
   
   console.log('[AgentPipeline] 开始执行工作流')
   
+  // 包装 onProgress，将结构化数据转换为字符串
+  const wrappedOnProgress = onProgress ? (update: string | AgentProgressUpdate) => {
+    if (typeof update === 'string') {
+      onProgress(update)
+    } else {
+      // 将 AgentTaskResult 转换为 AgentTaskResultForUI
+      const progressData = {
+        type: update.type,
+        message: update.message,
+        currentTask: update.currentTask,
+        completedTasks: update.completedResults?.map(r => convertTaskResultForUI(r))
+      }
+      onProgress(JSON.stringify(progressData))
+    }
+  } : undefined
+  
   // 使用默认工作流执行
   const pipelineResult = await agentPipeline.execute(
     {
@@ -43,7 +59,7 @@ export async function executeAgentPipeline(
     },
     defaultOptimizeWorkflow,
     abortSignal,
-    onProgress
+    wrappedOnProgress
   )
   
   console.log('[AgentPipeline] 执行完成:', {
@@ -107,6 +123,7 @@ function convertTaskResultForUI(taskResult: AgentTaskResult): AgentTaskResultFor
     displayResult: taskResult.output?.displayText,
     metadata: {
       taskType: taskResult.type,
+      name: taskResult.name,  // 使用任务的友好名称
       originalInput: taskResult.input,
       processingTime: taskResult.duration,
       error: taskResult.error

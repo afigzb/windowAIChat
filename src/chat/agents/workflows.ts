@@ -8,7 +8,8 @@ import type {
   AgentWorkflow, 
   AgentContext,
   AgentTaskResult,
-  AgentTaskConfig
+  AgentTaskConfig,
+  AgentProgressUpdate
 } from './types'
 import { shouldOptimizeTask } from './steps/should-optimize-step'
 import { optimizeInputTask } from './steps/optimize-input-step'
@@ -51,10 +52,10 @@ function getTaskConfigFromContext(
  * 任务的启用/禁用由配置中的 enabled 字段控制
  */
 export const defaultOptimizeWorkflow: AgentWorkflow = async (
-  context: AgentContext,
-  abortSignal?: AbortSignal,
-  onProgress?: (message: string) => void
-): Promise<AgentTaskResult[]> => {
+  context,
+  abortSignal,
+  onProgress
+) => {
   const results: AgentTaskResult[] = []
 
   // 获取任务配置（优先使用用户自定义配置）
@@ -76,15 +77,51 @@ export const defaultOptimizeWorkflow: AgentWorkflow = async (
 
   // 任务1: 判断是否需要优化（如果启用）
   if (isShouldOptimizeEnabled) {
+    // 通知任务开始
+    if (onProgress) {
+      const progressUpdate: AgentProgressUpdate = {
+        type: 'task_start',
+        currentTask: {
+          name: shouldOptimizeConfig.name,
+          type: shouldOptimizeConfig.type
+        },
+        completedResults: []
+      }
+      onProgress(progressUpdate)
+    }
+    
     const shouldOptimizeResult = await shouldOptimizeTask.execute({
       input: context.userInput,
       context,
       config: shouldOptimizeConfig,
       abortSignal,
-      onProgress
+      // 包装任务内部的流式进度，将字符串内容转换为结构化更新
+      onProgress: onProgress ? (content: string | AgentProgressUpdate) => {
+        if (typeof content === 'string') {
+          // 任务内部的流式内容，包装成进度更新
+          onProgress({
+            type: 'message',
+            message: content,
+            currentTask: {
+              name: shouldOptimizeConfig.name,
+              type: shouldOptimizeConfig.type
+            },
+            completedResults: [...results]
+          })
+        }
+      } : undefined
     })
     
     results.push(shouldOptimizeResult)
+    
+    // 任务完成后通知
+    if (onProgress) {
+      const progressUpdate: AgentProgressUpdate = {
+        type: 'task_complete',
+        completedResults: [...results]
+      }
+      onProgress(progressUpdate)
+    }
     
     console.log('[DefaultWorkflow] 判断结果:', shouldOptimizeResult.output)
 
@@ -99,15 +136,50 @@ export const defaultOptimizeWorkflow: AgentWorkflow = async (
     if (shouldOptimize && isOptimizeInputEnabled) {
       console.log('[DefaultWorkflow] 开始优化输入')
       
+      // 通知任务开始
+      if (onProgress) {
+        const progressUpdate: AgentProgressUpdate = {
+          type: 'task_start',
+          currentTask: {
+            name: optimizeInputConfig.name,
+            type: optimizeInputConfig.type
+          },
+          completedResults: [...results]
+        }
+        onProgress(progressUpdate)
+      }
+      
       const optimizeResult = await optimizeInputTask.execute({
         input: context.userInput,
         context,
         config: optimizeInputConfig,
         abortSignal,
-        onProgress
+        // 包装任务内部的流式进度
+        onProgress: onProgress ? (content: string | AgentProgressUpdate) => {
+          if (typeof content === 'string') {
+            onProgress({
+              type: 'message',
+              message: content,
+              currentTask: {
+                name: optimizeInputConfig.name,
+                type: optimizeInputConfig.type
+              },
+              completedResults: [...results]
+            })
+          }
+        } : undefined
       })
       
       results.push(optimizeResult)
+      
+      // 任务完成后通知
+      if (onProgress) {
+        const progressUpdate: AgentProgressUpdate = {
+          type: 'task_complete',
+          completedResults: [...results]
+        }
+        onProgress(progressUpdate)
+      }
     } else if (!shouldOptimize) {
       console.log('[DefaultWorkflow] 无需优化，跳过优化步骤')
     } else if (!isOptimizeInputEnabled) {
@@ -118,15 +190,50 @@ export const defaultOptimizeWorkflow: AgentWorkflow = async (
     
     // 如果判断任务被禁用，但优化任务启用，则直接执行优化
     if (isOptimizeInputEnabled) {
+      // 通知任务开始
+      if (onProgress) {
+        const progressUpdate: AgentProgressUpdate = {
+          type: 'task_start',
+          currentTask: {
+            name: optimizeInputConfig.name,
+            type: optimizeInputConfig.type
+          },
+          completedResults: []
+        }
+        onProgress(progressUpdate)
+      }
+      
       const optimizeResult = await optimizeInputTask.execute({
         input: context.userInput,
         context,
         config: optimizeInputConfig,
         abortSignal,
-        onProgress
+        // 包装任务内部的流式进度
+        onProgress: onProgress ? (content: string | AgentProgressUpdate) => {
+          if (typeof content === 'string') {
+            onProgress({
+              type: 'message',
+              message: content,
+              currentTask: {
+                name: optimizeInputConfig.name,
+                type: optimizeInputConfig.type
+              },
+              completedResults: []
+            })
+          }
+        } : undefined
       })
       
       results.push(optimizeResult)
+      
+      // 任务完成后通知
+      if (onProgress) {
+        const progressUpdate: AgentProgressUpdate = {
+          type: 'task_complete',
+          completedResults: [...results]
+        }
+        onProgress(progressUpdate)
+      }
     }
   }
 

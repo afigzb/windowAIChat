@@ -12,6 +12,7 @@ export type {
   AgentTask,
   AgentWorkflow,
   AgentPipelineConfig,
+  AgentProgressUpdate,
 } from './types'
 
 export { AgentTaskStatus } from './types'

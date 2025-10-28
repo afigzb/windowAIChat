@@ -74,6 +74,19 @@ export interface AgentContext {
 }
 
 /**
+ * 进度更新数据
+ */
+export interface AgentProgressUpdate {
+  type: 'task_start' | 'task_complete' | 'message'
+  message?: string
+  currentTask?: {
+    name: string
+    type: AgentTaskType
+  }
+  completedResults?: AgentTaskResult[]
+}
+
+/**
  * 任务执行参数
  */
 export interface AgentTaskExecuteParams {
@@ -81,7 +94,7 @@ export interface AgentTaskExecuteParams {
   context: AgentContext        // 执行上下文
   config: AgentTaskConfig      // 任务配置
   abortSignal?: AbortSignal    // 取消信号
-  onProgress?: (message: string) => void  // 进度回调
+  onProgress?: (update: string | AgentProgressUpdate) => void  // 进度回调（支持字符串或结构化数据）
 }
 
 /**
@@ -107,7 +120,7 @@ export interface AgentTask {
 export type AgentWorkflow = (
   context: AgentContext,
   abortSignal?: AbortSignal,
-  onProgress?: (message: string) => void
+  onProgress?: (update: string | AgentProgressUpdate) => void
 ) => Promise<AgentTaskResult[]>
 
 /**
