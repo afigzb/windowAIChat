@@ -6,6 +6,20 @@ export type MessageRole = 'user' | 'assistant' | 'system'
 
 // ===== 消息相关 =====
 
+// Agent 任务结果（UI 展示专用）
+export interface AgentTaskResultForUI {
+  success: boolean
+  optimizedInput?: string      // 优化后的输入（如果有）
+  displayResult?: string       // 展示结果
+  metadata?: {
+    taskType: string
+    originalInput?: string
+    processingTime: number
+    error?: string
+    changes?: string
+  }
+}
+
 // 消息组件：区分不同类型的内容来源
 export interface MessageComponents {
   userInput?: string           // 用户真实输入（仅 user 消息）
@@ -18,7 +32,7 @@ export interface MessageComponents {
     placement: 'system' | 'after_system' | 'user_end'
   }[]
   systemPrompt?: string        // 使用的系统提示词（仅 system 消息或第一条 user 消息）
-  agentResults?: import('./agents').AgentTaskResult[]  // Agent 处理结果（用于 UI 展示）
+  agentResults?: AgentTaskResultForUI[]  // Agent 处理结果（用于 UI 展示）
   // 未来可扩展：
   // contextSnapshot?: string  // 上下文快照
   // toolCalls?: ToolCall[]    // 工具调用记录

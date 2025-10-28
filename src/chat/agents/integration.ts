@@ -2,10 +2,11 @@
  * Agent 系统与对话管理器的集成层
  */
 
-import type { FlatMessage, AIConfig, MessageComponents } from '../types'
-import type { AgentContext } from './types'
+import type { FlatMessage, AIConfig, MessageComponents, AgentTaskResultForUI } from '../types'
 import { agentPipeline } from './pipeline'
 import type { PipelineResult } from './pipeline'
+import { defaultOptimizeWorkflow } from './workflows'
+import type { AgentTaskResult } from './types'
 
 export interface ExecutePipelineParams {
   userMessage: FlatMessage
@@ -30,27 +31,30 @@ export async function executeAgentPipeline(
   
   const userContent = userMessage.components?.userInput || userMessage.content
   
-  console.log('[AgentPipeline] 开始执行，步骤数:', config.agentConfig?.steps?.length)
+  console.log('[AgentPipeline] 开始执行工作流')
   
+  // 使用默认工作流执行
   const pipelineResult = await agentPipeline.execute(
     {
       userInput: userContent,
       attachedFiles: userMessage.components?.attachedFiles,
       conversationHistory: conversationHistory,
-      components: userMessage.components
+      aiConfig: config
     },
-    config.agentConfig!,
-    config,
+    defaultOptimizeWorkflow,
     abortSignal,
     onProgress
   )
   
   console.log('[AgentPipeline] 执行完成:', {
     success: pipelineResult.success,
+    taskCount: pipelineResult.taskResults.length,
     totalTime: `${pipelineResult.totalTime}ms`
   })
   
-  const finalContent = pipelineResult.finalInput || userContent
+  // 从任务结果中提取优化后的输入
+  const optimizeTask = pipelineResult.taskResults.find(r => r.type === 'optimize-input')
+  const finalContent = (optimizeTask?.output as string) || userContent
   
   const optimizedUserMessage: FlatMessage = {
     ...userMessage,
@@ -65,19 +69,10 @@ export async function executeAgentPipeline(
     msg.id === userMessage.id ? optimizedUserMessage : msg
   )
   
+  // 将任务结果转换为 UI 组件格式
   const agentComponents: MessageComponents = {
-    agentResults: pipelineResult.stepResults.length > 0 
-      ? pipelineResult.stepResults.map(stepResult => ({
-          success: stepResult.success,
-          optimizedInput: stepResult.data?.output,
-          metadata: {
-            taskType: stepResult.stepType,
-            originalInput: stepResult.data?.input || userContent,
-            processingTime: stepResult.processingTime,
-            error: stepResult.error,
-            changes: stepResult.data?.changes
-          }
-        }))
+    agentResults: pipelineResult.taskResults.length > 0 
+      ? pipelineResult.taskResults.map(taskResult => convertTaskResultForUI(taskResult))
       : undefined
   }
   
@@ -96,19 +91,26 @@ export function formatPipelineResultForUI(
   userContent: string
 ): MessageComponents {
   return {
-    agentResults: pipelineResult.stepResults.length > 0 
-      ? pipelineResult.stepResults.map(stepResult => ({
-          success: stepResult.success,
-          optimizedInput: stepResult.data?.output,
-          metadata: {
-            taskType: stepResult.stepType,
-            originalInput: stepResult.data?.input || userContent,
-            processingTime: stepResult.processingTime,
-            error: stepResult.error,
-            changes: stepResult.data?.changes
-          }
-        }))
+    agentResults: pipelineResult.taskResults.length > 0 
+      ? pipelineResult.taskResults.map(taskResult => convertTaskResultForUI(taskResult))
       : undefined
+  }
+}
+
+/**
+ * 将 AgentTaskResult 转换为 UI 展示格式
+ */
+function convertTaskResultForUI(taskResult: AgentTaskResult): AgentTaskResultForUI {
+  return {
+    success: taskResult.status === 'completed',
+    optimizedInput: typeof taskResult.output === 'string' ? taskResult.output : undefined,
+    displayResult: taskResult.output?.displayText,
+    metadata: {
+      taskType: taskResult.type,
+      originalInput: taskResult.input,
+      processingTime: taskResult.duration,
+      error: taskResult.error
+    }
   }
 }
 

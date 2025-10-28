@@ -1,181 +1,146 @@
 /**
- * Agent Pipeline - 步骤编排引擎
+ * Agent Pipeline - 工作流执行引擎
+ * 
+ * 核心职责：
+ * - 执行工作流函数
+ * - 管理执行上下文
+ * - 收集任务结果
+ * 
+ * 不负责：
+ * - 自动数据传递（由工作流代码显式处理）
+ * - 任务编排逻辑（由工作流函数实现）
  */
 
 import type {
-  AgentStep,
-  AgentStepType,
-  AgentStepConfig,
-  AgentStepResult,
   AgentContext,
-  AgentPipelineConfig
+  AgentWorkflow,
+  AgentTaskResult
 } from './types'
-import type { AIConfig, FlatMessage, MessageComponents } from '../types'
+import type { AIConfig, FlatMessage } from '../types'
 
+/**
+ * Pipeline 执行结果
+ */
 export interface PipelineResult {
   success: boolean
-  finalInput: string
+  taskResults: AgentTaskResult[]
   context: AgentContext
-  stepResults: AgentStepResult[]
   totalTime: number
 }
 
+/**
+ * Pipeline 执行输入
+ */
+export interface PipelineInput {
+  userInput: string
+  attachedFiles?: string[]
+  conversationHistory?: FlatMessage[]
+  aiConfig: AIConfig
+}
+
+/**
+ * Agent Pipeline 类
+ */
 export class AgentPipeline {
-  private steps = new Map<AgentStepType, AgentStep>()
+  private workflows = new Map<string, AgentWorkflow>()
 
-  registerStep(step: AgentStep): void {
-    // 生产环境仍然提示警告
-    if (this.steps.has(step.type) && import.meta.env.PROD) {
-      console.warn(`[Pipeline] 步骤类型 ${step.type} 已存在，将被覆盖`)
+  /**
+   * 注册工作流
+   */
+  registerWorkflow(name: string, workflow: AgentWorkflow): void {
+    if (this.workflows.has(name) && import.meta.env.PROD) {
+      console.warn(`[Pipeline] 工作流 ${name} 已存在，将被覆盖`)
     }
-    this.steps.set(step.type, step)
+    this.workflows.set(name, workflow)
   }
 
-  registerSteps(steps: AgentStep[]): void {
-    steps.forEach(step => this.registerStep(step))
+  /**
+   * 获取工作流
+   */
+  getWorkflow(name: string): AgentWorkflow | undefined {
+    return this.workflows.get(name)
   }
 
+  /**
+   * 执行工作流
+   */
   async execute(
-    input: {
-      userInput: string
-      attachedFiles?: string[]
-      conversationHistory?: FlatMessage[]
-      components?: MessageComponents
-    },
-    pipelineConfig: AgentPipelineConfig,
-    aiConfig: AIConfig,
+    input: PipelineInput,
+    workflow: AgentWorkflow,
     abortSignal?: AbortSignal,
     onProgress?: (message: string) => void
   ): Promise<PipelineResult> {
     const startTime = Date.now()
 
-    if (!pipelineConfig || !pipelineConfig.enabled || !pipelineConfig.steps) {
-      return this.createEmptyResult(input.userInput, startTime)
-    }
-
-    const enabledSteps = pipelineConfig.steps.filter(step => step.enabled)
-    
-    if (enabledSteps.length === 0) {
-      return this.createEmptyResult(input.userInput, startTime)
-    }
-
+    // 创建执行上下文
     const context: AgentContext = {
       userInput: input.userInput,
       attachedFiles: input.attachedFiles,
       conversationHistory: input.conversationHistory,
-      processedInput: input.userInput,
-      stepData: new Map(),
-      metadata: {
-        startTime,
-        stepResults: []
-      },
-      aiConfig
+      aiConfig: input.aiConfig,
+      taskResults: new Map(),
+      data: new Map()
     }
 
-    const continueOnError = pipelineConfig.options?.continueOnError ?? false
-    let overallSuccess = true
+    try {
+      // 执行工作流，由工作流函数负责任务编排
+      const taskResults = await workflow(context, abortSignal, onProgress)
 
-    for (const stepConfig of enabledSteps) {
-      if (abortSignal?.aborted) {
-        console.log('[Pipeline] 执行被中断')
-        break
+      // 将结果存入上下文（方便查询）
+      taskResults.forEach(result => {
+        context.taskResults.set(result.id, result)
+      })
+
+      const totalTime = Date.now() - startTime
+      const success = taskResults.every(r => r.status !== 'failed')
+
+      return {
+        success,
+        taskResults,
+        context,
+        totalTime
       }
 
-      const step = this.steps.get(stepConfig.type)
+    } catch (error: any) {
+      console.error('[Pipeline] 工作流执行异常:', error)
       
-      if (!step) {
-        console.warn(`[Pipeline] 未找到步骤处理器: ${stepConfig.type}`)
-        continue
-      }
-
-      try {
-        if (onProgress) {
-          onProgress(`正在执行: ${stepConfig.name}...`)
-        }
-
-        const result = await step.execute(
-          context,
-          stepConfig,
-          abortSignal,
-          onProgress
-        )
-
-        context.metadata.stepResults.push(result)
-
-        if (!result.success) {
-          overallSuccess = false
-          console.log(`[Pipeline] 步骤失败: ${stepConfig.name} - ${result.error}`)
-          
-          if (!continueOnError) {
-            break
-          }
-        }
-
-        if (result.success && result.data?.output) {
-          context.processedInput = result.data.output
-        }
-
-      } catch (error: any) {
-        console.error(`[Pipeline] 步骤异常: ${stepConfig.name}`, error)
-        overallSuccess = false
-        
-        const errorResult: AgentStepResult = {
-          stepType: stepConfig.type,
-          stepName: stepConfig.name,
-          success: false,
-          processingTime: 0,
-          error: error.message || '步骤执行异常'
-        }
-        context.metadata.stepResults.push(errorResult)
-        
-        if (!continueOnError) {
-          break
-        }
+      return {
+        success: false,
+        taskResults: [],
+        context,
+        totalTime: Date.now() - startTime
       }
     }
+  }
 
-    const totalTime = Date.now() - startTime
+  /**
+   * 通过名称执行已注册的工作流
+   */
+  async executeByName(
+    input: PipelineInput,
+    workflowName: string,
+    abortSignal?: AbortSignal,
+    onProgress?: (message: string) => void
+  ): Promise<PipelineResult> {
+    const workflow = this.workflows.get(workflowName)
     
-    return {
-      success: overallSuccess,
-      finalInput: context.processedInput || input.userInput,
-      context,
-      stepResults: context.metadata.stepResults,
-      totalTime
+    if (!workflow) {
+      throw new Error(`工作流 ${workflowName} 未注册`)
     }
+
+    return this.execute(input, workflow, abortSignal, onProgress)
   }
 
-  private createEmptyResult(userInput: string, startTime: number): PipelineResult {
-    return {
-      success: true,
-      finalInput: userInput,
-      context: {
-        userInput,
-        processedInput: userInput,
-        stepData: new Map(),
-        metadata: {
-          startTime,
-          stepResults: []
-        },
-        aiConfig: {} as AIConfig
-      },
-      stepResults: [],
-      totalTime: Date.now() - startTime
-    }
-  }
-
-  getRegisteredSteps(): AgentStep[] {
-    return Array.from(this.steps.values())
-  }
-
-  hasStep(type: AgentStepType): boolean {
-    return this.steps.has(type)
-  }
-
-  getStep(type: AgentStepType): AgentStep | undefined {
-    return this.steps.get(type)
+  /**
+   * 列出所有已注册的工作流
+   */
+  listWorkflows(): string[] {
+    return Array.from(this.workflows.keys())
   }
 }
 
+/**
+ * 全局 Pipeline 实例
+ */
 export const agentPipeline = new AgentPipeline()
 

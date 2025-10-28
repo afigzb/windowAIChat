@@ -70,17 +70,15 @@ class StorageManager {
         this.currentConfig = {
           ...defaultConfig,  // 先使用默认配置
           ...storedConfig,   // 再用存储的配置覆盖
-          // 深度合并 agentConfig，确保 steps 等字段存在
+          // 深度合并 agentConfig
           agentConfig: storedConfig.agentConfig ? {
             ...defaultConfig.agentConfig,
-            ...storedConfig.agentConfig,
-            // 确保 steps 数组存在
-            steps: storedConfig.agentConfig.steps || defaultConfig.agentConfig?.steps || []
+            ...storedConfig.agentConfig
           } : defaultConfig.agentConfig
         }
       }
       
-      return this.currentConfig
+      return this.currentConfig!
     } catch (error) {
       console.warn('加载AI配置失败，使用默认配置:', error)
       this.currentConfig = { ...defaultConfig }

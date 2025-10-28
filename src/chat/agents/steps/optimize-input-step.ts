@@ -1,62 +1,45 @@
 /**
- * 输入优化步骤
+ * 输入优化任务
  * 使用 AI 优化用户输入，使其更清晰、准确
  */
 
 import type {
-  AgentStep,
-  AgentContext,
-  AgentStepConfig,
-  AgentStepResult
+  AgentTask,
+  AgentTaskExecuteParams,
+  AgentTaskResult,
+  AgentTaskStatus
 } from '../types'
 import type { ApiProviderConfig } from '../../types'
 import { callSimpleAPI } from '../simple-api'
 import { DEFAULT_OPTIMIZE_SYSTEM_PROMPT } from '../defaults'
 
-export class OptimizeInputStep implements AgentStep {
+export class OptimizeInputTask implements AgentTask {
   type = 'optimize-input' as const
   name = '输入优化'
   description = '使用 AI 优化用户输入，修正语法错误并使表达更清晰'
 
   async execute(
-    context: AgentContext,
-    config: AgentStepConfig,
-    abortSignal?: AbortSignal,
-    onProgress?: (message: string) => void
-  ): Promise<AgentStepResult> {
+    params: AgentTaskExecuteParams
+  ): Promise<AgentTaskResult> {
+    const { input, context, config, abortSignal, onProgress } = params
+    
+    const taskId = `${this.type}-${Date.now()}`
     const startTime = Date.now()
+    
+    const userInput = typeof input === 'string' ? input : String(input)
 
     try {
-      const currentInput = context.processedInput || context.userInput
-
-      // 检查前置判断步骤的结果
-      const shouldOptimizeData = context.stepData.get('should-optimize')
-      if (shouldOptimizeData && shouldOptimizeData.shouldOptimize === false) {
-        console.log('[OptimizeInput] 根据前置判断，跳过优化步骤')
+      if (!userInput || userInput.trim().length < 5) {
         return {
-          stepType: this.type,
-          stepName: this.name,
-          success: true,
-          data: {
-            input: currentInput,
-            output: currentInput,
-            changes: `已跳过：${shouldOptimizeData.reason || '无需优化'}`
-          },
-          processingTime: Date.now() - startTime
-        }
-      }
-
-      if (!currentInput || currentInput.trim().length < 5) {
-        return {
-          stepType: this.type,
-          stepName: this.name,
-          success: true,
-          data: {
-            input: currentInput,
-            output: currentInput,
-            changes: '输入过短，无需优化'
-          },
-          processingTime: Date.now() - startTime
+          id: taskId,
+          type: this.type,
+          name: this.name,
+          status: 'completed' as AgentTaskStatus,
+          input: userInput,
+          output: userInput,
+          startTime,
+          endTime: Date.now(),
+          duration: Date.now() - startTime
         }
       }
 
@@ -80,7 +63,7 @@ export class OptimizeInputStep implements AgentStep {
 
       const messages = [
         { role: 'system' as const, content: systemPrompt },
-        { role: 'user' as const, content: currentInput }
+        { role: 'user' as const, content: userInput }
       ]
 
       const result = await callSimpleAPI(
@@ -97,49 +80,37 @@ export class OptimizeInputStep implements AgentStep {
 
       const optimizedInput = result.trim()
 
-      console.log('[OptimizeInput] 获取到的消息:', {
-        original: currentInput.substring(0, 100) + (currentInput.length > 100 ? '...' : ''),
-        optimized: optimizedInput.substring(0, 100) + (optimizedInput.length > 100 ? '...' : ''),
-        changed: currentInput !== optimizedInput
+      console.log('[OptimizeInput] 优化完成:', {
+        original: userInput.substring(0, 100),
+        optimized: optimizedInput.substring(0, 100),
+        changed: userInput !== optimizedInput
       })
-
-      context.processedInput = optimizedInput
-
-      context.stepData.set(this.type, {
-        originalInput: currentInput,
-        optimizedInput: optimizedInput
-      })
-
-      console.log(`[OptimizeInput] 优化完成: ${currentInput !== optimizedInput ? '已修改' : '无需修改'}`)
 
       return {
-        stepType: this.type,
-        stepName: this.name,
-        success: true,
-        data: {
-          input: currentInput,
-          output: optimizedInput,
-          changes: currentInput !== optimizedInput 
-            ? '已优化输入'
-            : '输入无需修改'
-        },
-        processingTime: Date.now() - startTime
+        id: taskId,
+        type: this.type,
+        name: this.name,
+        status: 'completed' as AgentTaskStatus,
+        input: userInput,
+        output: optimizedInput,
+        startTime,
+        endTime: Date.now(),
+        duration: Date.now() - startTime
       }
 
     } catch (error: any) {
-      const currentInput = context.processedInput || context.userInput
-      
       console.error(`[OptimizeInput] 优化失败:`, error.message)
       
       return {
-        stepType: this.type,
-        stepName: this.name,
-        success: false,
-        data: {
-          input: currentInput,
-          output: currentInput
-        },
-        processingTime: Date.now() - startTime,
+        id: taskId,
+        type: this.type,
+        name: this.name,
+        status: 'failed' as AgentTaskStatus,
+        input: userInput,
+        output: userInput,  // 失败时返回原始输入
+        startTime,
+        endTime: Date.now(),
+        duration: Date.now() - startTime,
         error: error.message || '优化失败'
       }
     }
@@ -147,16 +118,26 @@ export class OptimizeInputStep implements AgentStep {
 
   private getApiProvider(
     aiConfig: import('../../types').AIConfig,
-    stepConfig: AgentStepConfig
+    config: import('../types').AgentTaskConfig
   ): ApiProviderConfig | null {
-    if (stepConfig.apiProviderId) {
-      const provider = aiConfig.providers.find(p => p.id === stepConfig.apiProviderId)
-      if (provider) return provider
+    // 优先使用任务配置中指定的 API
+    if (config.apiProviderId) {
+      const provider = aiConfig.providers.find(p => p.id === config.apiProviderId)
+      if (provider) {
+        console.log(`[OptimizeInput] 使用指定 API: ${provider.name}`)
+        return provider
+      }
+      console.warn(`[OptimizeInput] 未找到指定的 API: ${config.apiProviderId}，使用当前 API`)
     }
 
-    return aiConfig.providers.find(p => p.id === aiConfig.currentProviderId) || null
+    // 否则使用当前选中的 API
+    const currentProvider = aiConfig.providers.find(p => p.id === aiConfig.currentProviderId)
+    if (currentProvider) {
+      console.log(`[OptimizeInput] 使用当前 API: ${currentProvider.name}`)
+    }
+    return currentProvider || null
   }
 }
 
-export const optimizeInputStep = new OptimizeInputStep()
+export const optimizeInputTask = new OptimizeInputTask()
 

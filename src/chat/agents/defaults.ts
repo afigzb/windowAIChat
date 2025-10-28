@@ -1,8 +1,13 @@
 /**
  * Agent Pipeline 默认配置
+ * 
+ * 仅包含配置常量，不包含业务逻辑
  */
 
-import type { AgentPipelineConfig } from './types'
+import type { 
+  AgentPipelineConfig, 
+  AgentTaskConfig
+} from './types'
 
 // 默认系统提示词
 export const DEFAULT_SHOULD_OPTIMIZE_SYSTEM_PROMPT = `你是一个专业的文本质量评估助手。你的任务是判断用户输入是否需要优化。
@@ -31,26 +36,30 @@ export const DEFAULT_OPTIMIZE_SYSTEM_PROMPT = `你是一个专业的文本优化
 
 请直接输出优化后的文本，不要添加任何解释或说明。`
 
+/**
+ * 默认任务配置
+ */
+export const DEFAULT_SHOULD_OPTIMIZE_CONFIG: AgentTaskConfig = {
+  type: 'should-optimize',
+  name: '判断是否优化',
+  enabled: true,
+  description: '使用 AI 判断用户输入是否需要优化',
+  systemPrompt: DEFAULT_SHOULD_OPTIMIZE_SYSTEM_PROMPT
+}
+
+export const DEFAULT_OPTIMIZE_INPUT_CONFIG: AgentTaskConfig = {
+  type: 'optimize-input',
+  name: '输入优化',
+  enabled: true,
+  description: '使用 AI 优化用户输入，修正语法错误并使表达更清晰',
+  systemPrompt: DEFAULT_OPTIMIZE_SYSTEM_PROMPT
+}
+
+/**
+ * 默认 Pipeline 配置
+ */
 export const DEFAULT_AGENT_CONFIG: AgentPipelineConfig = {
   enabled: false,
-  steps: [
-    {
-      type: 'should-optimize',
-      enabled: true,
-      name: '判断是否优化',
-      description: '使用 AI 判断用户输入是否需要优化',
-      systemPrompt: DEFAULT_SHOULD_OPTIMIZE_SYSTEM_PROMPT
-    },
-    {
-      type: 'optimize-input',
-      enabled: true,
-      name: '输入优化',
-      description: '使用 AI 优化用户输入，修正语法错误并使表达更清晰',
-      systemPrompt: DEFAULT_OPTIMIZE_SYSTEM_PROMPT
-    }
-  ],
-  options: {
-    continueOnError: true
-  }
+  workflowName: 'default-optimize'
 }
 

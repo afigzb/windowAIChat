@@ -18,6 +18,7 @@ import { useState, useRef, useEffect } from 'react'
 import type { MessageBubbleProps } from '../types'
 import { MarkdownRenderer } from '../../md-html-dock/renderers/MarkdownRenderer'
 import { Icon, AnimatedDots } from './components'
+import { AgentResults } from './AgentResults'
 
 // ===== 子组件：分支导航控件 =====
 
@@ -118,7 +119,6 @@ export function MessageBubble({
   isInContext
 }: MessageBubbleProps) {
   const [showThinkingExpanded, setShowThinkingExpanded] = useState(false)
-  const [showAgentResultExpanded, setShowAgentResultExpanded] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const isUser = node.role === 'user'
   // 对于用户消息，使用 userInput；对于 AI 消息，使用 content
@@ -210,78 +210,14 @@ export function MessageBubble({
             )}
           </div>
 
-          {/* AI消息的 Agent 优化结果展示（放在思考过程上面） */}
-          {!isUser && (() => {
-            // 如果正在显示"正在优化输入..."且有流式内容
-            if (isGenerating && node.content === '正在优化输入...' && currentAgentOptimizing) {
-              return (
-                <div className="mb-4 w-full min-w-[8rem] bg-white border-2 border-blue-200 rounded-2xl shadow-sm overflow-hidden">
-                  <div className="px-6 py-3 bg-gradient-to-r from-blue-50 to-indigo-50">
-                    <span className="text-sm text-blue-700 font-medium whitespace-nowrap">正在优化输入</span>
-                  </div>
-                  <div className="px-6 py-4 text-sm text-gray-700 leading-relaxed">
-                    <div className="whitespace-pre-wrap break-words">
-                      <MarkdownRenderer content={currentAgentOptimizing} />
-                    </div>
-                    <div className="flex items-center gap-3 mt-3 text-blue-500">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                      <span className="text-xs">生成中...</span>
-                    </div>
-                  </div>
-                </div>
-              )
-            }
-            
-            // 如果正在优化但还没有流式内容
-            if (isGenerating && node.content === '正在优化输入...') {
-              return (
-                <div className="mb-4 w-full min-w-[8rem] bg-white border-2 border-blue-200 rounded-2xl shadow-sm overflow-hidden">
-                  <div className="px-6 py-3 bg-gradient-to-r from-blue-50 to-indigo-50">
-                    <span className="text-sm text-blue-700 font-medium whitespace-nowrap">正在优化输入</span>
-                  </div>
-                  <div className="px-6 py-4 text-sm text-gray-700 leading-relaxed">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                      <span>AI 正在分析并优化您的输入...</span>
-                    </div>
-                  </div>
-                </div>
-              )
-            }
-            
-            // Agent 处理完成后，显示结果（可折叠）
-            if (node.components?.agentResults && node.components.agentResults.length > 0) {
-              const result = node.components.agentResults.find(r => r.success && r.metadata)
-              
-              if (!result || !result.metadata) return null
-              
-              // 检查是否有实际修改
-              const hasModification = result.optimizedInput && 
-                result.optimizedInput.trim().length > 0 &&
-                result.metadata.originalInput.trim() !== result.optimizedInput.trim()
-              
-              // 构建显示内容
-              let displayContent: string
-              if (hasModification) {
-                displayContent = `优化后：\n${result.optimizedInput}`
-              } else {
-                displayContent = `被判定为无需修改\n\n原始输入：\n${result.metadata.originalInput}`
-              }
-              
-              return (
-                <div className="mb-4 w-full">
-                  <CollapsibleSection
-                    title={hasModification ? "AI 优化" : "AI 检查"}
-                    content={displayContent}
-                    isExpanded={showAgentResultExpanded}
-                    onToggle={() => setShowAgentResultExpanded(!showAgentResultExpanded)}
-                  />
-                </div>
-              )
-            }
-            
-            return null
-          })()}
+          {/* AI消息的 Agent 处理结果展示 */}
+          {!isUser && (
+            <AgentResults 
+              results={node.components?.agentResults || []}
+              isProcessing={isGenerating && node.content === '正在优化输入...'}
+              streamingContent={currentAgentOptimizing}
+            />
+          )}
           
           {/* AI思考过程 */}
           {!isUser && (
