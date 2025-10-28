@@ -34,4 +34,11 @@ function Root() {
   )
 }
 
-createRoot(document.getElementById('root')!).render(<Root />)
+// 修复 HMR 导致的重复 createRoot 问题
+// 在 HMR 环境下复用已有的 root 实例
+let root = (window as any).__app_root
+if (!root) {
+  root = createRoot(document.getElementById('root')!)
+  ;(window as any).__app_root = root
+}
+root.render(<Root />)

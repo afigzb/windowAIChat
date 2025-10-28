@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { AIConfig } from '../chat'
-import type { AgentEngineConfig } from '../chat/agents'
+import type { AgentPipelineConfig } from '../chat/agents'
 import { DEFAULT_SUMMARIZE_PROMPT } from '../chat/core/defaults'
 import { DEFAULT_COMPRESSION_OPTIONS, type TextCompressionOptions } from '../chat/core/context/text-compressor'
 import { Icon } from '../chat/ui/components'
@@ -180,9 +180,9 @@ export function SettingsPanel({ config, onConfigChange, onRequestReset }: Settin
                 type="checkbox"
                 checked={config.agentConfig?.enabled ?? false}
                 onChange={(e) => {
-                  const agentConfig: AgentEngineConfig = config.agentConfig || {
+                  const agentConfig: AgentPipelineConfig = config.agentConfig || {
                     enabled: false,
-                    tasks: []
+                    steps: []
                   }
                   
                   onConfigChange({
@@ -190,7 +190,7 @@ export function SettingsPanel({ config, onConfigChange, onRequestReset }: Settin
                     agentConfig: {
                       ...agentConfig,
                       enabled: e.target.checked,
-                      tasks: e.target.checked && agentConfig.tasks.length === 0
+                      steps: e.target.checked && agentConfig.steps.length === 0
                         ? [
                             {
                               type: 'optimize-input',
@@ -199,7 +199,7 @@ export function SettingsPanel({ config, onConfigChange, onRequestReset }: Settin
                               description: '使用小模型优化用户输入'
                             }
                           ]
-                        : agentConfig.tasks
+                        : agentConfig.steps
                     }
                   })
                 }}
@@ -217,8 +217,8 @@ export function SettingsPanel({ config, onConfigChange, onRequestReset }: Settin
             
             {config.agentConfig?.enabled && (
               <div className="mt-4 pt-4 border-t border-gray-200">
-                {/* 任务列表 */}
-                {config.agentConfig.tasks.map((task, index) => (
+                {/* 步骤列表 */}
+                {config.agentConfig.steps.map((task, index) => (
                   <div key={index} className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-3">
@@ -226,13 +226,13 @@ export function SettingsPanel({ config, onConfigChange, onRequestReset }: Settin
                           type="checkbox"
                           checked={task.enabled}
                           onChange={(e) => {
-                            const newTasks = [...config.agentConfig!.tasks]
-                            newTasks[index] = { ...task, enabled: e.target.checked }
+                            const newSteps = [...config.agentConfig!.steps]
+                            newSteps[index] = { ...task, enabled: e.target.checked }
                             onConfigChange({
                               ...config,
                               agentConfig: {
                                 ...config.agentConfig!,
-                                tasks: newTasks
+                                steps: newSteps
                               }
                             })
                           }}
@@ -255,8 +255,8 @@ export function SettingsPanel({ config, onConfigChange, onRequestReset }: Settin
                       <select
                         value={task.apiProviderId || ''}
                         onChange={(e) => {
-                          const newTasks = [...config.agentConfig!.tasks]
-                          newTasks[index] = { 
+                          const newSteps = [...config.agentConfig!.steps]
+                          newSteps[index] = { 
                             ...task, 
                             apiProviderId: e.target.value || undefined 
                           }
@@ -264,7 +264,7 @@ export function SettingsPanel({ config, onConfigChange, onRequestReset }: Settin
                             ...config,
                             agentConfig: {
                               ...config.agentConfig!,
-                              tasks: newTasks
+                              steps: newSteps
                             }
                           })
                         }}

@@ -107,6 +107,84 @@ export class OpenAIAdapter {
   }
 
   /**
+   * 原始 API 调用 - 用于 Agent 等场景
+   * 直接发送消息，不经过上下文引擎处理
+   * 
+   * @param messages 简单消息格式 [{ role, content }]
+   * @param abortSignal 中断信号
+   * @param onStream 流式输出回调
+   * @returns AI 返回的内容
+   */
+  async callRawAPI(
+    messages: Array<{ role: string; content: string }>,
+    abortSignal?: AbortSignal,
+    onStream?: (content: string) => void
+  ): Promise<string> {
+    const requestBody: Record<string, any> = {
+      model: this.provider.model,
+      messages,
+      stream: true,
+      ...this.provider.extraParams
+    }
+
+    if (this.provider.maxTokens && this.provider.maxTokens > 0) {
+      requestBody.max_tokens = this.provider.maxTokens
+    }
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${this.provider.apiKey}`
+    }
+
+    if (this.provider.extraHeaders) {
+      Object.assign(headers, this.provider.extraHeaders)
+    }
+
+    console.log('[OpenAI-RawAPI] 发送请求:', {
+      url: this.provider.baseUrl,
+      messages: requestBody.messages,
+      model: requestBody.model
+    })
+
+    const response = await fetch(this.provider.baseUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(requestBody),
+      signal: abortSignal
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`OpenAI API 请求失败: ${response.status} - ${errorText}`)
+    }
+
+    let accumulatedContent = ''
+    const reader = response.body?.getReader()
+    if (!reader) throw new Error('无法获取响应流')
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const deltas = this.parseStreamChunk(new TextDecoder().decode(value))
+        for (const delta of deltas) {
+          if (delta.content) {
+            accumulatedContent += delta.content
+            if (onStream) {
+              onStream(accumulatedContent)
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock()
+    }
+
+    return accumulatedContent
+  }
+
+  /**
    * 调用 OpenAI 兼容的 API
    */
   async callAPI(
@@ -120,6 +198,12 @@ export class OpenAIAdapter {
     tempContentList?: string[]
   ): Promise<{ reasoning_content?: string; content: string }> {
     const { url, headers, body } = this.buildRequestData(messages, config, tempContent, tempPlacement, tempContentList)
+
+    console.log('[OpenAI] 发送请求:', {
+      url,
+      messages: body.messages,
+      model: body.model
+    })
 
     const response = await fetch(url, {
       method: 'POST',

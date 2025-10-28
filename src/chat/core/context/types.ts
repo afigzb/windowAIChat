@@ -2,8 +2,6 @@
 
 /**
  * 临时上下文的插入位置
- * - append: 拼接到最后一条用户消息末尾
- * - after_system: 在 system 消息之后独立插入
  */
 export type TempContextPlacement = 'append' | 'after_system'
 

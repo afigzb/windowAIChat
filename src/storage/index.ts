@@ -66,7 +66,18 @@ class StorageManager {
         console.warn('存储的AI配置格式不兼容，使用默认配置')
         this.currentConfig = { ...defaultConfig }
       } else {
-        this.currentConfig = storedConfig
+        // 合并配置：确保旧配置有新增的字段（如 agentConfig）
+        this.currentConfig = {
+          ...defaultConfig,  // 先使用默认配置
+          ...storedConfig,   // 再用存储的配置覆盖
+          // 深度合并 agentConfig，确保 steps 等字段存在
+          agentConfig: storedConfig.agentConfig ? {
+            ...defaultConfig.agentConfig,
+            ...storedConfig.agentConfig,
+            // 确保 steps 数组存在
+            steps: storedConfig.agentConfig.steps || defaultConfig.agentConfig?.steps || []
+          } : defaultConfig.agentConfig
+        }
       }
       
       return this.currentConfig

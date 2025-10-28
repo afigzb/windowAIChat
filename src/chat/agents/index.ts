@@ -1,32 +1,44 @@
 /**
- * Agent 系统入口
- * 
- * 导出：
- * - Agent Engine 实例
- * - 类型定义
- * - 任务处理器
+ * Agent Pipeline 系统入口
  */
 
-// 导出类型
 export type {
-  AgentTaskType,
-  AgentTaskConfig,
-  AgentTaskContext,
-  AgentTaskResult,
-  AgentTaskProcessor,
-  AgentEngineConfig
+  AgentStepType,
+  AgentStepConfig,
+  AgentContext,
+  AgentStepResult,
+  AgentStep,
+  AgentPipelineConfig,
 } from './types'
 
-// 导出 Agent Engine
-export { AgentEngine, agentEngine } from './agent-engine'
+export { AgentPipeline, agentPipeline, type PipelineResult } from './pipeline'
+export { DEFAULT_AGENT_CONFIG } from './defaults'
+export { 
+  executeAgentPipeline,
+  shouldExecuteAgentPipeline,
+  formatPipelineResultForUI,
+  type ExecutePipelineParams,
+  type PipelineExecutionResult
+} from './integration'
+export { callSimpleAPI, type SimpleMessage } from './simple-api'
 
-// 导入并注册所有任务处理器
-import { optimizeInputTask } from './tasks/optimize-input'
-import { agentEngine } from './agent-engine'
+import { shouldOptimizeStep } from './steps/should-optimize-step'
+import { optimizeInputStep } from './steps/optimize-input-step'
+import { agentPipeline } from './pipeline'
 
-// 注册任务处理器
-agentEngine.registerProcessor(optimizeInputTask)
+// 注册默认步骤
+// HMR 兼容：使用静默注册，避免开发环境重复注册警告
+agentPipeline.registerSteps([
+  shouldOptimizeStep,
+  optimizeInputStep,
+])
 
-// 导出任务处理器（供外部使用）
-export { optimizeInputTask }
+// HMR 清理：在开发环境中，模块重新加载时不需要特殊处理
+// pipeline 实例会自动覆盖已有的步骤
+if (import.meta.hot) {
+  import.meta.hot.accept()
+}
+
+export { shouldOptimizeStep } from './steps/should-optimize-step'
+export { optimizeInputStep } from './steps/optimize-input-step'
 

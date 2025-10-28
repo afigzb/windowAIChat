@@ -4,18 +4,7 @@ import { compressText, type TextCompressionOptions } from './text-compressor'
 
 /**
  * ===== 消息操作符 =====
- * 定义常见的消息转换操作，可组合使用
- * 
- * 操作符是函数，接收MessageEditor并返回新的MessageEditor
- * 这样可以轻松组合和复用各种消息处理逻辑
- * 
  * @example
- * ```ts
- * const editor = MessageEditor.from(history)
- *   .transform(injectSystemPrompt(config))
- *   .transform(addTemporaryContext(tempContent, 'after_system'))
- *   .transform(limitHistory(config.historyLimit))
- * ```
  */
 
 export type MessageOperator = (editor: MessageEditor) => MessageEditor

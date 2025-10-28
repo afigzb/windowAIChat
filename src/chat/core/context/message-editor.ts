@@ -3,29 +3,7 @@ import type { RequestMessage } from './types'
 
 /**
  * ===== 消息编辑器 =====
- * 提供灵活的消息编辑能力，支持对消息列表进行各种操作
- * 
- * 设计理念：
- * 1. 链式调用：所有操作返回新的编辑器实例，支持链式调用
- * 2. 不可变性：所有操作不修改原始数据，返回新的消息列表
- * 3. 精简核心：只保留核心方法，避免冗余的语法糖
- * 
- * 核心操作模式：
- * - insert(message, position): 在指定位置插入
- * - removeAt(position) / removeWhere(predicate): 按位置或条件删除
- * - modifyAt(position, fn) / modifyWhere(predicate, fn): 按位置或条件修改
- * 
  * @example
- * ```ts
- * const editor = MessageEditor.from(conversationHistory)
- *   .insert({ role: 'system', content: 'You are a helpful assistant' }, 0)
- *   .insert({ role: 'user', content: 'Context: ...' }, 1)
- *   .modifyAt(-1, msg => ({ ...msg, content: msg.content + '\n额外内容' }))
- *   .removeWhere(m => m.role === 'system' && m.content === '')
- *   .limit(10)
- * 
- * const finalMessages = editor.build()
- * ```
  */
 export class MessageEditor {
   private messages: RequestMessage[]
@@ -37,18 +15,16 @@ export class MessageEditor {
   /**
    * 从FlatMessage列表创建编辑器
    * 
-   * 注意：对于用户消息，如果有 optimizedInput（Agent优化后的内容），
-   * 则使用它而不是原始 content。这样页面显示原始输入，但 API 使用优化后的内容。
+   * 注意：采用非持久化Agent设计，不再使用存储的optimizedInput。
+   * Agent优化在每次操作时重新执行，优化结果只作为临时数据传递。
    */
   static from(flatMessages: FlatMessage[]): MessageEditor {
     const requestMessages: RequestMessage[] = flatMessages
       .filter(m => m.role === 'user' || m.role === 'assistant' || m.role === 'system')
       .map(m => ({
         role: m.role as 'user' | 'assistant' | 'system',
-        // 优先使用 optimizedInput（如果有），否则使用 content
-        content: (m.role === 'user' && m.components?.optimizedInput) 
-          ? m.components.optimizedInput 
-          : m.content
+        // 始终使用原始 content，不再优先使用 optimizedInput
+        content: m.content
       }))
     return new MessageEditor(requestMessages)
   }

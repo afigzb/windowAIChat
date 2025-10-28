@@ -1,70 +1,71 @@
 /**
- * Agent 系统类型定义
- * 
- * Agent 系统用于在消息发送前对用户输入进行预处理
- * 例如：优化输入、扩展内容、添加上下文等
+ * Agent Pipeline 系统类型定义
  */
 
 import type { AIConfig } from '../types'
+import type { FlatMessage } from '../types'
 
-// Agent 任务类型
-export type AgentTaskType = 'optimize-input' | 'expand-context' | 'custom'
+export type AgentStepType = 
+  | 'should-optimize'
+  | 'optimize-input'
+  | 'retrieve-info'
+  | 'analyze-intent'
+  | 'custom'
 
-// Agent 任务配置
-export interface AgentTaskConfig {
-  type: AgentTaskType
+export interface AgentStepConfig {
+  type: AgentStepType
   enabled: boolean
   name: string
   description?: string
-  // 任务专用的 API 配置（可以单独选择小模型）
   apiProviderId?: string
-  // 任务特定配置
   options?: Record<string, any>
 }
 
-// Agent 任务上下文（传递给任务处理器的数据）
-export interface AgentTaskContext {
-  userInput: string           // 用户真实输入
-  attachedFiles?: string[]    // 附加文件
-  config: AIConfig            // AI 配置
+export interface AgentContext {
+  userInput: string
+  attachedFiles?: string[]
+  conversationHistory?: FlatMessage[]
+  processedInput?: string
+  stepData: Map<string, any>
+  metadata: {
+    startTime: number
+    stepResults: AgentStepResult[]
+  }
+  aiConfig: AIConfig
 }
 
-// Agent 任务结果
-export interface AgentTaskResult {
+export interface AgentStepResult {
+  stepType: AgentStepType
+  stepName: string
   success: boolean
-  optimizedInput?: string     // 优化后的输入
-  metadata?: {
-    taskType: AgentTaskType
-    originalInput: string     // 原始输入（用于 UI 展示）
-    processingTime?: number   // 处理耗时
-    error?: string           // 错误信息
+  data?: {
+    input?: string
+    output?: string
+    changes?: string
+    [key: string]: any
+  }
+  processingTime: number
+  error?: string
+}
+
+export interface AgentStep {
+  type: AgentStepType
+  name: string
+  description?: string
+  
+  execute(
+    context: AgentContext,
+    config: AgentStepConfig,
+    abortSignal?: AbortSignal,
+    onProgress?: (message: string) => void
+  ): Promise<AgentStepResult>
+}
+
+export interface AgentPipelineConfig {
+  enabled: boolean
+  steps: AgentStepConfig[]
+  options?: {
+    continueOnError?: boolean
+    timeout?: number
   }
 }
-
-// Agent 任务处理器接口
-export interface AgentTaskProcessor {
-  type: AgentTaskType
-  name: string
-  
-  /**
-   * 执行任务
-   * @param context 任务上下文
-   * @param taskConfig 任务配置
-   * @param abortSignal 中断信号
-   * @param onStream 流式输出回调（可选）
-   * @returns 任务结果
-   */
-  process(
-    context: AgentTaskContext,
-    taskConfig: AgentTaskConfig,
-    abortSignal?: AbortSignal,
-    onStream?: (content: string) => void
-  ): Promise<AgentTaskResult>
-}
-
-// Agent 引擎配置
-export interface AgentEngineConfig {
-  enabled: boolean              // 是否启用 Agent 系统
-  tasks: AgentTaskConfig[]      // 任务列表（按顺序执行）
-}
-

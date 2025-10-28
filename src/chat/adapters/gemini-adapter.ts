@@ -195,6 +195,178 @@ export class GeminiAdapter {
   }
 
   /**
+   * 原始 API 调用 - 用于 Agent 等场景
+   * 直接发送消息，不经过上下文引擎处理
+   * 
+   * @param messages 简单消息格式 [{ role, content }]
+   * @param abortSignal 中断信号
+   * @param onStream 流式输出回调
+   * @returns AI 返回的内容
+   */
+  async callRawAPI(
+    messages: Array<{ role: string; content: string }>,
+    abortSignal?: AbortSignal,
+    onStream?: (content: string) => void
+  ): Promise<string> {
+    // 分离 system 消息和其他消息
+    const systemMessages: string[] = []
+    const contents = []
+    
+    for (const msg of messages) {
+      if (msg.role === 'system') {
+        systemMessages.push(msg.content)
+      } else {
+        contents.push({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content }]
+        })
+      }
+    }
+    
+    const requestBody: any = {
+      contents,
+      generationConfig: {
+        maxOutputTokens: this.provider.maxTokens || 8192,
+        ...this.provider.extraParams
+      }
+    }
+    
+    if (systemMessages.length > 0) {
+      requestBody.systemInstruction = {
+        parts: systemMessages.map(text => ({ text }))
+      }
+    }
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': this.provider.apiKey
+    }
+
+    if (this.provider.extraHeaders) {
+      Object.assign(headers, this.provider.extraHeaders)
+    }
+
+    const url = this.provider.baseUrl.includes(':generateContent') || this.provider.baseUrl.includes(':streamGenerateContent')
+      ? this.provider.baseUrl.replace(/:(?:stream)?generateContent.*$/, ':streamGenerateContent')
+      : `${this.provider.baseUrl}:streamGenerateContent`
+
+    console.log('[Gemini-RawAPI] 发送请求:', {
+      url,
+      systemInstruction: requestBody.systemInstruction,
+      contents: requestBody.contents,
+      model: this.provider.model
+    })
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(requestBody),
+      signal: abortSignal
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Gemini API 请求失败: ${response.status} - ${errorText}`)
+    }
+
+    let accumulatedContent = ''
+    let buffer = ''
+
+    const reader = response.body?.getReader()
+    if (!reader) throw new Error('无法获取响应流')
+
+    const decoder = new TextDecoder()
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value, { stream: true })
+        buffer += chunk
+
+        let processedUpTo = 0
+        
+        if (buffer.startsWith('[')) {
+          processedUpTo = 1
+        }
+
+        while (true) {
+          while (processedUpTo < buffer.length && 
+                 (buffer[processedUpTo] === ',' || buffer[processedUpTo] === '\n' || 
+                  buffer[processedUpTo] === ' ' || buffer[processedUpTo] === '\r')) {
+            processedUpTo++
+          }
+
+          if (processedUpTo >= buffer.length) break
+          if (buffer[processedUpTo] === ']') break
+
+          if (buffer[processedUpTo] === '{') {
+            let braceCount = 0
+            let i = processedUpTo
+            let inString = false
+            let escape = false
+
+            for (; i < buffer.length; i++) {
+              const char = buffer[i]
+              
+              if (escape) {
+                escape = false
+                continue
+              }
+
+              if (char === '\\') {
+                escape = true
+                continue
+              }
+
+              if (char === '"') {
+                inString = !inString
+                continue
+              }
+
+              if (!inString) {
+                if (char === '{') braceCount++
+                else if (char === '}') {
+                  braceCount--
+                  if (braceCount === 0) {
+                    const jsonStr = buffer.substring(processedUpTo, i + 1)
+                    try {
+                      const parsed = JSON.parse(jsonStr)
+                      const { answer } = this.extractContent(parsed)
+                      
+                      if (answer) {
+                        accumulatedContent += answer
+                        if (onStream) {
+                          onStream(accumulatedContent)
+                        }
+                      }
+                    } catch (e) {
+                      // 忽略解析错误
+                    }
+                    processedUpTo = i + 1
+                    break
+                  }
+                }
+              }
+            }
+
+            if (braceCount > 0) break
+          } else {
+            processedUpTo++
+          }
+        }
+
+        buffer = buffer.substring(processedUpTo)
+      }
+    } finally {
+      reader.releaseLock()
+    }
+
+    return accumulatedContent
+  }
+
+  /**
    * 调用 Gemini API（流式响应）
    */
   async callAPI(
@@ -208,6 +380,13 @@ export class GeminiAdapter {
     tempContentList?: string[]
   ): Promise<{ reasoning_content?: string; content: string }> {
     const { url, headers, body } = this.buildRequestData(messages, config, tempContent, tempPlacement, tempContentList)
+
+    console.log('[Gemini] 发送请求:', {
+      url,
+      systemInstruction: body.systemInstruction,
+      contents: body.contents,
+      model: this.provider.model
+    })
 
     const response = await fetch(url, {
       method: 'POST',

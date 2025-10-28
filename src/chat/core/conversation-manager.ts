@@ -7,7 +7,7 @@ import type {
 } from '../types'
 import { callAIAPI } from './api'
 import { contextEngine } from './context'
-import { agentEngine } from '../agents'
+import { executeAgentPipeline, shouldExecuteAgentPipeline } from '../agents'
 import {
   createInitialConversationTree,
   createFlatMessage,
@@ -108,14 +108,107 @@ async function generateAIMessage(
   }
 }
 
+// executePipeline 已移至 agents/integration.ts
+
 /**
- * 处理Agent优化和AI回复的通用函数
- * 抽取sendMessage和editUserMessage中的重复逻辑
+ * 带Agent优化的AI回复生成
+ * 职责：编排Agent优化 + AI生成的完整流程
+ * 
+ * 这是一个高层的流程控制函数，负责：
+ * 1. 执行Agent优化（如果启用）
+ * 2. 生成AI回复
+ * 3. 更新UI状态
+ */
+interface GenerateWithAgentParams {
+  userMessage: FlatMessage
+  conversationHistory: FlatMessage[]
+  placeholderAIMessage: FlatMessage
+  config: AIConfig
+  abortController: AbortController
+  
+  // 状态更新回调
+  onAgentProgress?: (content: string) => void
+  onThinkingUpdate: (thinking: string) => void
+  onAnswerUpdate: (answer: string) => void
+  
+  // 临时内容
+  tempContent?: string
+  tempPlacement?: 'append' | 'after_system'
+  tempContentList?: string[]
+}
+
+async function generateAIReplyWithAgent(
+  params: GenerateWithAgentParams
+): Promise<{
+  finalMessage: FlatMessage
+  agentComponents?: MessageComponents
+}> {
+  const {
+    userMessage,
+    conversationHistory,
+    placeholderAIMessage,
+    config,
+    abortController,
+    onAgentProgress,
+    onThinkingUpdate,
+    onAnswerUpdate,
+    tempContent,
+    tempPlacement = 'append',
+    tempContentList
+  } = params
+  
+  let finalHistory = conversationHistory
+  let agentComponents: MessageComponents | undefined
+  
+  // 如果 Agent Pipeline 启用，先执行处理
+  if (shouldExecuteAgentPipeline(config)) {
+    try {
+      console.log('[generateAIReplyWithAgent] 开始调用 executeAgentPipeline...')
+      // 使用 Agent 集成层执行 Pipeline
+      const result = await executeAgentPipeline({
+        userMessage,
+        conversationHistory,
+        config,
+        abortSignal: abortController.signal,
+        onProgress: onAgentProgress
+      })
+      console.log('[generateAIReplyWithAgent] executeAgentPipeline 完成')
+      
+      finalHistory = result.optimizedHistory
+      agentComponents = result.agentComponents
+    } catch (error) {
+      console.error('Pipeline 执行失败，使用原始输入:', error)
+      // 失败时继续使用原始历史
+    }
+  }
+  
+  // 生成AI回复
+  console.log('[generateAIReplyWithAgent] 开始生成主AI回复...')
+  const finalMessage = await generateAIMessage(
+    finalHistory,
+    placeholderAIMessage,
+    config,
+    abortController,
+    onThinkingUpdate,
+    onAnswerUpdate,
+    tempContent,
+    tempPlacement,
+    tempContentList
+  )
+  console.log('[generateAIReplyWithAgent] 主AI回复生成完成')
+  
+  return {
+    finalMessage,
+    agentComponents
+  }
+}
+
+/**
+ * 处理Agent优化和AI回复的完整流程
+ * 简化版 - 使用核心抽象，职责更清晰
  */
 async function processWithAgent(
   userMessage: FlatMessage,
-  userContent: string,
-  components: MessageComponents,
   flatMessages: Map<string, FlatMessage>,
   activePath: string[],
   config: AIConfig,
@@ -130,7 +223,7 @@ async function processWithAgent(
   tempPlacement: 'append' | 'after_system' = 'append',
   tempContentList?: string[]
 ): Promise<void> {
-  // 创建占位AI消息，显示"正在优化输入"
+  // 创建占位AI消息
   const placeholderAI = createFlatMessage('正在优化输入...', 'assistant', userMessage.id)
   const { newFlatMessages: withPlaceholder, newActivePath: pathWithAI } = addMessageToTree(
     flatMessages,
@@ -141,120 +234,52 @@ async function processWithAgent(
   setIsLoading(true)
 
   try {
-    // 调用 Agent 进行输入优化
-    const agentResult = await agentEngine.processUserInput(
-      userContent,
-      components,
-      config.agentConfig!,
+    // 获取对话历史
+    const conversationHistory = getConversationHistory(userMessage.id, withPlaceholder)
+    
+    // 创建AbortController
+    abortControllerRef.current = new AbortController()
+    
+    // 使用核心抽象执行Agent优化+AI生成
+    const { finalMessage, agentComponents } = await generateAIReplyWithAgent({
+      userMessage,
+      conversationHistory,
+      placeholderAIMessage: placeholderAI,
       config,
-      undefined,
-      (optimizedContent) => {
-        setCurrentAgentOptimizing(optimizedContent)
-      }
-    )
+      abortController: abortControllerRef.current,
+      onAgentProgress: setCurrentAgentOptimizing,
+      onThinkingUpdate: setCurrentThinking,
+      onAnswerUpdate: setCurrentAnswer,
+      tempContent,
+      tempPlacement,
+      tempContentList
+    })
     
-    // 使用 agent 优化后的输入
-    const finalContent = agentResult.finalInput || userContent
+    // 如果有Agent结果，添加到消息组件中
+    const finalAIMessage = agentComponents ? {
+      ...finalMessage,
+      components: agentComponents
+    } : finalMessage
     
-    // 更新用户消息：保持原始 content 不变，将优化后的内容存到 components.optimizedInput
-    const updatedUserMessage = {
-      ...userMessage,
-      components: {
-        ...userMessage.components,
-        optimizedInput: finalContent !== userContent ? finalContent : undefined
-      }
-    }
+    // 更新最终消息
     const updatedFlatMessages = new Map(withPlaceholder)
-    updatedFlatMessages.set(userMessage.id, updatedUserMessage)
-    
-    // 更新占位AI消息，添加 Agent 处理结果到 components
-    const aiComponents: MessageComponents = {
-      agentResults: agentResult.results.length > 0 ? agentResult.results : undefined
-    }
-    const updatedPlaceholderAI = {
-      ...placeholderAI,
-      content: '正在生成...',
-      components: aiComponents
-    }
-    updatedFlatMessages.set(placeholderAI.id, updatedPlaceholderAI)
-    
+    updatedFlatMessages.set(placeholderAI.id, finalAIMessage)
     updateConversationTree(updatedFlatMessages, pathWithAI)
     
-    // 继续生成 AI 回复
-    const conversationHistory = getConversationHistory(updatedUserMessage.id, updatedFlatMessages)
-    
-    abortControllerRef.current = new AbortController()
-    let currentGeneratedContent = ''
-    let currentReasoningContent = ''
-    
-    try {
-      const result = await callAIAPI(
-        conversationHistory,
-        config,
-        abortControllerRef.current.signal,
-        (thinking) => {
-          currentReasoningContent = thinking
-          setCurrentThinking(thinking)
-        },
-        (answer) => {
-          currentGeneratedContent = answer
-          setCurrentAnswer(answer)
-        },
-        tempContent,
-        tempPlacement,
-        tempContentList
-      )
-      
-      // 更新最终消息
-      const finalAIMessage = {
-        ...updatedPlaceholderAI,
-        content: result.content,
-        reasoning_content: result.reasoning_content,
-        components: aiComponents
-      }
-      updatedFlatMessages.set(placeholderAI.id, finalAIMessage)
-      updateConversationTree(updatedFlatMessages, pathWithAI)
-    } catch (error: any) {
-      // 处理中断或错误
-      if (error.name === 'AbortError') {
-        const finalContent = currentGeneratedContent.trim() || '生成被中断'
-        const finalReasoning = currentReasoningContent.trim() || undefined
-        const finalAIMessage = {
-          ...updatedPlaceholderAI,
-          content: finalContent,
-          reasoning_content: finalReasoning,
-          components: aiComponents
-        }
-        updatedFlatMessages.set(placeholderAI.id, finalAIMessage)
-        updateConversationTree(updatedFlatMessages, pathWithAI)
-      } else {
-        const errorMessage = {
-          ...updatedPlaceholderAI,
-          content: `生成失败: ${error.message || '未知错误'}`,
-          components: aiComponents
-        }
-        updatedFlatMessages.set(placeholderAI.id, errorMessage)
-        updateConversationTree(updatedFlatMessages, pathWithAI)
-      }
-    } finally {
-      setIsLoading(false)
-      clearStreamState()
-      abortControllerRef.current = null
-    }
   } catch (error) {
-    console.error('Agent 处理失败:', error)
+    console.error('处理失败:', error)
     
     // 移除占位AI消息
     const updatedFlatMessages = new Map(withPlaceholder)
     updatedFlatMessages.delete(placeholderAI.id)
     const finalPath = pathWithAI.slice(0, -1)
-    
     updateConversationTree(updatedFlatMessages, finalPath)
+    
+    throw error
+  } finally {
     setIsLoading(false)
     clearStreamState()
-    
-    // 重新抛出错误，让调用者处理
-    throw error
+    abortControllerRef.current = null
   }
 }
 
@@ -419,12 +444,10 @@ export function useConversationManager(
     updateConversationTree(newFlatMessages, newActivePath)
 
     // ===== Agent 处理（异步，不阻塞UI） =====
-    if (config.agentConfig && config.agentConfig.enabled) {
+    if (shouldExecuteAgentPipeline(config)) {
       try {
         await processWithAgent(
           userMessage,
-          content.trim(),
-          components,
           newFlatMessages,
           newActivePath,
           config,
@@ -457,12 +480,13 @@ export function useConversationManager(
   const handleEditUserMessage = useCallback(async (nodeId: string, newContent: string, tempContent?: string, tempPlacement: 'append' | 'after_system' = 'append', tempContentList?: string[]) => {
     if (isLoading) return
 
-    // 获取原消息，保留或更新 components
+    // 获取原消息，但不保留旧的optimizedInput（采用非持久化Agent设计）
     const originalMessage = conversationTree.flatMessages.get(nodeId)
     let components: MessageComponents = {
       userInput: newContent.trim(),
       // 保留原有的附加文件（如果有），否则使用新传入的
       attachedFiles: originalMessage?.components?.attachedFiles
+      // 注意：不保留 optimizedInput，Agent会在需要时重新执行优化
     }
     
     // 更新附加文件内容（如果有新的）
@@ -492,12 +516,10 @@ export function useConversationManager(
     if (!editedMessage) return
 
     // ===== Agent 处理（异步，不阻塞UI） =====
-    if (config.agentConfig && config.agentConfig.enabled) {
+    if (shouldExecuteAgentPipeline(config)) {
       try {
         await processWithAgent(
           editedMessage,
-          newContent.trim(),
-          components,
           result.newFlatMessages,
           result.newActivePath,
           config,
@@ -568,6 +590,7 @@ export function useConversationManager(
 
     let newMessage: FlatMessage
     let newActivePath: string[]
+    let userMessageForRegeneration: FlatMessage | null = null
 
     if (targetMessage.role === 'assistant') {
       // AI消息重新生成
@@ -576,6 +599,11 @@ export function useConversationManager(
       newActivePath = targetIndex > 0 
         ? [...conversationTree.activePath.slice(0, targetIndex), newMessage.id]
         : [newMessage.id]
+      
+      // 找到对应的用户消息（如果有）
+      if (targetMessage.parentId) {
+        userMessageForRegeneration = conversationTree.flatMessages.get(targetMessage.parentId) || null
+      }
     } else {
       // 用户消息重新生成
       newMessage = createFlatMessage('正在生成...', 'assistant', nodeId)
@@ -583,6 +611,8 @@ export function useConversationManager(
       newActivePath = targetIndex >= 0 
         ? [...conversationTree.activePath.slice(0, targetIndex + 1), newMessage.id]
         : [...conversationTree.activePath, newMessage.id]
+      
+      userMessageForRegeneration = targetMessage
     }
 
     const { newFlatMessages } = addMessageToTree(conversationTree.flatMessages, [], newMessage)
@@ -590,9 +620,9 @@ export function useConversationManager(
 
     setIsLoading(true)
     clearStreamState()
-    abortControllerRef.current = new AbortController()
 
     try {
+      // 获取对话历史
       let conversationHistory: FlatMessage[]
       if (targetMessage.role === 'assistant') {
         conversationHistory = getConversationHistory(targetMessage.parentId || '', newFlatMessages)
@@ -600,20 +630,84 @@ export function useConversationManager(
         conversationHistory = [...getConversationHistory(nodeId, newFlatMessages), targetMessage]
       }
 
-      const finalMessage = await generateAIMessage(
-        conversationHistory,
-        newMessage,
-        config,
-        abortControllerRef.current,
-        setCurrentThinking,
-        setCurrentAnswer,
-        tempContent,
-        tempPlacement
-      )
+      // 如果Agent启用且有用户消息，使用统一的Agent处理流程
+      if (shouldExecuteAgentPipeline(config) && 
+          userMessageForRegeneration && userMessageForRegeneration.role === 'user') {
+        
+        // 显示Agent优化状态
+        const optimizingMessage = {
+          ...newMessage,
+          content: '正在优化输入...'
+        }
+        const tempFlatMessages = new Map(newFlatMessages)
+        tempFlatMessages.set(newMessage.id, optimizingMessage)
+        updateConversationTree(tempFlatMessages, newActivePath)
 
-      const updatedFlatMessages = new Map(newFlatMessages)
-      updatedFlatMessages.set(newMessage.id, finalMessage)
-      updateConversationTree(updatedFlatMessages, newActivePath)
+        // 创建AbortController
+        abortControllerRef.current = new AbortController()
+
+        try {
+          // 使用核心抽象执行Agent优化+AI生成
+          const { finalMessage, agentComponents } = await generateAIReplyWithAgent({
+            userMessage: userMessageForRegeneration,
+            conversationHistory,
+            placeholderAIMessage: newMessage,
+            config,
+            abortController: abortControllerRef.current,
+            onAgentProgress: setCurrentAgentOptimizing,
+            onThinkingUpdate: setCurrentThinking,
+            onAnswerUpdate: setCurrentAnswer,
+            tempContent,
+            tempPlacement
+          })
+
+          // 如果有Agent结果，添加到消息组件中
+          const finalAIMessage = agentComponents ? {
+            ...finalMessage,
+            components: agentComponents
+          } : finalMessage
+
+          const updatedFlatMessages = new Map(tempFlatMessages)
+          updatedFlatMessages.set(newMessage.id, finalAIMessage)
+          updateConversationTree(updatedFlatMessages, newActivePath)
+
+        } catch (error) {
+          console.error('Agent 处理失败，使用原始输入:', error)
+          
+          // Agent失败，回退到原始输入
+          const fallbackMessage = await generateAIMessage(
+            conversationHistory,
+            newMessage,
+            config,
+            abortControllerRef.current,
+            setCurrentThinking,
+            setCurrentAnswer,
+            tempContent,
+            tempPlacement
+          )
+
+          const updatedFlatMessages = new Map(newFlatMessages)
+          updatedFlatMessages.set(newMessage.id, fallbackMessage)
+          updateConversationTree(updatedFlatMessages, newActivePath)
+        }
+      } else {
+        // Agent未启用或不是用户消息，直接生成
+        abortControllerRef.current = new AbortController()
+        const finalMessage = await generateAIMessage(
+          conversationHistory,
+          newMessage,
+          config,
+          abortControllerRef.current,
+          setCurrentThinking,
+          setCurrentAnswer,
+          tempContent,
+          tempPlacement
+        )
+
+        const updatedFlatMessages = new Map(newFlatMessages)
+        updatedFlatMessages.set(newMessage.id, finalMessage)
+        updateConversationTree(updatedFlatMessages, newActivePath)
+      }
 
     } finally {
       setIsLoading(false)
