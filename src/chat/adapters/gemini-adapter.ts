@@ -3,31 +3,6 @@ import { contextEngine } from '../core/context'
 
 /**
  * Gemini 系适配器 - 专门处理 Google Gemini API
- * 
- * 特性：
- * - 自动转换消息格式：将通用格式转换为 Gemini 的 contents/systemInstruction 格式
- * - 支持流式响应：处理 Gemini 的 JSON 数组流式格式
- * - 支持思考模式：提取并展示 AI 的思考过程（thought）和最终答案（answer）
- * - 灵活配置：通过 extraParams 或 codeConfigJson 自定义请求参数
- * 
- * 常用配置参数（通过 codeConfigJson）：
- * ```json
- * {
- *   "generationConfig": {
- *     "temperature": 0.7,           // 温度参数（0.0-2.0）
- *     "topP": 0.9,                  // nucleus sampling
- *     "topK": 40,                   // top-k sampling
- *     "maxOutputTokens": 8192,      // 最大输出令牌数
- *     "thinkingConfig": {
- *       "includeThoughts": true,    // 是否包含思考过程
- *       "thinkingBudget": -1        // 思考预算（-1 为动态）
- *     }
- *   },
- *   "safetySettings": [              // 安全设置
- *     { "category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE" }
- *   ]
- * }
- * ```
  */
 export class GeminiAdapter {
   private provider: ApiProviderConfig
