@@ -265,7 +265,7 @@ export function MessageBubble({
               if (hasModification) {
                 displayContent = `优化后：\n${result.optimizedInput}`
               } else {
-                displayContent = `输入已优化，无需修改\n\n原始输入：\n${result.metadata.originalInput}`
+                displayContent = `被判定为无需修改\n\n原始输入：\n${result.metadata.originalInput}`
               }
               
               return (

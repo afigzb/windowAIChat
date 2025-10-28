@@ -11,16 +11,7 @@ import type {
 } from '../types'
 import type { ApiProviderConfig } from '../../types'
 import { callSimpleAPI } from '../simple-api'
-
-const OPTIMIZE_SYSTEM_PROMPT = `你是一个专业的文本优化助手。你的任务是优化用户输入，使其更清晰、准确、易于理解。
-
-优化原则：
-1. 保持原意不变
-2. 修正明显的语法错误或错别字
-3. 使表达更简洁明了
-4. 补充必要的上下文信息
-
-请直接输出优化后的文本，不要添加任何解释或说明。`
+import { DEFAULT_OPTIMIZE_SYSTEM_PROMPT } from '../defaults'
 
 export class OptimizeInputStep implements AgentStep {
   type = 'optimize-input' as const
@@ -84,8 +75,11 @@ export class OptimizeInputStep implements AgentStep {
 
       console.log(`[OptimizeInput] 开始优化，使用 ${apiProvider.name}`)
 
+      // 使用配置的系统提示词，如果没有则使用默认的
+      const systemPrompt = config.systemPrompt || DEFAULT_OPTIMIZE_SYSTEM_PROMPT
+
       const messages = [
-        { role: 'system' as const, content: OPTIMIZE_SYSTEM_PROMPT },
+        { role: 'system' as const, content: systemPrompt },
         { role: 'user' as const, content: currentInput }
       ]
 

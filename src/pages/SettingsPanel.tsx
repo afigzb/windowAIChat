@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import type { AIConfig } from '../chat'
-import type { AgentPipelineConfig } from '../chat/agents'
 import { DEFAULT_SUMMARIZE_PROMPT } from '../chat/core/defaults'
 import { DEFAULT_COMPRESSION_OPTIONS, type TextCompressionOptions } from '../chat/core/context/text-compressor'
 import { Icon } from '../chat/ui/components'
@@ -169,118 +168,6 @@ export function SettingsPanel({ config, onConfigChange, onRequestReset }: Settin
                     </label>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
-          
-
-          {/* AI 输入优化 */}
-          <div className="bg-white rounded-lg border border-gray-200 p-5">
-            <label className="flex items-start cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={config.agentConfig?.enabled ?? false}
-                onChange={(e) => {
-                  const agentConfig: AgentPipelineConfig = config.agentConfig || {
-                    enabled: false,
-                    steps: []
-                  }
-                  
-                  onConfigChange({
-                    ...config,
-                    agentConfig: {
-                      ...agentConfig,
-                      enabled: e.target.checked,
-                      steps: e.target.checked && agentConfig.steps.length === 0
-                        ? [
-                            {
-                              type: 'optimize-input',
-                              enabled: true,
-                              name: '输入优化',
-                              description: '使用小模型优化用户输入'
-                            }
-                          ]
-                        : agentConfig.steps
-                    }
-                  })
-                }}
-                className="mt-0.5 w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-              />
-              <div className="ml-3 flex-1">
-                <h3 className="text-sm font-semibold text-gray-800 group-hover:text-blue-600 transition-colors">
-                  启用 AI 输入优化
-                </h3>
-                <p className="text-xs text-gray-500 mt-1">
-                  在发送给主模型前，使用小模型自动优化你的输入，修正语法错误、使表达更清晰
-                </p>
-              </div>
-            </label>
-            
-            {config.agentConfig?.enabled && (
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                {/* 步骤列表 */}
-                {config.agentConfig.steps.map((task, index) => (
-                  <div key={index} className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <input
-                          type="checkbox"
-                          checked={task.enabled}
-                          onChange={(e) => {
-                            const newSteps = [...config.agentConfig!.steps]
-                            newSteps[index] = { ...task, enabled: e.target.checked }
-                            onConfigChange({
-                              ...config,
-                              agentConfig: {
-                                ...config.agentConfig!,
-                                steps: newSteps
-                              }
-                            })
-                          }}
-                          className="w-4 h-4 text-blue-600 border-gray-300 rounded"
-                        />
-                        <div>
-                          <span className="text-sm font-medium text-gray-800">{task.name}</span>
-                          {task.description && (
-                            <p className="text-xs text-gray-500 mt-0.5">{task.description}</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* API 选择器 */}
-                    <div className="mt-3 pl-7">
-                      <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                        使用的 API（留空则使用当前主 API）
-                      </label>
-                      <select
-                        value={task.apiProviderId || ''}
-                        onChange={(e) => {
-                          const newSteps = [...config.agentConfig!.steps]
-                          newSteps[index] = { 
-                            ...task, 
-                            apiProviderId: e.target.value || undefined 
-                          }
-                          onConfigChange({
-                            ...config,
-                            agentConfig: {
-                              ...config.agentConfig!,
-                              steps: newSteps
-                            }
-                          })
-                        }}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                      >
-                        <option value="">使用当前主 API</option>
-                        {config.providers.map(provider => (
-                          <option key={provider.id} value={provider.id}>
-                            {provider.name} ({provider.model})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                ))}
               </div>
             )}
           </div>

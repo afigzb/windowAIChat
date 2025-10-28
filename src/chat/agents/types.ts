@@ -18,6 +18,7 @@ export interface AgentStepConfig {
   name: string
   description?: string
   apiProviderId?: string
+  systemPrompt?: string  // 可配置的系统提示词
   options?: Record<string, any>
 }
 
@@ -66,6 +67,5 @@ export interface AgentPipelineConfig {
   steps: AgentStepConfig[]
   options?: {
     continueOnError?: boolean
-    timeout?: number
   }
 }

@@ -11,22 +11,7 @@ import type {
 } from '../types'
 import type { ApiProviderConfig } from '../../types'
 import { callSimpleAPI } from '../simple-api'
-
-const SHOULD_OPTIMIZE_SYSTEM_PROMPT = `你是一个专业的文本质量评估助手。你的任务是判断用户输入是否需要优化。
-
-判断标准：
-1. 存在明显的语法错误、错别字 → 需要优化
-2. 表达不清晰、逻辑混乱 → 需要优化
-3. 句子过于简短 → 需要优化
-4. 输入已经清晰、准确、完整 → 无需优化
-5. 用户输入内容过长，存在文章风格 → 无需优化
-6. 用户输入内容过于凌乱，无法明白用户语义和意图 → 无需优化
-
-请严格按照以下格式返回你的判断结果：
-- 如果需要优化，返回：<是/>
-- 如果不需要优化，返回：<否/>
-
-只返回这个标签，不要添加任何其他内容。`
+import { DEFAULT_SHOULD_OPTIMIZE_SYSTEM_PROMPT } from '../defaults'
 
 export class ShouldOptimizeStep implements AgentStep {
   type = 'should-optimize' as const
@@ -76,8 +61,11 @@ export class ShouldOptimizeStep implements AgentStep {
 
       console.log(`[ShouldOptimize] 开始判断，使用 ${apiProvider.name}`)
 
+      // 使用配置的系统提示词，如果没有则使用默认的
+      const systemPrompt = config.systemPrompt || DEFAULT_SHOULD_OPTIMIZE_SYSTEM_PROMPT
+
       const messages = [
-        { role: 'system' as const, content: SHOULD_OPTIMIZE_SYSTEM_PROMPT },
+        { role: 'system' as const, content: systemPrompt },
         { role: 'user' as const, content: currentInput }
       ]
 

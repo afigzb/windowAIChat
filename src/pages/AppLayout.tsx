@@ -4,6 +4,7 @@ import { DEFAULT_CONFIG, ApiConfigPanel } from '../chat'
 import { ConfirmDialog} from '../components'
 import { SideToolbar } from './SideToolbar'
 import { SettingsPanel } from './SettingsPanel'
+import { AgentsPage } from './AgentsPage'
 import { DocsPage } from './DocsPage'
 import { WorkspaceView } from './WorkspaceView'
 import storage from '../storage'
@@ -14,7 +15,7 @@ export default function EditorWorkspace() {
   const [config, setConfig] = useState<AIConfig>(() => {
     return storage.initAIConfig(DEFAULT_CONFIG)
   })
-  const [activeTool, setActiveTool] = useState<'workspace' | 'api' | 'docs' | 'settings' | 'prompt'>('workspace')
+  const [activeTool, setActiveTool] = useState<'workspace' | 'api' | 'docs' | 'settings' | 'prompt' | 'agents'>('workspace')
   const [isPromptWindowOpen, setIsPromptWindowOpen] = useState(false)
   const [isTextEditorWindowOpen, setIsTextEditorWindowOpen] = useState(false)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
@@ -137,7 +138,7 @@ export default function EditorWorkspace() {
               activeTool={activeTool}
               isPromptWindowOpen={isPromptWindowOpen}
               isTextEditorWindowOpen={isTextEditorWindowOpen}
-              onSelectTool={(tool: 'workspace' | 'api' | 'docs' | 'settings' | 'prompt') => setActiveTool(tool)}
+              onSelectTool={(tool: 'workspace' | 'api' | 'docs' | 'settings' | 'prompt' | 'agents') => setActiveTool(tool)}
               onOpenPromptWindow={handleOpenPromptWindow}
               onOpenTextEditorWindow={handleOpenTextEditorWindow}
             />
@@ -169,6 +170,12 @@ export default function EditorWorkspace() {
               {activeTool === 'api' && (
                 <div className="absolute inset-0">
                   <ApiConfigPanel config={config} onConfigChange={handleConfigChange} />
+                </div>
+              )}
+
+              {activeTool === 'agents' && (
+                <div className="absolute inset-0">
+                  <AgentsPage config={config} onConfigChange={handleConfigChange} />
                 </div>
               )}
 
