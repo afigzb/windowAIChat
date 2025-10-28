@@ -28,7 +28,7 @@ class WindowManager {
         enableRemoteModule: false,
         preload: path.join(__dirname, 'preload.js')
       },
-      icon: path.join(__dirname, '../public/A.ico'),
+      icon: path.join(__dirname, '../public/app-icon-nebula-256.ico'),
       titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
       autoHideMenuBar: true,
       show: false
