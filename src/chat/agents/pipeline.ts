@@ -104,7 +104,7 @@ export class AgentPipeline {
 
         if (!result.success) {
           overallSuccess = false
-          console.error(`[Pipeline] 步骤失败: ${stepConfig.name} - ${result.error}`)
+          console.log(`[Pipeline] 步骤失败: ${stepConfig.name} - ${result.error}`)
           
           if (!continueOnError) {
             break

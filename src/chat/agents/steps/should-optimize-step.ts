@@ -113,7 +113,7 @@ export class ShouldOptimizeStep implements AgentStep {
     } catch (error: any) {
       const currentInput = context.processedInput || context.userInput
       
-      console.error(`[ShouldOptimize] 判断失败:`, error.message)
+      console.log(`[ShouldOptimize] 判断失败:`, error.message)
       
       // 失败时默认允许优化
       context.stepData.set(this.type, { 

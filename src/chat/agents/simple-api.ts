@@ -38,7 +38,7 @@ export async function callSimpleAPI(
     
     return result
   } catch (error: any) {
-    console.error('[SimpleAPI] API调用失败:', error.message)
+    console.log('[SimpleAPI] API调用失败:', error.message)
     throw error
   }
 }

@@ -25,7 +25,7 @@ interface UseSmartScrollOptions {
   
   /**
    * 距离底部多少像素内认为是"在底部"
-   * 默认值：10px
+   * 默认值：5px
    */
   threshold?: number
 }
@@ -33,7 +33,7 @@ interface UseSmartScrollOptions {
 /**
  * 检查用户是否在滚动容器底部附近
  */
-function isNearBottom(element: HTMLElement, threshold: number = 10): boolean {
+function isNearBottom(element: HTMLElement, threshold: number = 5): boolean {
   const { scrollTop, scrollHeight, clientHeight } = element
   return scrollHeight - scrollTop - clientHeight < threshold
 }
@@ -49,7 +49,7 @@ function scrollToBottom(element: HTMLElement, behavior: ScrollBehavior = 'smooth
 }
 
 export function useSmartScroll(options: UseSmartScrollOptions = {}) {
-  const { trigger, isGenerating = false, threshold = 10 } = options
+  const { trigger, isGenerating = false, threshold = 5 } = options
   
   // 滚动容器的引用
   const scrollContainerRef = useRef<HTMLDivElement>(null)
