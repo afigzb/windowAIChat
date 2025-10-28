@@ -172,6 +172,7 @@ export function SettingsPanel({ config, onConfigChange, onRequestReset }: Settin
               </div>
             )}
           </div>
+          
 
           {/* AI 输入优化 */}
           <div className="bg-white rounded-lg border border-gray-200 p-5">
