@@ -159,6 +159,66 @@ class StorageManager {
       return false
     }
   }
+
+  // ===== 对话历史专用存储方法 =====
+
+  /**
+   * 保存单个对话到独立文件
+   */
+  saveConversation(conversationId: string, conversationData: any): void {
+    const key = `conversation_${conversationId}`
+    this.saveData(key, conversationData)
+  }
+
+  /**
+   * 从独立文件加载单个对话
+   */
+  loadConversation(conversationId: string): any | null {
+    const key = `conversation_${conversationId}`
+    try {
+      const value = this.electron?.kvGetSync?.(key)
+      return value || null
+    } catch (error) {
+      console.warn(`加载对话失败 [${conversationId}]:`, error)
+      return null
+    }
+  }
+
+  /**
+   * 删除单个对话文件
+   */
+  deleteConversation(conversationId: string): void {
+    const key = `conversation_${conversationId}`
+    try {
+      this.electron?.kvRemoveSync?.(key)
+    } catch (error) {
+      console.error(`删除对话文件失败 [${conversationId}]:`, error)
+    }
+  }
+
+  /**
+   * 保存对话索引（元数据列表）
+   */
+  saveConversationIndex(index: any[]): void {
+    this.saveData('conversation_index', index)
+  }
+
+  /**
+   * 加载对话索引
+   */
+  loadConversationIndex(): any[] {
+    return this.loadData('conversation_index', [])
+  }
+
+  /**
+   * 清空所有对话文件
+   */
+  clearAllConversations(conversationIds: string[]): void {
+    // 删除所有对话文件
+    conversationIds.forEach(id => this.deleteConversation(id))
+    // 清空索引
+    this.saveConversationIndex([])
+  }
 }
 
 // 创建单例实例

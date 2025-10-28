@@ -1,20 +1,24 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import storage from '../../storage'
 import type { ConversationTree, FlatMessage } from '../types'
 import { createInitialConversationTree } from './tree-utils'
 
-// 对话历史项的元数据
-export interface ConversationHistoryItem {
+// 对话元数据（索引中存储的轻量信息）
+export interface ConversationMetadata {
   id: string
   title: string
   timestamp: Date
   preview: string
+}
+
+// 完整对话数据（包含对话树）
+export interface ConversationHistoryItem extends ConversationMetadata {
   conversationTree: ConversationTree
 }
 
 // 对话历史管理器的返回类型
 export interface ConversationHistoryManager {
-  conversations: ConversationHistoryItem[]
+  conversations: ConversationMetadata[]  // 只存储元数据列表
   currentConversationId: string | null
   createNewConversation: () => string
   loadConversation: (id: string) => ConversationTree | null
@@ -24,7 +28,7 @@ export interface ConversationHistoryManager {
   renameConversation: (id: string, newTitle: string) => void
 }
 
-const STORAGE_KEY = 'writing_conversation_history'
+const STORAGE_KEY = 'writing_conversation_history'  // 旧格式的key，用于迁移
 const ACTIVE_CONVERSATION_KEY = 'active_conversation_id'
 
 // 生成对话标题（基于第一条用户消息）
@@ -76,27 +80,103 @@ function migrateMessage(msg: FlatMessage): FlatMessage {
   return msg
 }
 
-export function useConversationHistory(): ConversationHistoryManager {
-  // 从存储加载对话历史
-  const [conversations, setConversations] = useState<ConversationHistoryItem[]>(() => {
-    try {
-      const saved = storage.loadGenericData<ConversationHistoryItem[]>(STORAGE_KEY, [])
-      // 反序列化日期对象并迁移旧数据
-      return saved.map(conv => ({
-        ...conv,
-        timestamp: new Date(conv.timestamp),
-        conversationTree: {
-          ...conv.conversationTree,
-          flatMessages: new Map(
-            Object.entries(conv.conversationTree.flatMessages as any).map(([id, msg]: [string, any]) => [
-              id,
-              migrateMessage({ ...msg, timestamp: new Date(msg.timestamp) })
-            ])
-          )
+/**
+ * 序列化对话树（Map -> Object）
+ */
+function serializeConversationTree(tree: ConversationTree): any {
+  return {
+    ...tree,
+    flatMessages: Object.fromEntries(tree.flatMessages)
+  }
+}
+
+/**
+ * 反序列化对话树（Object -> Map）
+ */
+function deserializeConversationTree(data: any): ConversationTree {
+  return {
+    ...data,
+    flatMessages: new Map(
+      Object.entries(data.flatMessages || {}).map(([id, msg]: [string, any]) => [
+        id,
+        migrateMessage({ ...msg, timestamp: new Date(msg.timestamp) })
+      ])
+    )
+  }
+}
+
+/**
+ * 从旧格式迁移数据到新格式（独立文件存储）
+ */
+function migrateFromOldFormat(): ConversationMetadata[] {
+  try {
+    const oldData = storage.loadGenericData<any[]>(STORAGE_KEY, [])
+    
+    if (!oldData || oldData.length === 0) {
+      return []
+    }
+
+    console.log(`检测到旧格式数据，开始迁移 ${oldData.length} 个对话...`)
+    
+    const migratedMetadata: ConversationMetadata[] = []
+    
+    for (const conv of oldData) {
+      try {
+        // 反序列化并保存到独立文件
+        const conversationTree = deserializeConversationTree(conv.conversationTree)
+        const metadata: ConversationMetadata = {
+          id: conv.id,
+          title: conv.title,
+          timestamp: new Date(conv.timestamp),
+          preview: conv.preview
         }
+        
+        // 保存到独立文件
+        storage.saveConversation(conv.id, serializeConversationTree(conversationTree))
+        migratedMetadata.push(metadata)
+        
+        console.log(`✓ 迁移对话: ${conv.id}`)
+      } catch (error) {
+        console.error(`迁移对话 ${conv.id} 失败:`, error)
+      }
+    }
+    
+    // 保存新索引
+    storage.saveConversationIndex(migratedMetadata)
+    
+    // 清理旧数据
+    storage.saveGenericData(STORAGE_KEY, [])
+    
+    console.log(`✓ 迁移完成，共 ${migratedMetadata.length} 个对话`)
+    return migratedMetadata
+  } catch (error) {
+    console.error('数据迁移失败:', error)
+    return []
+  }
+}
+
+export function useConversationHistory(): ConversationHistoryManager {
+  // 缓存最近加载的对话树，避免重复读取文件
+  const conversationCache = useRef<Map<string, ConversationTree>>(new Map())
+
+  // 从存储加载对话索引（只加载元数据）
+  const [conversations, setConversations] = useState<ConversationMetadata[]>(() => {
+    try {
+      // 尝试加载新格式索引
+      let index = storage.loadConversationIndex()
+      
+      // 如果索引为空，尝试从旧格式迁移
+      if (index.length === 0) {
+        index = migrateFromOldFormat()
+      }
+      
+      // 反序列化日期对象
+      return index.map(meta => ({
+        ...meta,
+        timestamp: new Date(meta.timestamp)
       }))
     } catch (error) {
-      console.error('加载对话历史失败:', error)
+      console.error('加载对话索引失败:', error)
       return []
     }
   })
@@ -128,95 +208,162 @@ export function useConversationHistory(): ConversationHistoryManager {
     }
   }, [])
 
-  // 保存到存储
-  const saveToStorage = useCallback((convs: ConversationHistoryItem[]) => {
+  // 保存索引到存储（只保存元数据）
+  const saveIndexToStorage = useCallback((metadataList: ConversationMetadata[]) => {
     try {
-      // 序列化Map对象
-      const serializable = convs.map(conv => ({
-        ...conv,
-        conversationTree: {
-          ...conv.conversationTree,
-          flatMessages: Object.fromEntries(conv.conversationTree.flatMessages)
-        }
-      }))
-      storage.saveGenericData(STORAGE_KEY, serializable)
+      storage.saveConversationIndex(metadataList)
     } catch (error) {
-      console.error('保存对话历史失败:', error)
+      console.error('保存对话索引失败:', error)
     }
   }, [])
 
-  // 自动保存
+  // 自动保存索引（当对话列表变化时）
   useEffect(() => {
-    saveToStorage(conversations)
-  }, [conversations, saveToStorage])
+    saveIndexToStorage(conversations)
+  }, [conversations, saveIndexToStorage])
 
   // 创建新对话
   const createNewConversation = useCallback((): string => {
     const newId = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    const newConversation: ConversationHistoryItem = {
+    const conversationTree = createInitialConversationTree('')
+    
+    // 元数据
+    const metadata: ConversationMetadata = {
       id: newId,
       title: '新对话',
       timestamp: new Date(),
-      preview: '空对话',
-      conversationTree: createInitialConversationTree('')
+      preview: '空对话'
     }
     
-    setConversations(prev => [newConversation, ...prev])
+    // 保存到独立文件
+    storage.saveConversation(newId, serializeConversationTree(conversationTree))
+    
+    // 缓存对话树
+    conversationCache.current.set(newId, conversationTree)
+    
+    // 添加到索引（状态更新会触发索引保存）
+    setConversations(prev => [metadata, ...prev])
     setCurrentConversationId(newId)
-    saveActiveConversationId(newId) // 保存活跃对话ID
+    saveActiveConversationId(newId)
+    
     return newId
   }, [saveActiveConversationId])
 
-  // 加载对话
+  // 加载对话（从独立文件懒加载）
   const loadConversation = useCallback((id: string): ConversationTree | null => {
-    const conversation = conversations.find(conv => conv.id === id)
-    if (conversation) {
-      setCurrentConversationId(id)
-      saveActiveConversationId(id) // 保存活跃对话ID
-      return conversation.conversationTree
+    // 检查对话是否存在于索引中
+    const metadata = conversations.find(conv => conv.id === id)
+    if (!metadata) {
+      console.warn(`对话 ${id} 不存在于索引中`)
+      return null
     }
-    return null
+    
+    // 先检查缓存
+    if (conversationCache.current.has(id)) {
+      setCurrentConversationId(id)
+      saveActiveConversationId(id)
+      return conversationCache.current.get(id)!
+    }
+    
+    // 从文件加载
+    try {
+      const data = storage.loadConversation(id)
+      if (!data) {
+        console.error(`对话文件 ${id} 不存在`)
+        return null
+      }
+      
+      const conversationTree = deserializeConversationTree(data)
+      
+      // 缓存
+      conversationCache.current.set(id, conversationTree)
+      
+      setCurrentConversationId(id)
+      saveActiveConversationId(id)
+      
+      return conversationTree
+    } catch (error) {
+      console.error(`加载对话 ${id} 失败:`, error)
+      return null
+    }
   }, [conversations, saveActiveConversationId])
 
-  // 更新对话
+  // 更新对话（保存到独立文件）
   const updateConversation = useCallback((id: string, tree: ConversationTree) => {
-    setConversations(prev => prev.map(conv => {
-      if (conv.id === id) {
-        return {
-          ...conv,
-          title: generateTitle(tree),
-          preview: generatePreview(tree),
-          timestamp: new Date(),
-          conversationTree: tree
+    try {
+      // 保存到独立文件
+      storage.saveConversation(id, serializeConversationTree(tree))
+      
+      // 更新缓存
+      conversationCache.current.set(id, tree)
+      
+      // 更新索引中的元数据
+      setConversations(prev => prev.map(conv => {
+        if (conv.id === id) {
+          return {
+            ...conv,
+            title: generateTitle(tree),
+            preview: generatePreview(tree),
+            timestamp: new Date()
+          }
         }
-      }
-      return conv
-    }))
+        return conv
+      }))
+    } catch (error) {
+      console.error(`更新对话 ${id} 失败:`, error)
+    }
   }, [])
 
-  // 删除对话
+  // 删除对话（同时删除文件和缓存）
   const deleteConversation = useCallback((id: string) => {
-    setConversations(prev => {
-      const filtered = prev.filter(conv => conv.id !== id)
-      // 如果删除的是当前对话，切换到第一个对话
-      if (currentConversationId === id && filtered.length > 0) {
-        const newActiveId = filtered[0].id
-        setCurrentConversationId(newActiveId)
-        saveActiveConversationId(newActiveId) // 保存新的活跃对话ID
-      } else if (filtered.length === 0) {
-        setCurrentConversationId(null)
-        saveActiveConversationId(null) // 清空活跃对话ID
-      }
-      return filtered
-    })
+    try {
+      // 删除文件
+      storage.deleteConversation(id)
+      
+      // 清除缓存
+      conversationCache.current.delete(id)
+      
+      // 从索引中移除
+      setConversations(prev => {
+        const filtered = prev.filter(conv => conv.id !== id)
+        
+        // 如果删除的是当前对话，切换到第一个对话
+        if (currentConversationId === id && filtered.length > 0) {
+          const newActiveId = filtered[0].id
+          setCurrentConversationId(newActiveId)
+          saveActiveConversationId(newActiveId)
+        } else if (filtered.length === 0) {
+          setCurrentConversationId(null)
+          saveActiveConversationId(null)
+        }
+        
+        return filtered
+      })
+    } catch (error) {
+      console.error(`删除对话 ${id} 失败:`, error)
+    }
   }, [currentConversationId, saveActiveConversationId])
 
-  // 清空所有对话
+  // 清空所有对话（删除所有文件）
   const clearAllConversations = useCallback(() => {
-    setConversations([])
-    setCurrentConversationId(null)
-    saveActiveConversationId(null) // 清空活跃对话ID
-  }, [saveActiveConversationId])
+    try {
+      // 获取所有对话ID
+      const allIds = conversations.map(c => c.id)
+      
+      // 删除所有对话文件
+      storage.clearAllConversations(allIds)
+      
+      // 清空缓存
+      conversationCache.current.clear()
+      
+      // 清空状态
+      setConversations([])
+      setCurrentConversationId(null)
+      saveActiveConversationId(null)
+    } catch (error) {
+      console.error('清空所有对话失败:', error)
+    }
+  }, [conversations, saveActiveConversationId])
 
   // 重命名对话
   const renameConversation = useCallback((id: string, newTitle: string) => {
