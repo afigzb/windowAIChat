@@ -152,4 +152,47 @@ export interface MessageBubbleProps {
   isInContext?: boolean
 }
 
+// ===== 请求处理相关类型 =====
+
+// 初始请求数据（统一入口收集的所有数据）
+export interface InitialRequestData {
+  // 用户输入
+  userInput: string
+  
+  // 附加内容（文件、选中文本等）
+  attachedContents: string[]
+  
+  // 对话历史（完整的消息链）
+  conversationHistory: FlatMessage[]
+  
+  // 系统提示词
+  systemPrompt: string
+  
+  // AI 配置
+  aiConfig: AIConfig
+  
+  // 用户消息节点（已创建，用于更新树）
+  userMessageNode: FlatMessage
+  
+  // 中断信号
+  abortSignal: AbortSignal
+}
+
+// 请求模式
+export type RequestMode = 'manual' | 'agent'
+
+// 请求处理结果（两种模式的统一返回格式）
+export interface RequestResult {
+  content: string
+  reasoning_content?: string
+  components?: MessageComponents  // Agent 模式会包含 agentResults
+}
+
+// 流式回调接口
+export interface StreamCallbacks {
+  onAgentProgress?: (content: string | import('./agents').AgentProgressUpdate) => void
+  onThinkingUpdate: (thinking: string) => void
+  onAnswerUpdate: (answer: string) => void
+}
+
 // ===== 工具函数类型 =====
