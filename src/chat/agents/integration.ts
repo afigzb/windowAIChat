@@ -5,7 +5,6 @@
 import type { FlatMessage, AIConfig, MessageComponents, AgentTaskResultForUI } from '../types'
 import { agentPipeline } from './pipeline'
 import type { PipelineResult } from './pipeline'
-import { defaultOptimizeWorkflow } from './workflows'
 import type { AgentTaskResult, AgentProgressUpdate } from './types'
 
 export interface ExecutePipelineParams {
@@ -58,15 +57,15 @@ export async function executeAgentPipeline(
     }
   } : undefined
   
-  // 使用默认工作流执行
-  const pipelineResult = await agentPipeline.execute(
+  // 使用新的动态执行引擎
+  const pipelineResult = await agentPipeline.executeDefaultWorkflow(
     {
       userInput: userContent,
+      goal: userContent,  // 初始 goal 与 userInput 相同
       attachedFiles: attachedFiles,
       conversationHistory: conversationHistory,
       aiConfig: config
     },
-    defaultOptimizeWorkflow,
     abortSignal,
     wrappedOnProgress
   )

@@ -1,5 +1,5 @@
 import type { AIConfig, ApiProviderConfig } from '../types'
-import { DEFAULT_AGENT_CONFIG } from '../agents'
+import type { AgentPipelineConfig } from '../agents'
 import geminiProPreset from './examples/gemini.provider.json'
 
 // 默认API提供方配置
@@ -49,6 +49,12 @@ export const DEFAULT_SUMMARIZE_PROMPT = `你是一名专业的中文文本概括
 - 保留关键信息、结论与决策，删除冗余与重复。
 - 用分点或小节组织结果，语言简洁清晰。
 - 不臆测缺失信息，必要时标注"信息不足"。`
+
+// 默认 Agent Pipeline 配置
+const DEFAULT_AGENT_CONFIG: AgentPipelineConfig = {
+  enabled: true,  // 默认关闭 Agent Pipeline
+  workflowName: 'default-optimize'
+}
 
 // 默认AI配置参数（通用Provider）
 export const DEFAULT_CONFIG: AIConfig = {

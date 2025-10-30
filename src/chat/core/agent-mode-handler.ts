@@ -22,7 +22,6 @@ import type {
 } from '../types'
 import type { AgentProgressUpdate } from '../agents'
 import { agentPipeline } from '../agents/pipeline'
-import { defaultOptimizeWorkflow } from '../agents/workflows'
 import type { AgentTaskResult } from '../agents/types'
 
 /**
@@ -91,15 +90,15 @@ export async function executeAgentMode(
       historyLength: data.conversationHistory.length
     })
     
-    // 执行 Agent Pipeline
-    const pipelineResult = await agentPipeline.execute(
+    // 执行 Agent Pipeline（使用新的动态执行引擎）
+    const pipelineResult = await agentPipeline.executeDefaultWorkflow(
       {
         userInput,
+        goal: userInput,  // 初始 goal 与 userInput 相同
         attachedFiles: attachedFiles.length > 0 ? attachedFiles : undefined,
         conversationHistory: data.conversationHistory,
         aiConfig: data.aiConfig
       },
-      defaultOptimizeWorkflow,
       data.abortSignal,
       wrapProgressCallback(callbacks.onAgentProgress)
     )

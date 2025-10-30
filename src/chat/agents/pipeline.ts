@@ -1,20 +1,22 @@
 /**
- * Agent Pipeline - 工作流执行引擎
+ * Agent Pipeline - 动态工具执行引擎
  * 
  * 核心职责：
- * - 执行工作流函数
+ * - 动态执行工具序列
  * - 管理执行上下文
- * - 收集任务结果
+ * - 自动处理数据传递
+ * - 支持中断和进度回调
  * 
- * 不负责：
- * - 自动数据传递（由工作流代码显式处理）
- * - 任务编排逻辑（由工作流函数实现）
+ * 设计理念：
+ * - 当前阶段：用动态方式执行静态流程（写死工具列表）
+ * - 未来扩展：支持 LLM 规划的动态流程
  */
 
 import type {
   AgentContext,
-  AgentWorkflow,
-  AgentTaskResult
+  AgentTaskResult,
+  AgentTaskConfig,
+  AgentProgressUpdate
 } from './types'
 import type { AIConfig, FlatMessage } from '../types'
 
@@ -33,49 +35,58 @@ export interface PipelineResult {
  */
 export interface PipelineInput {
   userInput: string
+  goal?: string  // 用户目标（如果和 userInput 不同）
   attachedFiles?: string[]
   conversationHistory?: FlatMessage[]
   aiConfig: AIConfig
 }
 
+
 /**
  * Agent Pipeline 类
  */
 export class AgentPipeline {
-  private workflows = new Map<string, AgentWorkflow>()
 
   /**
-   * 注册工作流
+   * 执行默认的文章生成流程
+   * 使用配置驱动的方式（新架构）
    */
-  registerWorkflow(name: string, workflow: AgentWorkflow): void {
-    if (this.workflows.has(name) && import.meta.env.PROD) {
-      console.warn(`[Pipeline] 工作流 ${name} 已存在，将被覆盖`)
-    }
-    this.workflows.set(name, workflow)
-  }
-
-  /**
-   * 获取工作流
-   */
-  getWorkflow(name: string): AgentWorkflow | undefined {
-    return this.workflows.get(name)
-  }
-
-  /**
-   * 执行工作流
-   */
-  async execute(
+  async executeDefaultWorkflow(
     input: PipelineInput,
-    workflow: AgentWorkflow,
     abortSignal?: AbortSignal,
-    onProgress?: (update: string | import('./types').AgentProgressUpdate) => void
+    onProgress?: (update: string | AgentProgressUpdate) => void
+  ): Promise<PipelineResult> {
+    return this.executeWorkflowByConfig(input, abortSignal, onProgress)
+  }
+
+  /**
+   * 根据配置执行工作流（新架构）
+   * 
+   * @param input 输入数据
+   * @param workflowConfig 工作流配置（可选，使用默认配置）
+   * @param abortSignal 中断信号
+   * @param onProgress 进度回调
+   */
+  async executeWorkflowByConfig(
+    input: PipelineInput,
+    abortSignal?: AbortSignal,
+    onProgress?: (update: string | AgentProgressUpdate) => void,
+    workflowConfig?: import('./tool-config').WorkflowConfig
   ): Promise<PipelineResult> {
     const startTime = Date.now()
 
+    // 使用默认配置（如果未提供）
+    if (!workflowConfig) {
+      const { DEFAULT_WORKFLOW_CONFIG } = await import('./tool-config')
+      workflowConfig = DEFAULT_WORKFLOW_CONFIG
+    }
+
+    console.log(`[Pipeline] 执行工作流: ${workflowConfig.name}`)
+
     // 创建执行上下文
-    // 注意：使用数组浅拷贝，避免工作流修改原始输入
     const context: AgentContext = {
       userInput: input.userInput,
+      goal: input.goal || input.userInput,
       attachedFiles: input.attachedFiles ? [...input.attachedFiles] : undefined,
       conversationHistory: input.conversationHistory,
       aiConfig: input.aiConfig,
@@ -83,14 +94,67 @@ export class AgentPipeline {
       data: new Map()
     }
 
-    try {
-      // 执行工作流，由工作流函数负责任务编排
-      const taskResults = await workflow(context, abortSignal, onProgress)
+    const taskResults: AgentTaskResult[] = []
 
-      // 将结果存入上下文（方便查询）
-      taskResults.forEach(result => {
+    try {
+      // 导入配置执行器
+      const { executeToolByConfig } = await import('./config-executor')
+
+      // 遍历工具配置
+      for (const toolConfig of workflowConfig.tools) {
+        // 检查中断
+        if (abortSignal?.aborted) {
+          console.log('[Pipeline] 执行被中断')
+          break
+        }
+
+        // 检查执行条件
+        if (toolConfig.condition && !toolConfig.condition(context)) {
+          console.log(`[Pipeline] 跳过工具: ${toolConfig.name}（条件不满足）`)
+          continue
+        }
+
+        // 通知任务开始
+        if (onProgress) {
+          onProgress({
+            type: 'task_start',
+            currentTask: {
+              name: toolConfig.name,
+              type: toolConfig.id as any
+            },
+            completedResults: [...taskResults]
+          })
+        }
+
+        console.log(`[Pipeline] 开始执行: ${toolConfig.name}`)
+
+        // 执行工具（使用配置驱动的执行器）
+        const result = await executeToolByConfig(
+          toolConfig,
+          context.goal || context.userInput,  // 输入
+          context,
+          abortSignal,
+          this.wrapProgressCallback(onProgress, {
+            type: toolConfig.id as any,
+            name: toolConfig.name,
+            enabled: true
+          }, taskResults)
+        )
+
+        // 存储结果
+        taskResults.push(result)
         context.taskResults.set(result.id, result)
-      })
+
+        // 通知任务完成
+        if (onProgress) {
+          onProgress({
+            type: 'task_complete',
+            completedResults: [...taskResults]
+          })
+        }
+
+        console.log(`[Pipeline] 完成: ${toolConfig.name} - ${result.status}`)
+      }
 
       const totalTime = Date.now() - startTime
       const success = taskResults.every(r => r.status !== 'failed')
@@ -103,11 +167,11 @@ export class AgentPipeline {
       }
 
     } catch (error: any) {
-      console.error('[Pipeline] 工作流执行异常:', error)
+      console.error('[Pipeline] 执行异常:', error)
       
       return {
         success: false,
-        taskResults: [],
+        taskResults,
         context,
         totalTime: Date.now() - startTime
       }
@@ -115,33 +179,35 @@ export class AgentPipeline {
   }
 
   /**
-   * 通过名称执行已注册的工作流
+   * 包装进度回调
    */
-  async executeByName(
-    input: PipelineInput,
-    workflowName: string,
-    abortSignal?: AbortSignal,
-    onProgress?: (update: string | import('./types').AgentProgressUpdate) => void
-  ): Promise<PipelineResult> {
-    const workflow = this.workflows.get(workflowName)
+  private wrapProgressCallback(
+    onProgress: ((update: string | AgentProgressUpdate) => void) | undefined,
+    config: AgentTaskConfig,
+    completedResults: AgentTaskResult[]
+  ): ((content: string | AgentProgressUpdate) => void) | undefined {
+    if (!onProgress) return undefined
     
-    if (!workflow) {
-      throw new Error(`工作流 ${workflowName} 未注册`)
+    return (content: string | AgentProgressUpdate) => {
+      if (typeof content === 'string') {
+        onProgress({
+          type: 'message',
+          message: content,
+          currentTask: {
+            name: config.name,
+            type: config.type
+          },
+          completedResults: [...completedResults]
+        })
+      } else {
+        onProgress(content)
+      }
     }
-
-    return this.execute(input, workflow, abortSignal, onProgress)
   }
 
-  /**
-   * 列出所有已注册的工作流
-   */
-  listWorkflows(): string[] {
-    return Array.from(this.workflows.keys())
-  }
 }
 
 /**
  * 全局 Pipeline 实例
  */
 export const agentPipeline = new AgentPipeline()
-
