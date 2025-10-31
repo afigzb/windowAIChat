@@ -20,20 +20,41 @@ import type {
   MessageComponents,
   AgentTaskResultForUI
 } from '../types'
-import type { AgentProgressUpdate } from '../agents'
-import { agentPipeline } from '../agents/pipeline'
-import type { AgentTaskResult } from '../agents/types'
+import type { ProgressUpdate, TaskResult } from '../agents'
+import { executeWorkflow, DEFAULT_WORKFLOW } from '../agents'
 
 /**
- * 将 AgentTaskResult 转换为 UI 展示格式
+ * 将 TaskResult 转换为 UI 展示格式
  */
-function convertTaskResultForUI(taskResult: AgentTaskResult): AgentTaskResultForUI {
+function convertTaskResultForUI(taskResult: TaskResult): AgentTaskResultForUI {
+  // 提取显示文本
+  let displayResult: string | undefined
+  let optimizedInput: string | undefined
+  
+  if (taskResult.output) {
+    // 判断结果
+    if (typeof taskResult.output === 'object' && 'result' in taskResult.output) {
+      const judgment = taskResult.output as any
+      displayResult = `判断结果: ${judgment.result ? '是' : '否'}\n${judgment.reason || ''}`
+    }
+    // 字符串结果
+    else if (typeof taskResult.output === 'string') {
+      optimizedInput = taskResult.output
+      displayResult = taskResult.output
+    }
+    // 生成结果
+    else if (typeof taskResult.output === 'object' && 'content' in taskResult.output) {
+      const generation = taskResult.output as any
+      displayResult = generation.content.substring(0, 200) + (generation.content.length > 200 ? '...' : '')
+    }
+  }
+  
   return {
     success: taskResult.status === 'completed',
-    optimizedInput: typeof taskResult.output === 'string' ? taskResult.output : undefined,
-    displayResult: taskResult.output?.displayText,
+    optimizedInput,
+    displayResult,
     metadata: {
-      taskType: taskResult.type,
+      taskType: 'custom',  // 新架构使用统一的任务类型
       name: taskResult.name,
       originalInput: taskResult.input,
       processingTime: taskResult.duration,
@@ -43,23 +64,27 @@ function convertTaskResultForUI(taskResult: AgentTaskResult): AgentTaskResultFor
 }
 
 /**
- * 包装进度回调，将 AgentProgressUpdate 转换为字符串（如果需要）
+ * 包装进度回调，将 ProgressUpdate 转换为字符串（如果需要）
  */
 function wrapProgressCallback(
-  onAgentProgress: ((content: string | AgentProgressUpdate) => void) | undefined
-): ((update: string | AgentProgressUpdate) => void) | undefined {
+  onAgentProgress: ((content: string | ProgressUpdate) => void) | undefined
+): ((update: ProgressUpdate) => void) | undefined {
   if (!onAgentProgress) return undefined
   
-  return (update: string | AgentProgressUpdate) => {
-    if (typeof update === 'string') {
-      onAgentProgress(update)
+  return (update: ProgressUpdate) => {
+    if (update.type === 'message' && update.message) {
+      // 简单消息，直接发送
+      onAgentProgress(update.message)
     } else {
       // 将结构化数据转换为字符串（供 UI 展示）
       const progressData = {
         type: update.type,
         message: update.message,
-        currentTask: update.currentTask,
-        completedTasks: update.completedResults?.map(r => convertTaskResultForUI(r))
+        currentTask: update.taskName ? {
+          name: update.taskName,
+          type: 'custom' as const
+        } : undefined,
+        completedTasks: update.completedTasks?.map(r => convertTaskResultForUI(r))
       }
       onAgentProgress(JSON.stringify(progressData))
     }
@@ -90,11 +115,11 @@ export async function executeAgentMode(
       historyLength: data.conversationHistory.length
     })
     
-    // 执行 Agent Pipeline（使用新的动态执行引擎）
-    const pipelineResult = await agentPipeline.executeDefaultWorkflow(
+    // 执行工作流（使用新的工作流引擎）
+    const workflowResult = await executeWorkflow(
+      DEFAULT_WORKFLOW,
       {
         userInput,
-        goal: userInput,  // 初始 goal 与 userInput 相同
         attachedFiles: attachedFiles.length > 0 ? attachedFiles : undefined,
         conversationHistory: data.conversationHistory,
         aiConfig: data.aiConfig
@@ -103,28 +128,24 @@ export async function executeAgentMode(
       wrapProgressCallback(callbacks.onAgentProgress)
     )
     
-    console.log('[AgentMode] Pipeline 执行完成:', {
-      success: pipelineResult.success,
-      taskCount: pipelineResult.taskResults.length,
-      totalTime: `${pipelineResult.totalTime}ms`
+    console.log('[AgentMode] 工作流执行完成:', {
+      success: workflowResult.success,
+      taskCount: workflowResult.taskResults.length,
+      totalTime: `${workflowResult.totalDuration}ms`
     })
     
-    // 从任务结果中提取主模型生成的内容
-    const mainGenerationTask = pipelineResult.taskResults.find(
-      r => r.type === 'main-generation'
-    )
-    
-    if (!mainGenerationTask || mainGenerationTask.status !== 'completed') {
+    // 从工作流结果中提取主生成内容
+    if (!workflowResult.generationResult) {
       throw new Error('主模型生成任务未完成或失败')
     }
     
-    const finalContent = mainGenerationTask.output.content
-    const reasoning_content = mainGenerationTask.output.reasoning_content
+    const finalContent = workflowResult.generationResult.content
+    const reasoning_content = workflowResult.generationResult.reasoning
     
     // 构建 Agent 组件（用于 UI 展示）
     const agentComponents: MessageComponents = {
-      agentResults: pipelineResult.taskResults.length > 0 
-        ? pipelineResult.taskResults.map(taskResult => convertTaskResultForUI(taskResult))
+      agentResults: workflowResult.taskResults.length > 0 
+        ? workflowResult.taskResults.map(taskResult => convertTaskResultForUI(taskResult))
         : undefined
     }
     
@@ -137,12 +158,12 @@ export async function executeAgentMode(
     }
     
   } catch (error: any) {
-    console.error('[AgentMode] Pipeline 执行失败:', error)
+    console.error('[AgentMode] 工作流执行失败:', error)
     
     // Agent 模式失败时，返回错误信息
     // 注意：不再回退到手动模式，因为路由层已经做了选择
     return {
-      content: `Agent Pipeline 执行失败: ${error.message || '未知错误'}`,
+      content: `Agent 工作流执行失败: ${error.message || '未知错误'}`,
       reasoning_content: undefined,
       components: undefined
     }

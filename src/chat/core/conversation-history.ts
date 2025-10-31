@@ -35,7 +35,7 @@ const ACTIVE_CONVERSATION_KEY = 'active_conversation_id'
 function generateTitle(tree: ConversationTree): string {
   const messages = Array.from(tree.flatMessages.values())
   const firstUserMessage = messages.find(msg => msg.role === 'user')
-  if (firstUserMessage) {
+  if (firstUserMessage && firstUserMessage.content) {
     // 截取前30个字符作为标题
     const title = firstUserMessage.content.substring(0, 30)
     return title.length < firstUserMessage.content.length ? title + '...' : title
@@ -50,7 +50,7 @@ function generatePreview(tree: ConversationTree): string {
     new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   )
   const lastMessage = sortedMessages[0]
-  if (lastMessage) {
+  if (lastMessage && lastMessage.content) {
     const preview = lastMessage.content.substring(0, 50)
     return preview.length < lastMessage.content.length ? preview + '...' : preview
   }

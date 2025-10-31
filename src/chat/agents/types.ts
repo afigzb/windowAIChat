@@ -1,188 +1,360 @@
 /**
- * Agent Pipeline 系统类型定义
+ * Agents 系统类型定义（重构版）
  * 
- * 核心设计理念：
- * - 每个任务（Task）是独立的工具（Tool），可被动态调用
- * - Pipeline 通过工具注册表动态组织和执行任务
- * - 支持未来的规划循环（ReAct模式）
+ * 设计理念：
+ * 1. 原始数据仓库：所有外部数据集中存放
+ * 2. 任务 = 输入 + 工具 + 输出
+ * 3. 工作流 = 任务序列 + 条件控制
  */
 
-import type { AIConfig } from '../types'
-import type { FlatMessage } from '../types'
+import type { AIConfig, FlatMessage } from '../types'
 
 // ============================================================
-// 任务/工具类型定义
-// ============================================================
-
-export type AgentTaskType = 
-  | 'should-optimize'
-  | 'optimize-input'
-  | 'generate-structure'
-  | 'main-generation'
-  | 'retrieve-info'
-  | 'analyze-intent'
-  | 'custom'
-
-export enum AgentTaskStatus {
-  PENDING = 'pending',
-  RUNNING = 'running',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  CANCELLED = 'cancelled'
-}
-
-/**
- * 任务执行结果 - 独立且完整
- */
-export interface AgentTaskResult {
-  id: string                    // 任务唯一标识
-  type: AgentTaskType          // 任务类型
-  name: string                  // 任务名称
-  status: AgentTaskStatus      // 任务状态
-  
-  input: any                    // 任务接收的输入（显式传入）
-  output?: any                  // 任务产生的输出（可选）
-  
-  startTime: number             // 开始时间戳
-  endTime?: number              // 结束时间戳
-  duration: number              // 执行耗时(ms)
-  
-  error?: string                // 错误信息
-}
-
-/**
- * 任务配置
- */
-export interface AgentTaskConfig {
-  type: AgentTaskType
-  name: string
-  enabled?: boolean        // 是否启用此任务（默认为 true）
-  description?: string
-  apiProviderId?: string  // 使用的 API Provider ID
-  systemPrompt?: string   // 自定义系统提示词
-  options?: Record<string, any>
-}
-
-// ============================================================
-// 执行上下文
+// 原始数据仓库
 // ============================================================
 
 /**
- * 任务执行上下文
- * 包含执行任务所需的所有信息
+ * 原始数据仓库
+ * 
+ * 存储所有外部输入，任务可以读取和修改
  */
-export interface AgentContext {
-  /** 用户的原始输入 */
-  userInput: string
+export interface RawData {
+  /** 用户原始输入（不可变）*/
+  readonly userInput: string
   
-  /** 用户的高层目标（可能经过优化或提炼）*/
-  goal?: string
+  /** 处理后的目标/问题（可被任务修改）*/
+  goal: string
   
-  /** 附加的文件或内容 */
-  attachedFiles?: string[]
+  /** 附加的文件内容（可被任务添加/修改）*/
+  attachedFiles: string[]
   
-  /** 对话历史 */
-  conversationHistory?: FlatMessage[]
+  /** 对话历史（可被任务读取）*/
+  readonly conversationHistory: FlatMessage[]
+  
+  /** 自定义数据存储（任务间共享）*/
+  customData: Map<string, any>
+}
+
+// ============================================================
+// 数据源和输出
+// ============================================================
+
+/**
+ * 数据源：描述从原始数据仓库的哪里读取
+ */
+export type DataSource =
+  | { type: 'user-input' }                    // 用户原始输入
+  | { type: 'goal' }                          // 当前目标
+  | { type: 'file'; index?: number }          // 单个文件
+  | { type: 'all-files' }                     // 所有文件
+  | { type: 'history'; limit?: number }       // 对话历史
+  | { type: 'custom'; key: string }           // 自定义数据
+  | { type: 'static'; content: string }       // 静态文本
+
+/**
+ * 组合数据源
+ */
+export interface CompositeDataSource {
+  sources: DataSource[]
+  separator?: string  // 默认 '\n\n'
+  template?: string   // 可选模板，如 "问题: {0}\n文件: {1}"
+}
+
+/**
+ * 输出目标：描述结果写入到原始数据仓库的哪里
+ */
+export type OutputTarget =
+  | { type: 'goal' }                          // 更新目标
+  | { type: 'files'; mode: 'append' | 'prepend' | 'replace' } // 文件操作
+  | { type: 'custom'; key: string }           // 自定义数据
+  | { type: 'none' }                          // 不保存（仅用于判断）
+
+// ============================================================
+// 工具定义
+// ============================================================
+
+/**
+ * 工具类型
+ */
+export type ToolType = 'judgment' | 'transform' | 'generation'
+
+/**
+ * 工具执行上下文
+ */
+export interface ToolContext {
+  /** 原始数据仓库（只读引用）*/
+  rawData: Readonly<RawData>
   
   /** AI 配置 */
   aiConfig: AIConfig
   
-  /** 存储所有任务结果，供后续任务查询使用 */
-  taskResults: Map<string, AgentTaskResult>
+  /** 中止信号 */
+  abortSignal?: AbortSignal
   
-  /** 自定义数据存储（任务间共享数据） */
-  data: Map<string, any>
+  /** 进度回调 */
+  onProgress?: (message: string) => void
 }
 
 /**
- * 进度更新数据
+ * 工具执行结果
  */
-export interface AgentProgressUpdate {
-  type: 'task_start' | 'task_complete' | 'message' | 'planning'
-  message?: string
-  currentTask?: {
-    name: string
-    type: AgentTaskType
+export interface ToolResult<T = any> {
+  success: boolean
+  output?: T
+  error?: string
+  metadata?: {
+    duration?: number
+    [key: string]: any
   }
-  completedResults?: AgentTaskResult[]
-  planningStep?: number  // 规划步骤编号（供未来使用）
 }
 
 /**
- * 任务执行参数
+ * 基础工具接口
  */
-export interface AgentTaskExecuteParams {
-  input: any                    // 显式传入的输入
-  context: AgentContext        // 执行上下文
-  config: AgentTaskConfig      // 任务配置
-  abortSignal?: AbortSignal    // 取消信号
-  onProgress?: (update: string | AgentProgressUpdate) => void  // 进度回调（支持字符串或结构化数据）
+export interface Tool<TInput = any, TOutput = any> {
+  /** 工具类型 */
+  type: ToolType
+  
+  /** 工具名称（用于日志）*/
+  name: string
+  
+  /** 
+   * 执行工具
+   * 
+   * @param input 输入数据（已从原始数据解析）
+   * @param context 执行上下文
+   * @returns 工具执行结果
+   */
+  execute(input: TInput, context: ToolContext): Promise<ToolResult<TOutput>>
 }
 
 // ============================================================
-// 工具/任务接口（增强版）
-// ============================================================
-
-// AgentTask 接口已移除，系统采用配置驱动方式
-// 如需要动态注册工具，请使用 ToolConfig (参见 tool-config.ts)
-
-// ============================================================
-// 规划器相关（供未来使用）
+// 判断工具
 // ============================================================
 
 /**
- * 规划器状态
- * 这些数据只在 Planning Loop 内部使用，不暴露给任务
+ * 判断工具配置
  */
-export interface PlannerState {
-  /** 用户目标 */
-  goal: string
+export interface JudgmentToolConfig {
+  type: 'judgment'
+  name: string
+  systemPrompt: string
   
-  /** 任务执行上下文的引用 */
-  context: AgentContext
+  /** 判断解析方式 */
+  parser: JudgmentParser
   
-  /** 当前步骤 */
-  currentStep: number
-  
-  /** 最大步数限制 */
-  maxSteps: number
-  
-  /** 规划历史：记录每一步的思考和行动 */
-  history: PlanningStep[]
-  
-  /** 中间结果摘要（压缩后的关键信息）*/
-  intermediateResults: Map<string, any>
-  
-  /** 是否已完成目标 */
-  isComplete: boolean
-  
-  /** 最终答案（如果完成）*/
-  finalAnswer?: string
+  /** 进度消息（可选）*/
+  progressMessage?: string
 }
 
 /**
- * 规划步骤记录
+ * 判断解析器
  */
-export interface PlanningStep {
-  step: number
-  thought: string        // LLM的思考过程
-  action: string         // 选择的任务/工具名
-  actionInput: any       // 任务输入
-  observation: string    // 执行结果观察
-  status: 'success' | 'failed'
-  timestamp: number
-}
-
-// AgentWorkflow 已移除，请使用 agentPipeline.executeDefaultWorkflow()
+export type JudgmentParser =
+  | { type: 'tag'; yesTag?: string; noTag?: string }
+  | { type: 'keywords'; yesKeywords?: string[] }
+  | { type: 'custom'; parse: (response: string) => boolean }
 
 /**
- * Pipeline 配置
+ * 判断结果
  */
-export interface AgentPipelineConfig {
-  enabled: boolean
-  mode?: 'static' | 'dynamic'  // 静态工作流 vs 动态规划
-  workflowName?: string  // 静态工作流名称
-  planningStrategy?: 'react' | 'plan-execute'  // 规划策略（动态模式）
-  maxIterations?: number  // 最大迭代次数（动态模式）
-  options?: Record<string, any>
+export interface JudgmentResult {
+  result: boolean
+  reason?: string
+  rawResponse: string
+}
+
+// ============================================================
+// 转换工具 (LLM)
+// ============================================================
+
+/**
+ * 转换工具配置
+ */
+export interface TransformToolConfig {
+  type: 'transform'
+  name: string
+  systemPrompt: string
+  
+  /** 输出解析（可选）*/
+  outputParser?: OutputParser
+  
+  /** 进度消息（可选）*/
+  progressMessage?: string
+}
+
+/**
+ * 输出解析器
+ */
+export type OutputParser =
+  | { type: 'trim' }
+  | { type: 'extract-tag'; tagName: string }
+  | { type: 'json'; schema?: any }
+  | { type: 'custom'; parse: (response: string) => any }
+
+// ============================================================
+// 主生成工具
+// ============================================================
+
+/**
+ * 主生成工具配置
+ */
+export interface GenerationToolConfig {
+  type: 'generation'
+  name: string
+}
+
+/**
+ * 主生成结果
+ */
+export interface GenerationResult {
+  content: string
+  reasoning?: string
+}
+
+// ============================================================
+// 任务定义
+// ============================================================
+
+/**
+ * 任务配置
+ */
+export interface TaskConfig {
+  /** 任务 ID */
+  id: string
+  
+  /** 任务名称（显示用）*/
+  name: string
+  
+  /** 任务描述（可选）*/
+  description?: string
+  
+  /** 输入：从哪里读取数据 */
+  input: DataSource | CompositeDataSource
+  
+  /** 工具：使用什么工具处理 */
+  tool: JudgmentToolConfig | TransformToolConfig | GenerationToolConfig
+  
+  /** 输出：结果写入到哪里 */
+  output: OutputTarget
+  
+  /** 条件执行（可选）*/
+  condition?: TaskCondition
+}
+
+/**
+ * 任务执行条件
+ */
+export type TaskCondition =
+  | { type: 'always' }                        // 总是执行
+  | { type: 'if-true'; taskId: string }       // 如果指定任务结果为 true
+  | { type: 'if-false'; taskId: string }      // 如果指定任务结果为 false
+  | { type: 'custom'; check: (results: Map<string, TaskResult>) => boolean }
+
+/**
+ * 任务执行结果
+ */
+export interface TaskResult {
+  /** 任务 ID */
+  id: string
+  
+  /** 任务名称 */
+  name: string
+  
+  /** 执行状态 */
+  status: 'completed' | 'failed' | 'skipped' | 'cancelled'
+  
+  /** 输入数据 */
+  input: any
+  
+  /** 输出数据 */
+  output?: any
+  
+  /** 错误信息 */
+  error?: string
+  
+  /** 开始时间 */
+  startTime: number
+  
+  /** 结束时间 */
+  endTime: number
+  
+  /** 执行耗时 */
+  duration: number
+}
+
+// ============================================================
+// 工作流定义
+// ============================================================
+
+/**
+ * 工作流配置
+ */
+export interface WorkflowConfig {
+  /** 工作流名称 */
+  name: string
+  
+  /** 工作流描述 */
+  description: string
+  
+  /** 任务列表 */
+  tasks: TaskConfig[]
+}
+
+/**
+ * 工作流执行上下文
+ */
+export interface WorkflowContext {
+  /** 原始数据仓库 */
+  rawData: RawData
+  
+  /** AI 配置 */
+  aiConfig: AIConfig
+  
+  /** 任务执行结果 */
+  taskResults: Map<string, TaskResult>
+  
+  /** 中止信号 */
+  abortSignal?: AbortSignal
+  
+  /** 进度回调 */
+  onProgress?: (update: ProgressUpdate) => void
+}
+
+/**
+ * 进度更新
+ */
+export interface ProgressUpdate {
+  type: 'task-start' | 'task-complete' | 'task-skip' | 'message'
+  taskId?: string
+  taskName?: string
+  message?: string
+  completedTasks?: TaskResult[]
+}
+
+/**
+ * 工作流执行结果
+ */
+export interface WorkflowResult {
+  success: boolean
+  rawData: RawData
+  taskResults: TaskResult[]
+  totalDuration: number
+  
+  /** 主生成结果（如果有）*/
+  generationResult?: GenerationResult
+}
+
+// ============================================================
+// 工作流输入
+// ============================================================
+
+/**
+ * 工作流输入参数
+ */
+export interface WorkflowInput {
+  userInput: string
+  attachedFiles?: string[]
+  conversationHistory?: FlatMessage[]
+  aiConfig: AIConfig
 }
