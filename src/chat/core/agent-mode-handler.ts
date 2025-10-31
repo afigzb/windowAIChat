@@ -21,7 +21,7 @@ import type {
   AgentTaskResultForUI
 } from '../types'
 import type { ProgressUpdate, TaskResult } from '../agents'
-import { executeWorkflow, DEFAULT_WORKFLOW } from '../agents'
+import { executeAgentPipeline } from '../agents'
 
 /**
  * 将 TaskResult 转换为 UI 展示格式
@@ -112,49 +112,38 @@ export async function executeAgentMode(
     console.log('[AgentMode] Pipeline 参数:', {
       userInputLength: userInput.length,
       attachedFilesCount: attachedFiles.length,
-      historyLength: data.conversationHistory.length
+      historyLength: data.conversationHistory.length,
+      agentMode: data.aiConfig.agentConfig?.mode || 'static'
     })
     
-    // 执行工作流（使用新的工作流引擎）
-    const workflowResult = await executeWorkflow(
-      DEFAULT_WORKFLOW,
-      {
+    // 构造用户消息（模拟原有格式）
+    const userMessage: FlatMessage = {
+      id: `temp-${Date.now()}`,
+      role: 'user',
+      content: userInput,
+      parentId: null,
+      components: {
         userInput,
-        attachedFiles: attachedFiles.length > 0 ? attachedFiles : undefined,
-        conversationHistory: data.conversationHistory,
-        aiConfig: data.aiConfig
+        attachedFiles: attachedFiles.length > 0 ? attachedFiles : undefined
       },
-      data.abortSignal,
-      wrapProgressCallback(callbacks.onAgentProgress)
-    )
+      timestamp: new Date()
+    }
     
-    console.log('[AgentMode] 工作流执行完成:', {
-      success: workflowResult.success,
-      taskCount: workflowResult.taskResults.length,
-      totalTime: `${workflowResult.totalDuration}ms`
+    // 使用 executeAgentPipeline（根据配置自动选择静态/动态模式）
+    const pipelineResult = await executeAgentPipeline({
+      userMessage,
+      conversationHistory: data.conversationHistory,
+      config: data.aiConfig,
+      abortSignal: data.abortSignal,
+      onProgress: callbacks.onAgentProgress
     })
     
-    // 从工作流结果中提取主生成内容
-    if (!workflowResult.generationResult) {
-      throw new Error('主模型生成任务未完成或失败')
-    }
-    
-    const finalContent = workflowResult.generationResult.content
-    const reasoning_content = workflowResult.generationResult.reasoning
-    
-    // 构建 Agent 组件（用于 UI 展示）
-    const agentComponents: MessageComponents = {
-      agentResults: workflowResult.taskResults.length > 0 
-        ? workflowResult.taskResults.map(taskResult => convertTaskResultForUI(taskResult))
-        : undefined
-    }
-    
-    console.log('[AgentMode] 生成成功，返回结果')
+    console.log('[AgentMode] Pipeline执行完成')
     
     return {
-      content: finalContent,
-      reasoning_content,
-      components: agentComponents
+      content: pipelineResult.finalContent,
+      reasoning_content: pipelineResult.reasoning_content,
+      components: pipelineResult.agentComponents
     }
     
   } catch (error: any) {

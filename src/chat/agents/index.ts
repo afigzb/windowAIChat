@@ -99,6 +99,27 @@ export {
 } from './integration'
 
 // ============================================================
+// 动态Agent系统
+// ============================================================
+
+export {
+  executeDynamicAgent,
+  formatAgentResultForUI,
+  type DynamicAgentConfig,
+  type DynamicAgentResult,
+  type AgentStep,
+  type AgentStepType
+} from './dynamic-agent'
+
+export {
+  toolRegistry,
+  type ToolDefinition,
+  type ToolParameter,
+  type ToolExecutionContext,
+  type ToolExecutionResult
+} from './tool-registry'
+
+// ============================================================
 // 简单 API（保留向后兼容）
 // ============================================================
 
@@ -124,12 +145,23 @@ export type PipelineInput = import('./types').WorkflowInput
 export type AgentTaskResult = import('./types').TaskResult
 
 /**
- * @deprecated 使用新的 WorkflowConfig 代替
+ * Agent Pipeline 配置
  */
 export type AgentPipelineConfig = {
+  /** 是否启用 Agent 系统 */
   enabled: boolean
+  
+  /** 执行模式：static-静态工作流，dynamic-动态Agent */
   mode?: 'static' | 'dynamic'
+  
+  /** 静态工作流名称（mode=static时使用） */
   workflowName?: string
+  
+  /** 动态Agent最大步数（mode=dynamic时使用，默认10） */
+  maxSteps?: number
+  
+  /** 自定义系统提示词（mode=dynamic时使用） */
+  customSystemPrompt?: string
 }
 
 // ============================================================
