@@ -145,7 +145,7 @@ ${userInput}
 }
 
 // ============================================================
-// 操作2：上下文概括（增量概括机制）
+// 操作2：上下文概括（简化版）
 // ============================================================
 
 /**
@@ -156,14 +156,12 @@ function calculateTotalChars(messages: Message[]): number {
 }
 
 /**
- * 处理上下文消息区域（增量概括机制）
+ * 处理上下文消息区域（简化版）
  * 
- * 增量概括规则：
- * 1. 最新的4条消息（user+assistant+user+assistant）采用放行原则不概括
- * 2. 记录当前上下文字符数量
- * 3. 当后续上下文累计超过记录数量2000字符后，触发概括逻辑
- * 4. 概括时依旧放行最近的4条
- * 5. 概括后再次记录字符数量，循环往复
+ * 简化概括规则：
+ * 1. 如果总字符数小于2000，跳过概括
+ * 2. 如果消息数量少于等于4条，跳过概括
+ * 3. 否则，概括除最新4条之外的所有消息
  * 
  * 模式：读取需要概括的上下文消息 → 以原有格式发送概括请求 → 用一条概括消息替换区域
  */
@@ -179,28 +177,18 @@ async function processContextRange(
   }
   
   try {
-    // ========== 增量概括逻辑 ==========
-    
     // 1. 计算当前所有上下文消息的总字符数
     const currentTotalChars = calculateTotalChars(contextMessages)
     
-    // 2. 找出已存在的概括消息（context_summary类型）
-    const existingSummaries = allMessages.filter(m => m._meta.type === 'context_summary')
-    const lastSummary = existingSummaries[existingSummaries.length - 1]
-    
-    // 3. 获取上一次记录的字符数量（存储在概括消息的元数据中）
-    const lastRecordedChars = lastSummary?._meta.lastRecordedChars || 0
-    
     console.log('[Preprocessor] 上下文概括检查:', {
-      currentTotalChars,
-      lastRecordedChars,
-      diff: currentTotalChars - lastRecordedChars,
+      messageCount: contextMessages.length,
+      totalChars: currentTotalChars,
       threshold: 2000
     })
     
-    // 4. 检查是否需要触发概括：累计超过2000字符
-    if (currentTotalChars - lastRecordedChars < 2000) {
-      console.log('[Preprocessor] 上下文字符数未达到概括阈值，跳过概括')
+    // 2. 检查是否需要概括：小于2000字符则跳过
+    if (currentTotalChars < 2000) {
+      console.log('[Preprocessor] 上下文字符数小于2000，跳过概括')
       // 标记为已处理但不概括
       contextMessages.forEach(m => {
         m._meta.processed = true
@@ -208,18 +196,18 @@ async function processContextRange(
       return { success: true, tokensUsed: 0 }
     }
     
-    // 5. 需要概括：放行最新的4条消息
+    // 3. 检查消息数量：少于等于4条则跳过
     const keepRecentCount = 4  // 保留最新的4条消息不概括
     
     if (contextMessages.length <= keepRecentCount) {
-      console.log('[Preprocessor] 上下文消息数量不足，跳过概括 (需要保留最新%d条)', keepRecentCount)
+      console.log('[Preprocessor] 上下文消息数量不超过4条，跳过概括')
       contextMessages.forEach(m => {
         m._meta.processed = true
       })
       return { success: true, tokensUsed: 0 }
     }
     
-    // 6. 选择需要概括的消息（排除最新的4条）
+    // 4. 选择需要概括的消息（排除最新的4条）
     const messagesToSummarize = contextMessages.slice(0, -keepRecentCount)
     const recentMessages = contextMessages.slice(-keepRecentCount)
     
@@ -229,7 +217,7 @@ async function processContextRange(
       保留最新: recentMessages.length
     })
     
-    // 7. 执行概括
+    // 5. 执行概括
     const aiService = createAIService(aiConfig)
     
     // 构建概括请求消息：维持原有对话格式
@@ -267,21 +255,15 @@ ${userInput}
       { abortSignal }
     )
     
-    // 8. 写入：找到第一条需要概括的消息的位置，替换为概括消息
+    // 6. 写入：找到第一条需要概括的消息的位置，替换为概括消息
     const firstIndex = findMessageIndex(allMessages, messagesToSummarize[0])
     if (firstIndex >= 0) {
-      // 记录概括后的总字符数（包含保留的最新消息）
-      const newRecordedChars = summary.length + calculateTotalChars(recentMessages)
-      
       const summaryMessage = createMessage(
         'assistant',
         `[对话历史概括]\n\n${summary}`,
         'context_summary',
         false
       )
-      
-      // 在元数据中记录字符数，用于下次增量概括判断
-      summaryMessage._meta.lastRecordedChars = newRecordedChars
       
       // 替换需要概括的消息
       replaceRange(allMessages, firstIndex, messagesToSummarize.length, summaryMessage)
@@ -293,7 +275,6 @@ ${userInput}
       
       console.log('[Preprocessor] 上下文概括完成，原 %d 条消息已合并为 1 条（保留最新 %d 条）', 
         messagesToSummarize.length, recentMessages.length)
-      console.log('[Preprocessor] 记录新的字符数量:', newRecordedChars)
     }
     
     return {
