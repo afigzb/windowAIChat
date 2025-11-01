@@ -86,7 +86,7 @@ export function ChatPanel({
     headers: Record<string, string>
     url: string
   } | null>(null)
-  const chatInputRef = useRef<{ focus: () => void }>(null)
+  const chatInputRef = useRef<{ focus: () => void; getValue: () => string; clear: () => void }>(null)
   const historyDrawerRef = useRef<HTMLDivElement>(null)
   const { confirm, confirmProps } = useConfirm()
   
@@ -206,11 +206,8 @@ export function ChatPanel({
   }
 
   // 处理发送
-  const handleSendMessage = async () => {
-    if (!conversationState.inputValue.trim() || conversationState.isLoading) return
-    
-    const content = conversationState.inputValue
-    conversationActions.updateInputValue('')
+  const handleSendMessage = async (content: string) => {
+    if (!content.trim() || conversationState.isLoading) return
     
     const { extraContent, extraContentList, placement } = await getFileContent()
     conversationActions.sendMessage(content, null, extraContent, placement, extraContentList)
@@ -219,6 +216,13 @@ export function ChatPanel({
   // 生成预览数据（不打开对话框）
   const generatePreviewData = async () => {
     try {
+      // 获取输入框的值
+      const inputValue = chatInputRef.current?.getValue() || ''
+      if (!inputValue.trim()) {
+        alert('请先输入内容')
+        return
+      }
+
       // 获取额外内容（使用统一的文件内容获取函数）
       const { extraContent, extraContentList, placement } = await getFileContent()
 
@@ -238,7 +242,7 @@ export function ChatPanel({
 
       // 创建临时的用户消息（不添加到树中）
       const tempUserMessage = createFlatMessage(
-        conversationState.inputValue,
+        inputValue,
         'user',
         null
       )
@@ -263,7 +267,7 @@ export function ChatPanel({
       
       // 记录当前预览的依赖快照
       previewDepsRef.current = {
-        inputValue: conversationState.inputValue,
+        inputValue: inputValue,
         activePath: [...conversationState.conversationTree.activePath]
       }
     } catch (error: any) {
@@ -338,22 +342,28 @@ export function ChatPanel({
       filesText = filesText?.trim() || ''
     }
 
-    // 3) 使用与聊天系统解耦的概括构建器，包含对话历史
+    // 3) 获取输入框的值
+    const inputValue = chatInputRef.current?.getValue() || ''
+
+    // 4) 使用与聊天系统解耦的概括构建器，包含对话历史
     const plan = buildSummarizePlan(
-      conversationState.inputValue?.trim(),
+      inputValue?.trim(),
       conversationHistoryText,
       filesText,
       config.summarizePrompt
     )
 
-    // 4) 设置挂起状态，然后新建对话
+    // 5) 设置挂起状态，然后新建对话
     setPendingSummarize({
       userMessageContent: plan.userMessageContent,
       extraContext: plan.extraContext,
       systemPrompt: plan.systemPrompt
     })
 
-    // 5) 新建对话并切换
+    // 6) 清空输入框
+    chatInputRef.current?.clear()
+
+    // 7) 新建对话并切换
     const newId = conversationHistory.createNewConversation()
     setCurrentConversationId(newId)
     conversationActions.updateConversationTree(new Map(), [])
@@ -709,8 +719,6 @@ export function ChatPanel({
         <div>
           <ChatInputArea
             ref={chatInputRef}
-            value={conversationState.inputValue}
-            onChange={conversationActions.updateInputValue}
             onSend={handleSendMessage}
             isLoading={conversationState.isLoading}
             onAbort={conversationActions.abortRequest}

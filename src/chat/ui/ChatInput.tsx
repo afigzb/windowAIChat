@@ -14,41 +14,41 @@ import { Icon, ApiProviderToggle } from './components'
 
 // 聊天输入区域
 export const ChatInputArea = forwardRef<
-  { focus: () => void },
+  { focus: () => void; getValue: () => string; clear: () => void },
   {
-    value: string
-    onChange: (value: string) => void
-    onSend: () => void
+    onSend: (content: string) => void
     isLoading: boolean
     onAbort: () => void
     config: AIConfig
     onProviderChange: (providerId: string) => void
   }
 >(({ 
-  value, 
-  onChange, 
   onSend, 
   isLoading, 
   onAbort, 
   config,
   onProviderChange 
 }, ref) => {
+  // 使用局部状态管理输入内容，避免全局状态更新导致的性能问题
+  const [localValue, setLocalValue] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // 暴露focus方法给父组件
+  // 暴露方法给父组件
   useImperativeHandle(ref, () => ({
     focus: () => {
       textareaRef.current?.focus()
-    }
-  }), [])
+    },
+    getValue: () => localValue,
+    clear: () => setLocalValue('')
+  }), [localValue])
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       if (isLoading) {
         onAbort()
-      } else if (value.trim()) {
-        onSend()
+      } else if (localValue.trim()) {
+        handleSend()
       }
     }
   }
@@ -59,12 +59,19 @@ export const ChatInputArea = forwardRef<
   }
 
   useEffect(() => {
-    if (!value.trim() && textareaRef.current) {
+    if (!localValue.trim() && textareaRef.current) {
       textareaRef.current.style.height = '60px'
     }
-  }, [value])
+  }, [localValue])
 
-  const canSend = !isLoading && value.trim()
+  const handleSend = () => {
+    if (localValue.trim()) {
+      onSend(localValue)
+      setLocalValue('')
+    }
+  }
+
+  const canSend = !isLoading && localValue.trim()
 
   return (
     <div className="sticky bottom-0">
@@ -73,9 +80,9 @@ export const ChatInputArea = forwardRef<
           <div className="p-5">
             <textarea
               ref={textareaRef}
-              value={value}
+              value={localValue}
               onChange={(e) => {
-                onChange(e.target.value)
+                setLocalValue(e.target.value)
                 adjustHeight(e.target)
               }}
               onKeyPress={handleKeyPress}
@@ -96,7 +103,7 @@ export const ChatInputArea = forwardRef<
             </div>
 
             <button
-              onClick={isLoading ? onAbort : onSend}
+              onClick={isLoading ? onAbort : handleSend}
               disabled={!isLoading && !canSend}
               className={`px-6 py-3 rounded-xl transition-all duration-300 text-sm font-semibold flex items-center gap-2.5 shadow-md hover:shadow-xl transform whitespace-nowrap ${
                 isLoading 
