@@ -190,7 +190,7 @@ export interface RequestResult {
 
 // 流式回调接口
 export interface StreamCallbacks {
-  onAgentProgress?: (content: string | import('./agents').AgentProgressUpdate) => void
+  onAgentProgress?: (content: string) => void
   onThinkingUpdate: (thinking: string) => void
   onAnswerUpdate: (answer: string) => void
 }

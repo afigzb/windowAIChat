@@ -26,7 +26,7 @@ import {
 } from './request-builder'
 import { routeRequest } from './request-router'
 import { executeManualMode } from './manual-mode-handler'
-import { executeAgentMode } from './agent-mode-handler'
+import { executeAgentMode } from '../agents/agent-mode-handler'
 
 /**
  * 统一的请求执行器

@@ -17,6 +17,8 @@ import {
   createFlatMessage, 
   getConversationHistory 
 } from './tree-utils'
+import { promptCardManager } from '../../prompt/prompt-manager'
+import { isInOverrideMode } from './context/system-prompt'
 
 /**
  * 收集附加内容
@@ -48,7 +50,7 @@ function buildSystemPrompt(config: AIConfig): string {
 
 /**
  * 构建用户消息节点
- * 创建包含完整组件信息的用户消息
+ * 创建包含完整组件信息的用户消息（包括提示词卡片）
  */
 function buildUserMessageNode(
   userInput: string,
@@ -62,6 +64,19 @@ function buildUserMessageNode(
   // 只有存在附加内容时才添加 attachedFiles 字段
   if (attachedContents.length > 0) {
     components.attachedFiles = attachedContents
+  }
+  
+  // 收集启用的提示词卡片（如果不在覆盖模式）
+  if (!isInOverrideMode()) {
+    const enabledCards = promptCardManager.getEnabledCards()
+    if (enabledCards.length > 0) {
+      components.promptCards = enabledCards.map(card => ({
+        id: card.id,
+        title: card.title,
+        content: card.content,
+        placement: card.placement
+      }))
+    }
   }
   
   return createFlatMessage(
@@ -168,12 +183,27 @@ export function buildInitialRequestDataForRegenerate(
   const systemPrompt = buildSystemPrompt(config)
   
   // 5. 更新用户消息节点的组件（如果附加内容改变了）
+  // 重新获取提示词卡片（如果不在覆盖模式）
+  let promptCards = userMessage.components?.promptCards
+  if (!isInOverrideMode()) {
+    const enabledCards = promptCardManager.getEnabledCards()
+    if (enabledCards.length > 0) {
+      promptCards = enabledCards.map(card => ({
+        id: card.id,
+        title: card.title,
+        content: card.content,
+        placement: card.placement
+      }))
+    }
+  }
+  
   const updatedUserMessage: FlatMessage = {
     ...userMessage,
     components: {
       ...userMessage.components,
       userInput,
-      attachedFiles: attachedContents.length > 0 ? attachedContents : undefined
+      attachedFiles: attachedContents.length > 0 ? attachedContents : undefined,
+      promptCards
     }
   }
   

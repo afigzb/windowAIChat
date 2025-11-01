@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
 import type { FlatMessage, ConversationTree, AIConfig } from '../types'
-import type { AgentProgressUpdate } from '../agents'
 import type { 
   ConversationState, 
   ConversationActions, 
@@ -76,9 +75,8 @@ export function useConversationManager(
 
   // 创建回调集合（避免在每次调用时重复创建）
   const createCallbacks = useCallback((): StreamCallbacks => ({
-    onAgentProgress: (content: string | AgentProgressUpdate) => {
-      const stringContent = typeof content === 'string' ? content : JSON.stringify(content)
-      setCurrentAgentOptimizing(stringContent)
+    onAgentProgress: (content: string) => {
+      setCurrentAgentOptimizing(content)
     },
     onThinkingUpdate: setCurrentThinking,
     onAnswerUpdate: setCurrentAnswer
