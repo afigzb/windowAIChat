@@ -20,6 +20,7 @@ import {
   findMessageIndex,
   selectForSending
 } from './message-ops'
+import { fileSummaryCacheManager } from './gaikuo/file-summary-cache'
 
 // ============================================================
 // 预处理配置
@@ -52,7 +53,10 @@ export interface PreprocessingResponse {
 /**
  * 处理单个文件消息
  * 
- * 模式：读取文件消息 → 发送概括请求 → 替换原消息内容（保留文件标识）
+ * 模式：读取文件消息 → 检查缓存 → 发送概括请求（如需要） → 保存缓存 → 替换原消息内容（保留文件标识）
+ * 
+ * 缓存策略：手动管理，只要缓存存在就使用，不自动失效
+ * 路径处理：从 <!PATH:...!> 标记中提取完整路径用于缓存，最终消息中只保留文件名
  */
 async function processFile(
   fileMessage: Message,
@@ -61,14 +65,18 @@ async function processFile(
   abortSignal?: AbortSignal
 ): Promise<{ success: boolean; tokensUsed: number }> {
   try {
-    // 提取文件名（从内容中解析）
-    const fileNameMatch = fileMessage.content.match(/---\s*文件:\s*(.+?)\s*---/);
-    const fileName = fileNameMatch ? fileNameMatch[1] : null
+    // 提取完整路径（从特殊标记中）和文件名
+    const pathMarkMatch = fileMessage.content.match(/<!PATH:(.+?)!>/);
+    const fullPath = pathMarkMatch ? pathMarkMatch[1] : null
     
-    // 提取实际文件内容（去掉文件标识）
+    // 提取文件名（从文件头中）
+    const fileNameMatch = fileMessage.content.match(/---\s*文件:\s*(.+?)\s*(?:<!PATH:.*?!>)?\s*---/);
+    const fileName = fileNameMatch ? fileNameMatch[1].trim() : null
+    
+    // 提取实际文件内容（去掉文件标识，包括路径标记）
     let actualContent = fileMessage.content
     if (fileName) {
-      // 去掉文件头和文件尾标识
+      // 去掉文件头和文件尾标识（包括 <!PATH:...!> 标记）
       actualContent = fileMessage.content
         .replace(/---\s*文件:.*?---\s*/g, '')
         .replace(/---\s*文件结束\s*---/g, '')
@@ -79,12 +87,45 @@ async function processFile(
     if (actualContent.length < 1000) {
       console.log('[Preprocessor] 文件内容小于1000字符，跳过概括:', fileName || '未命名', `(${actualContent.length}字符)`)
       fileMessage._meta.processed = true
+      
+      // 移除路径标记，只保留文件名
+      if (fileName) {
+        const finalContent = `\n\n--- 文件: ${fileName} ---\n${actualContent}\n--- 文件结束 ---`
+        replaceContent(fileMessage, finalContent, false)
+      }
+      
       return {
         success: true,
         tokensUsed: 0
       }
     }
     
+    // ========== 尝试从缓存读取概括（使用完整路径） ==========
+    let summary: string | null = null
+    
+    if (fullPath) {
+      const cachedSummary = await fileSummaryCacheManager.readCache(fullPath)
+      
+      if (cachedSummary) {
+        console.log('[Preprocessor] 使用缓存的文件概括:', fileName || fullPath)
+        summary = cachedSummary.content
+        
+        // 使用文件名（不含路径标记）更新消息内容
+        const finalContent = `\n\n--- 文件: ${fileName} ---\n${summary}\n--- 文件结束 ---`
+        replaceContent(fileMessage, finalContent, true)
+        
+        console.log('[Preprocessor] 文件概括完成（从缓存）:', fileName || fullPath)
+        
+        return {
+          success: true,
+          tokensUsed: 0 // 使用缓存不消耗 tokens
+        }
+      } else {
+        console.log('[Preprocessor] 缓存未找到或已失效，将重新概括:', fileName || fullPath)
+      }
+    }
+    
+    // ========== 缓存未命中，执行概括 ==========
     const aiService = createAIService(aiConfig)
     
     // 构建概括请求消息
@@ -112,12 +153,17 @@ ${userInput}
     ]
     
     // 发送请求
-    const summary = await aiService.call(
+    summary = await aiService.call(
       promptMessages,
       { abortSignal }
     )
     
-    // 写入：替换原消息内容，并保留文件标识
+    // ========== 保存概括到缓存（使用完整路径） ==========
+    if (fullPath && summary) {
+      await fileSummaryCacheManager.writeCache(fullPath, summary)
+    }
+    
+    // 写入：替换原消息内容，使用文件名（不含路径标记）
     let finalContent = summary
     if (fileName) {
       finalContent = `\n\n--- 文件: ${fileName} ---\n${summary}\n--- 文件结束 ---`
@@ -125,7 +171,7 @@ ${userInput}
     
     replaceContent(fileMessage, finalContent, true)
     
-    console.log('[Preprocessor] 文件概括完成:', fileName || '未命名')
+    console.log('[Preprocessor] 文件概括完成（新生成）:', fileName || '未命名')
     
     return {
       success: true,

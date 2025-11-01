@@ -242,6 +242,7 @@ const CONVERTER_REGISTRY = {
   'md': { type: 'text', read: readText, save: saveText },
   'markdown': { type: 'text', read: readText, save: saveText },
   'log': { type: 'text', read: readText, save: saveText },
+  'gaikuo': { type: 'text', read: readText, save: saveText },
   'json': { type: 'text', read: readText, save: saveText },
   'xml': { type: 'text', read: readText, save: saveText },
   'csv': { type: 'text', read: readText, save: saveText },

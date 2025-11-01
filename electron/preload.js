@@ -50,6 +50,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 获取文件信息
   getFileStats: (path) => ipcRenderer.invoke('get-file-stats', path),
   
+  // 文件概括缓存
+  fileExists: (filePath) => ipcRenderer.invoke('file-exists', filePath),
+  ensureDirectory: (dirPath) => ipcRenderer.invoke('ensure-directory', dirPath),
+  readSummaryCache: (originalFilePath) => ipcRenderer.invoke('read-summary-cache', originalFilePath),
+  writeSummaryCache: (originalFilePath, summaryContent) => ipcRenderer.invoke('write-summary-cache', originalFilePath, summaryContent),
+  
   // === 应用数据键值存储（项目文件夹下） ===
   initStorageDir: () => ipcRenderer.invoke('init-storage-dir'),
   kvGet: (key) => ipcRenderer.invoke('kv-get', key),

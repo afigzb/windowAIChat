@@ -269,6 +269,100 @@ class FileSystemManager {
   }
 
   /**
+   * 检查文件是否存在
+   */
+  async fileExists(filePath) {
+    try {
+      await fs.access(filePath)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  /**
+   * 确保目录存在（如果不存在则创建）
+   */
+  async ensureDirectory(dirPath) {
+    try {
+      await fs.mkdir(dirPath, { recursive: true })
+      return true
+    } catch (error) {
+      console.error('确保目录存在失败:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 获取概括缓存文件路径
+   */
+  getSummaryCachePath(originalFilePath) {
+    try {
+      const dir = path.dirname(originalFilePath)
+      const filename = path.basename(originalFilePath)
+      const cacheDir = path.join(dir, 'gaikuo')
+      const cacheFileName = `${filename}.gaikuo`
+      console.log('概括缓存文件路径:', cacheFileName)
+      console.log('概括缓存目录:', dir)
+      return {
+        cacheDir,
+        cachePath: path.join(cacheDir, cacheFileName)
+      }
+    } catch (error) {
+      console.error('获取概括缓存路径失败:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 读取概括缓存
+   * 注意：只要缓存存在就返回，不检查原文件是否被修改（由用户手动管理）
+   */
+  async readSummaryCache(originalFilePath) {
+    try {
+      const { cachePath } = this.getSummaryCachePath(originalFilePath)
+      
+      // 检查缓存文件是否存在
+      const cacheExists = await this.fileExists(cachePath)
+      if (!cacheExists) {
+        return null
+      }
+
+      // 读取缓存内容
+      const content = await fs.readFile(cachePath, 'utf-8')
+      const cacheStats = await fs.stat(cachePath)
+      
+      return {
+        content,
+        cachedAt: cacheStats.mtime
+      }
+    } catch (error) {
+      console.error('读取概括缓存失败:', error)
+      return null
+    }
+  }
+
+  /**
+   * 写入概括缓存
+   */
+  async writeSummaryCache(originalFilePath, summaryContent) {
+    try {
+      const { cacheDir, cachePath } = this.getSummaryCachePath(originalFilePath)
+      
+      // 确保缓存目录存在
+      await this.ensureDirectory(cacheDir)
+      
+      // 写入缓存文件
+      await fs.writeFile(cachePath, summaryContent, 'utf-8')
+      
+      return cachePath
+    } catch (error) {
+      console.error('写入概括缓存失败:', error)
+      throw error
+    }
+  }
+
+  /**
    * 开始监听目录变化
    */
   startWatching(dirPath) {
@@ -398,6 +492,22 @@ class FileSystemManager {
 
     ipcMain.handle('get-file-stats', async (event, filePath) => {
       return await this.getFileStats(filePath)
+    })
+
+    ipcMain.handle('file-exists', async (event, filePath) => {
+      return await this.fileExists(filePath)
+    })
+
+    ipcMain.handle('ensure-directory', async (event, dirPath) => {
+      return await this.ensureDirectory(dirPath)
+    })
+
+    ipcMain.handle('read-summary-cache', async (event, originalFilePath) => {
+      return await this.readSummaryCache(originalFilePath)
+    })
+
+    ipcMain.handle('write-summary-cache', async (event, originalFilePath, summaryContent) => {
+      return await this.writeSummaryCache(originalFilePath, summaryContent)
     })
   }
 
