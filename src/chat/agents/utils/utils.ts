@@ -166,8 +166,6 @@ export function formatTimestamp(timestamp: number): string {
 // 数据验证
 // ============================================================
 
-// hasKeys 函数已删除（未使用）
-
 /**
  * 安全地获取嵌套属性
  */
@@ -183,6 +181,4 @@ export function getNestedProperty(obj: any, path: string): any {
     return current[key]
   }, obj)
 }
-
-// setNestedProperty 函数已删除（未使用）
 

@@ -2,7 +2,7 @@
  * WorkspaceData - Agent工作区数据结构（重构版本）
  */
 
-import { generateWorkspaceId, generateDocumentId, getNestedProperty } from './utils'
+import { generateWorkspaceId, generateDocumentId, getNestedProperty } from '../utils/utils'
 
 // ============================================================
 // 消息类型定义（带内部标记）

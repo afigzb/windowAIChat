@@ -1,5 +1,5 @@
 /**
- * File Summary Cache - 文件概括缓存管理
+ * File Summary Cache Manager - 文件概括缓存管理
  * 
  * 功能：
  * 1. 检查文件是否有缓存的概括

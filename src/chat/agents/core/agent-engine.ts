@@ -2,17 +2,17 @@
  * AgentEngine - AI写作专用引擎（简化版）
  */
 
-import type { AIConfig } from '../types'
+import type { AIConfig } from '../../types'
 import { 
   createWorkspace,
   updateStage,
   type WorkspaceData,
   type Message
 } from './workspace-data'
-import { preprocess, type PreprocessorConfig } from './preprocessor'
-import { createAIService } from './ai-service'
+import { preprocess, type PreprocessorConfig } from '../preprocessor'
+import { createAIService } from '../services/ai-service'
 import { selectForSending } from './message-ops'
-import { estimateTokens } from './utils'
+import { estimateTokens } from '../utils/utils'
 
 // ============================================================
 // Agent引擎配置

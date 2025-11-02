@@ -1,11 +1,16 @@
 /**
- * Agents 系统入口 - AI写作专用版本（简化版）
+ * Agents 系统入口 - AI写作专用版本（重构版）
  * 
- * 简化流程：Preprocessing → 直接生成
+ * 模块化架构：
+ * - core/: 核心数据结构和引擎
+ * - preprocessor/: 预处理模块（文件和上下文处理）
+ * - message-builder/: 消息构建模块
+ * - services/: 服务层（AI调用）
+ * - utils/: 工具函数
  */
 
 // ============================================================
-// 核心引擎（AI写作专用 - 简化版）
+// 核心引擎
 // ============================================================
 
 export {
@@ -13,7 +18,7 @@ export {
   type AgentEngineConfig,
   type AgentEngineInput,
   type AgentEngineResult
-} from './agent-engine'
+} from './core/agent-engine'
 
 // ============================================================
 // 预处理器
@@ -21,12 +26,15 @@ export {
 
 export {
   preprocess,
+  processFile,
+  processContextRange,
+  fileSummaryCacheManager,
   type PreprocessorConfig,
   type PreprocessingResponse
 } from './preprocessor'
 
 // ============================================================
-// 核心数据结构（重构版）
+// 核心数据结构
 // ============================================================
 
 export type {
@@ -41,7 +49,7 @@ export type {
   ExecutionStage,
   DataReference,
   DataPath
-} from './workspace-data'
+} from './core/workspace-data'
 
 export {
   createWorkspace,
@@ -51,13 +59,49 @@ export {
   updateStage,
   stripMetadata,
   formatWorkspaceForDebug
-} from './workspace-data'
+} from './core/workspace-data'
+
+// ============================================================
+// 消息操作
+// ============================================================
+
+export {
+  selectMessages,
+  selectFileMessages,
+  selectContextMessages,
+  selectNonPromptMessages,
+  selectForSending,
+  replaceContent,
+  replaceWithType,
+  replaceRange,
+  appendMessage,
+  insertMessage,
+  createMessage,
+  findMessageIndex,
+  findMessageRange,
+  countMessageTypes,
+  type MessageSelector
+} from './core/message-ops'
+
+// ============================================================
+// 消息构建器
+// ============================================================
+
+export {
+  buildMessages,
+  type MessageBuilderInput,
+  type MessageBuilderOutput
+} from './message-builder/message-builder'
 
 // ============================================================
 // 核心服务
 // ============================================================
 
-export { AIService, createAIService, type AICallOptions } from './ai-service'
+export { 
+  AIService, 
+  createAIService, 
+  type AICallOptions 
+} from './services/ai-service'
 
 // ============================================================
 // Agent Pipeline 配置（向后兼容）
@@ -88,24 +132,34 @@ export {
   generateId,
   generateTaskId,
   generatePlanId,
+  generateWorkspaceId,
+  generateDocumentId,
+  generateLogId,
   estimateTokens,
   parseJSONResponse,
   tryParseJSON,
   truncateText,
+  unwrapCodeBlock,
   formatDuration,
-  formatTimestamp
-} from './utils'
+  formatTimestamp,
+  getNestedProperty
+} from './utils/utils'
 
 // ============================================================
 // 初始化和调试信息
 // ============================================================
 
 if (import.meta.env.DEV) {
-  console.log('[Agents] AI写作引擎初始化完成（简化版）')
+  console.log('[Agents] AI写作引擎初始化完成（重构版）')
+  console.log('  📁 模块化架构:')
+  console.log('    - core/: 核心引擎和数据结构')
+  console.log('    - preprocessor/: 文件和上下文预处理')
+  console.log('    - message-builder/: 消息构建')
+  console.log('    - services/: AI服务层')
+  console.log('    - utils/: 工具函数')
+  console.log('')
   console.log('  🔍 Preprocessing: 预处理用户输入和文件')
   console.log('  ✨ Generating: 直接生成回答')
-  console.log('')
-  console.log('  简化流程：预处理 → 直接发送请求')
 }
 
 // ============================================================

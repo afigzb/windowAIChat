@@ -8,11 +8,11 @@
  * 4. 提供不同场景的调用方法
  */
 
-import type { ApiProviderConfig, AIConfig } from '../types'
-import { OpenAIAdapter } from '../adapters/openai-adapter'
-import { GeminiAdapter } from '../adapters/gemini-adapter'
-import type { Message } from './workspace-data'
-import { stripMetadata } from './workspace-data'
+import type { ApiProviderConfig, AIConfig } from '../../types'
+import { OpenAIAdapter } from '../../adapters/openai-adapter'
+import { GeminiAdapter } from '../../adapters/gemini-adapter'
+import type { Message } from '../core/workspace-data'
+import { stripMetadata } from '../core/workspace-data'
 
 // ============================================================
 // AI调用配置
