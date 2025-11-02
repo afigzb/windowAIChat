@@ -122,6 +122,25 @@ export type AgentPipelineConfig = {
   
   /** 执行策略 */
   executionStrategy?: 'sequential' | 'parallel'
+  
+  /** 预处理模型配置 */
+  preprocessor?: {
+    /** 文件概括配置 */
+    fileProcessor?: {
+      /** 使用的模型ID（未设置则使用主模型） */
+      providerId?: string
+      /** 自定义提示词（未设置则使用默认） */
+      systemPrompt?: string
+    }
+    
+    /** 上下文概括配置 */
+    contextProcessor?: {
+      /** 使用的模型ID（未设置则使用主模型） */
+      providerId?: string
+      /** 自定义提示词（未设置则使用默认） */
+      systemPrompt?: string
+    }
+  }
 }
 
 // ============================================================

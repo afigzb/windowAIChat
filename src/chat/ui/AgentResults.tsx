@@ -12,8 +12,9 @@ interface AgentResultsProps {
 }
 
 export function AgentResults({ isProcessing, streamingContent }: AgentResultsProps) {
-  // 如果不在处理中，不显示任何内容
-  if (!isProcessing) {
+  // 如果不在处理中或没有内容，不显示任何内容
+  // 注意：streamingContent 只在 Agent 模式下才会有值，所以这里可以安全判断
+  if (!isProcessing || !streamingContent) {
     return null
   }
 

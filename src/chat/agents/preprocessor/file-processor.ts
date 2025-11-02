@@ -16,12 +16,19 @@ import { fileSummaryCacheManager } from './cache-manager'
  * 
  * 缓存策略：手动管理，只要缓存存在就使用，不自动失效
  * 路径处理：从 <!PATH:...!> 标记中提取完整路径用于缓存，最终消息中只保留文件名
+ * 
+ * @param fileMessage 文件消息
+ * @param userInput 用户输入
+ * @param aiConfig AI配置
+ * @param abortSignal 中止信号
+ * @param customProviderId 可选：使用指定的provider ID（用于独立模型配置）
  */
 export async function processFile(
   fileMessage: Message,
   userInput: string,
   aiConfig: AIConfig,
-  abortSignal?: AbortSignal
+  abortSignal?: AbortSignal,
+  customProviderId?: string
 ): Promise<{ success: boolean; tokensUsed: number }> {
   try {
     // 提取完整路径（从特殊标记中）和文件名
@@ -85,13 +92,17 @@ export async function processFile(
     }
     
     // ========== 缓存未命中，执行概括 ==========
-    const aiService = createAIService(aiConfig)
+    // 如果指定了自定义provider，临时覆盖配置
+    const effectiveConfig = customProviderId 
+      ? { ...aiConfig, currentProviderId: customProviderId }
+      : aiConfig
+    const aiService = createAIService(effectiveConfig)
     
-    // 构建概括请求消息
-    const promptMessages = [
-      {
-        role: 'system',
-        content: `你是一个专业的内容分析助手。请分析下面的文件内容，提炼关键信息。
+    // 获取自定义系统提示词（如果有）
+    const customSystemPrompt = aiConfig.agentConfig?.preprocessor?.fileProcessor?.systemPrompt
+    
+    // 默认文件概括提示词
+    const defaultPrompt = `你是一个专业的内容分析助手。请分析下面的文件内容，提炼关键信息。
 
 # 用户的需求
 ${userInput}
@@ -104,6 +115,12 @@ ${userInput}
 
 # 输出格式
 直接输出概括内容，不要添加额外说明。`
+    
+    // 构建概括请求消息
+    const promptMessages = [
+      {
+        role: 'system',
+        content: customSystemPrompt || defaultPrompt
       },
       {
         role: 'user',

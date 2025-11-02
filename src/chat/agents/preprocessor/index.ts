@@ -90,9 +90,19 @@ export async function preprocess(
     // 选择 → 发送请求 → 替换内容
     const fileMessages = selectFileMessages(messages, true) // 只选择未处理的
     
+    // 获取文件概括使用的模型ID
+    const fileProviderId = aiConfig.agentConfig?.preprocessor?.fileProcessor?.providerId
+    
     if (fileMessages.length > 0) {
       if (verbose) {
         console.log(`[Preprocessor] 操作1：概括 ${fileMessages.length} 个文件`)
+        if (fileProviderId) {
+          const provider = aiConfig.providers.find(p => p.id === fileProviderId)
+          console.log(`[Preprocessor] 使用独立模型: ${provider?.name || fileProviderId}`)
+        } else {
+          const mainProvider = aiConfig.providers.find(p => p.id === aiConfig.currentProviderId)
+          console.log(`[Preprocessor] 使用主模型: ${mainProvider?.name || aiConfig.currentProviderId}`)
+        }
       }
       
       const parallelFiles = config?.parallelFiles ?? true
@@ -103,7 +113,7 @@ export async function preprocess(
         for (let i = 0; i < fileMessages.length; i += maxConcurrency) {
           const batch = fileMessages.slice(i, i + maxConcurrency)
           const results = await Promise.all(
-            batch.map(fileMsg => processFile(fileMsg, userInput, aiConfig, abortSignal))
+            batch.map(fileMsg => processFile(fileMsg, userInput, aiConfig, abortSignal, fileProviderId))
           )
           
           results.forEach(result => {
@@ -115,7 +125,7 @@ export async function preprocess(
       } else {
         // 串行处理
         for (const fileMsg of fileMessages) {
-          const result = await processFile(fileMsg, userInput, aiConfig, abortSignal)
+          const result = await processFile(fileMsg, userInput, aiConfig, abortSignal, fileProviderId)
           if (result.success) {
             totalTokens += result.tokensUsed
           }
@@ -131,9 +141,19 @@ export async function preprocess(
     // 选择 → 发送请求 → 替换区域
     const contextMessages = selectContextMessages(messages, true) // 只选择未处理的
     
+    // 获取上下文概括使用的模型ID
+    const contextProviderId = aiConfig.agentConfig?.preprocessor?.contextProcessor?.providerId
+    
     if (contextMessages.length > 1) {
       if (verbose) {
         console.log(`[Preprocessor] 操作2：概括 ${contextMessages.length} 条上下文`)
+        if (contextProviderId) {
+          const provider = aiConfig.providers.find(p => p.id === contextProviderId)
+          console.log(`[Preprocessor] 使用独立模型: ${provider?.name || contextProviderId}`)
+        } else {
+          const mainProvider = aiConfig.providers.find(p => p.id === aiConfig.currentProviderId)
+          console.log(`[Preprocessor] 使用主模型: ${mainProvider?.name || aiConfig.currentProviderId}`)
+        }
       }
       
       const result = await processContextRange(
@@ -141,7 +161,8 @@ export async function preprocess(
         messages,
         userInput,
         aiConfig,
-        abortSignal
+        abortSignal,
+        contextProviderId
       )
       
       if (result.success) {

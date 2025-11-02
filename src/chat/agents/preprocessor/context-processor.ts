@@ -24,13 +24,21 @@ function calculateTotalChars(messages: Message[]): number {
  * 1. 如果总字符数小于2000，跳过概括
  * 2. 如果消息数量少于等于4条，跳过概括
  * 3. 否则，概括除最新4条之外的所有消息
+ * 
+ * @param contextMessages 上下文消息数组
+ * @param allMessages 所有消息数组
+ * @param userInput 用户输入
+ * @param aiConfig AI配置
+ * @param abortSignal 中止信号
+ * @param customProviderId 可选：使用指定的provider ID（用于独立模型配置）
  */
 export async function processContextRange(
   contextMessages: Message[],
   allMessages: Message[],
   userInput: string,
   aiConfig: AIConfig,
-  abortSignal?: AbortSignal
+  abortSignal?: AbortSignal,
+  customProviderId?: string
 ): Promise<{ success: boolean; tokensUsed: number }> {
   if (contextMessages.length === 0) {
     return { success: true, tokensUsed: 0 }
@@ -78,13 +86,17 @@ export async function processContextRange(
     })
     
     // 5. 执行概括
-    const aiService = createAIService(aiConfig)
+    // 如果指定了自定义provider，临时覆盖配置
+    const effectiveConfig = customProviderId 
+      ? { ...aiConfig, currentProviderId: customProviderId }
+      : aiConfig
+    const aiService = createAIService(effectiveConfig)
     
-    // 构建概括请求消息：维持原有对话格式
-    const promptMessages = [
-      {
-        role: 'system',
-        content: `你是一个对话历史概括助手。请概括下面的对话历史，保留关键信息。
+    // 获取自定义系统提示词（如果有）
+    const customSystemPrompt = aiConfig.agentConfig?.preprocessor?.contextProcessor?.systemPrompt
+    
+    // 默认上下文概括提示词
+    const defaultPrompt = `你是一个对话历史概括助手。请概括下面的对话历史，保留关键信息。
 
 # 用户的当前需求
 ${userInput}
@@ -97,6 +109,12 @@ ${userInput}
 
 # 输出格式
 直接输出概括内容，不要添加额外说明。`
+    
+    // 构建概括请求消息：维持原有对话格式
+    const promptMessages = [
+      {
+        role: 'system',
+        content: customSystemPrompt || defaultPrompt
       },
       // 保持原有的对话结构
       ...messagesToSummarize.map(m => ({

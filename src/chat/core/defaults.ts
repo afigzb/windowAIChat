@@ -52,8 +52,7 @@ export const DEFAULT_SUMMARIZE_PROMPT = `你是一名专业的中文文本概括
 
 // 默认 Agent Pipeline 配置
 const DEFAULT_AGENT_CONFIG: AgentPipelineConfig = {
-  enabled: true,  // 默认关闭 Agent Pipeline
-  workflowName: 'default-optimize'
+  enabled: false  // 默认关闭 Agent Pipeline
 }
 
 // 默认AI配置参数（通用Provider）
