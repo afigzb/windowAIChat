@@ -102,19 +102,12 @@ export async function processFile(
     const customSystemPrompt = aiConfig.agentConfig?.preprocessor?.fileProcessor?.systemPrompt
     
     // 默认文件概括提示词
-    const defaultPrompt = `你是一个专业的内容分析助手。请分析下面的文件内容，提炼关键信息。
-
-# 用户的需求
-${userInput}
-
-# 分析要求
-1. 识别文件类型和主要内容
-2. 提炼与用户需求相关的关键信息
-3. 保留重要细节，去除冗余内容
-4. 输出简洁清晰的概括，便于后续处理
-
-# 输出格式
-直接输出概括内容，不要添加额外说明。`
+    const defaultPrompt = `请帮我在不改变语气与氛围的情况下，浓缩以下文本。
+要求：
+1. 保留叙事语态（第一人称/第三人称/意识流等）。
+2. 保留主要人物关系和情感线。
+3. 删除重复、细节化描写，但不改变基调。
+4. 输出结果应像是“同一作者写的缩短版”。`
     
     // 构建概括请求消息
     const promptMessages = [
