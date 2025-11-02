@@ -210,10 +210,9 @@ export function MessageBubble({
             )}
           </div>
 
-          {/* AI消息的 Agent 处理结果展示 */}
+          {/* AI消息的 Agent 预处理提示 */}
           {!isUser && (
             <AgentResults 
-              results={node.components?.agentResults || []}
               isProcessing={isGenerating && (node.content === '正在生成...' || node.content === '正在优化输入...')}
               streamingContent={currentAgentOptimizing}
             />

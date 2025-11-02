@@ -5,9 +5,7 @@
 import type { 
   InitialRequestData, 
   RequestResult, 
-  StreamCallbacks,
-  MessageComponents,
-  FlatMessage
+  StreamCallbacks
 } from '../types'
 import { runAgentEngine } from '../agents/agent-engine'
 import { type Message } from '../agents/workspace-data'
@@ -341,9 +339,7 @@ export async function executeAgentMode(
     
     // 3. 返回结果
     return {
-      content: result.finalAnswer,
-      reasoning_content: undefined,
-      components: undefined
+      content: result.finalAnswer
     }
     
   } catch (error: any) {
@@ -351,9 +347,7 @@ export async function executeAgentMode(
     
     // Agent 模式失败时，返回错误信息
     return {
-      content: `Agent 执行失败: ${error.message || '未知错误'}`,
-      reasoning_content: undefined,
-      components: undefined
+      content: `Agent 执行失败: ${error.message || '未知错误'}`
     }
   }
 }
