@@ -218,10 +218,6 @@ export function ChatPanel({
     try {
       // 获取输入框的值
       const inputValue = chatInputRef.current?.getValue() || ''
-      if (!inputValue.trim()) {
-        alert('请先输入内容')
-        return
-      }
 
       // 获取额外内容（使用统一的文件内容获取函数）
       const { extraContent, extraContentList, placement } = await getFileContent()
