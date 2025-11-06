@@ -1,7 +1,7 @@
 /**
  * Agents 系统通用工具函数
  * 
- * 统一管理ID生成、Token估算、JSON解析等通用功能
+ * 统一管理ID生成、JSON解析等通用功能
  */
 
 // ============================================================
@@ -48,23 +48,6 @@ export function generateDocumentId(): string {
  */
 export function generateLogId(): string {
   return generateId('log')
-}
-
-// ============================================================
-// Token 估算
-// ============================================================
-
-/**
- * 估算文本的token数量
- * 
- * 简单估算规则：
- * - 英文：约4个字符1个token
- * - 中文：约1.5个字符1个token
- * - 平均：约2.5个字符1个token
- */
-export function estimateTokens(text: string): number {
-  if (!text) return 0
-  return Math.ceil(text.length / 2.5)
 }
 
 // ============================================================

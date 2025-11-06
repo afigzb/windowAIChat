@@ -24,6 +24,18 @@ export async function executeAgentMode(
   callbacks: StreamCallbacks
 ): Promise<RequestResult> {
   try {
+    // 输出原始数据（排除不可序列化的对象）
+    console.log('=== Agents 原始数据 ===')
+    const rawDataForLog = {
+      userInput: data.userInput,
+      attachedContents: data.attachedContents,
+      conversationHistory: data.conversationHistory,
+      systemPrompt: data.systemPrompt,
+      aiConfig: data.aiConfig,
+      userMessageNode: data.userMessageNode
+    }
+    console.log(JSON.stringify(rawDataForLog, null, 2))
+    
     // 1. 构建带标记的 messages 数组
     const { messages, rawUserInput } = buildMessages({
       userInput: data.userInput,
@@ -32,6 +44,10 @@ export async function executeAgentMode(
       promptCards: data.userMessageNode.components?.promptCards,
       aiConfig: data.aiConfig
     })
+    
+    // 输出处理好后的数据
+    console.log('=== Agents 处理好后的数据 ===')
+    console.log(JSON.stringify({ messages, rawUserInput }, null, 2))
     
     // 2. 调用 Agent Engine
     const result = await runAgentEngine({

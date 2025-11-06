@@ -154,7 +154,6 @@ export {
   generateWorkspaceId,
   generateDocumentId,
   generateLogId,
-  estimateTokens,
   parseJSONResponse,
   tryParseJSON,
   truncateText,

@@ -12,7 +12,6 @@ import {
 import { preprocess, type PreprocessorConfig } from '../preprocessor'
 import { createAIService } from '../services/ai-service'
 import { selectForSending } from './message-ops'
-import { estimateTokens } from '../utils/utils'
 
 // ============================================================
 // Agent引擎配置
@@ -137,9 +136,6 @@ export async function runAgentEngine(input: AgentEngineInput): Promise<AgentEngi
     if (!finalAnswer || finalAnswer.trim().length === 0) {
       throw new Error('AI返回空结果')
     }
-    
-    const answerTokens = estimateTokens(finalAnswer)
-    totalTokens += answerTokens
     
     // 设置最终答案
     workspace.output.finalAnswer = finalAnswer.trim()
