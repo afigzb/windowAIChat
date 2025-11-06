@@ -51,7 +51,6 @@ export async function processFile(
     
     // 检查文件大小：小于1000字符的文件采用放行原则，不概括
     if (actualContent.length < 1000) {
-      console.log('[FileProcessor] 文件内容小于1000字符，跳过概括:', fileName || '未命名', `(${actualContent.length}字符)`)
       fileMessage._meta.processed = true
       
       // 移除路径标记，只保留文件名
@@ -73,21 +72,16 @@ export async function processFile(
       const cachedSummary = await fileSummaryCacheManager.readCache(fullPath)
       
       if (cachedSummary) {
-        console.log('[FileProcessor] 使用缓存的文件概括:', fileName || fullPath)
         summary = cachedSummary.content
         
         // 使用文件名（不含路径标记）更新消息内容
         const finalContent = `\n\n--- 文件: ${fileName} ---\n${summary}\n--- 文件结束 ---`
         replaceContent(fileMessage, finalContent, true)
         
-        console.log('[FileProcessor] 文件概括完成（从缓存）:', fileName || fullPath)
-        
         return {
           success: true,
           tokensUsed: 0 // 使用缓存不消耗 tokens
         }
-      } else {
-        console.log('[FileProcessor] 缓存未找到或已失效，将重新概括:', fileName || fullPath)
       }
     }
     
@@ -140,14 +134,11 @@ export async function processFile(
     
     replaceContent(fileMessage, finalContent, true)
     
-    console.log('[FileProcessor] 文件概括完成（新生成）:', fileName || '未命名')
-    
     return {
       success: true,
       tokensUsed: 500 // 估算
     }
   } catch (error: any) {
-    console.error('[FileProcessor] 文件概括失败:', error)
     
     // 失败时保留原内容，但标记为已处理
     fileMessage._meta.processed = true

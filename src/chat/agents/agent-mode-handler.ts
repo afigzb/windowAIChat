@@ -23,17 +23,7 @@ export async function executeAgentMode(
   data: InitialRequestData,
   callbacks: StreamCallbacks
 ): Promise<RequestResult> {
-  console.log('[AgentMode] 开始执行 Agent Engine（重构版）')
-  
   try {
-    console.log('[AgentMode] 使用的数据:', {
-      userInputLength: data.userInput.length,
-      attachedContentsCount: data.attachedContents.length,
-      promptCardsCount: data.userMessageNode.components?.promptCards?.length || 0,
-      historyLength: data.conversationHistory.length,
-      agentConfig: data.aiConfig.agentConfig
-    })
-    
     // 1. 构建带标记的 messages 数组
     const { messages, rawUserInput } = buildMessages({
       userInput: data.userInput,
@@ -42,15 +32,6 @@ export async function executeAgentMode(
       promptCards: data.userMessageNode.components?.promptCards,
       aiConfig: data.aiConfig
     })
-    
-    console.log('[AgentMode] 构建的 messages 数量:', messages.length)
-    
-    // 消息类型统计
-    const typeCount: Record<string, number> = {}
-    messages.forEach(m => {
-      typeCount[m._meta.type] = (typeCount[m._meta.type] || 0) + 1
-    })
-    console.log('[AgentMode] 消息类型分布:', typeCount)
     
     // 2. 调用 Agent Engine
     const result = await runAgentEngine({
@@ -79,18 +60,12 @@ export async function executeAgentMode(
       throw new Error(result.error || 'Agent Engine 执行失败')
     }
     
-    console.log('[AgentMode] Agent Engine 执行成功:', {
-      success: result.success,
-      tokensUsed: result.tokensUsed
-    })
-    
     // 3. 返回结果
     return {
       content: result.finalAnswer
     }
     
   } catch (error: any) {
-    console.error('[AgentMode] Agent Engine 执行失败:', error)
     
     // Agent 模式失败时，返回错误信息
     return {

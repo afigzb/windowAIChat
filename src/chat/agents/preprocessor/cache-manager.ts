@@ -45,7 +45,6 @@ export function createFileSummaryCacheManager(): FileSummaryCacheManager {
       try {
         // 检查是否在 electron 环境中
         if (typeof window === 'undefined' || !(window as any).electronAPI) {
-          console.warn('[FileSummaryCache] 不在 Electron 环境中，跳过缓存')
           return null
         }
 
@@ -55,17 +54,14 @@ export function createFileSummaryCacheManager(): FileSummaryCacheManager {
         const cacheData = await electronAPI.readSummaryCache(filePath)
 
         if (!cacheData) {
-          console.log('[FileSummaryCache] 缓存未找到或已失效:', filePath)
           return null
         }
 
-        console.log('[FileSummaryCache] 找到有效缓存:', filePath)
         return {
           content: cacheData.content,
           cachedAt: new Date(cacheData.cachedAt)
         }
       } catch (error) {
-        console.error('[FileSummaryCache] 读取缓存失败:', error)
         return null
       }
     },
@@ -74,19 +70,14 @@ export function createFileSummaryCacheManager(): FileSummaryCacheManager {
       try {
         // 检查是否在 electron 环境中
         if (typeof window === 'undefined' || !(window as any).electronAPI) {
-          console.warn('[FileSummaryCache] 不在 Electron 环境中，跳过缓存')
           return
         }
 
         const electronAPI = (window as any).electronAPI
 
         // 调用 electron API 写入缓存，返回实际的缓存文件路径
-        const cachePath = await electronAPI.writeSummaryCache(filePath, summary)
-
-        console.log('[FileSummaryCache] 缓存已保存:', cachePath)
-        console.log('[FileSummaryCache] 原文件:', filePath)
+        await electronAPI.writeSummaryCache(filePath, summary)
       } catch (error) {
-        console.error('[FileSummaryCache] 写入缓存失败:', error)
         // 不抛出错误，缓存写入失败不应该影响主流程
       }
     }

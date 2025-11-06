@@ -77,15 +77,6 @@ export function buildMessages(input: MessageBuilderInput): MessageBuilderOutput 
   let currentIndex = 0
   
   const promptCards = input.promptCards || []
-  console.log('[MessageBuilder] 提示词卡片数量:', promptCards.length)
-  if (promptCards.length > 0) {
-    console.log('[MessageBuilder] 提示词卡片位置分布:', 
-      promptCards.reduce((acc, card) => {
-        acc[card.placement] = (acc[card.placement] || 0) + 1
-        return acc
-      }, {} as Record<string, number>)
-    )
-  }
   
   // ==================== 阶段1：构建系统提示词 ====================
   const finalSystemPrompt = systemPrompt.getPrompt(input.aiConfig)
@@ -276,11 +267,6 @@ export function buildMessages(input: MessageBuilderInput): MessageBuilderOutput 
     source: 'user_input'
   })
   currentIndex++
-  
-  console.log('[MessageBuilder] 构建消息完成:', {
-    totalMessages: messages.length,
-    sourceMap: sourceMap.map(s => `${s.source}(${s.start}-${s.end})`).join(', ')
-  })
   
   return {
     messages,

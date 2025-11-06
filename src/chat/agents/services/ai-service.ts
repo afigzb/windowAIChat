@@ -91,15 +91,6 @@ export class AIService {
       // 过滤_meta标记
       const apiMessages = this.prepareMessages(messages)
       
-      if (verbose) {
-        console.log('[AIService] 调用API:', {
-          provider: effectiveProvider.name,
-          messagesCount: apiMessages.length,
-          temperature: effectiveProvider.extraParams?.temperature,
-          maxTokens: effectiveProvider.maxTokens
-        })
-      }
-      
       // 创建适配器并调用
       const adapter = this.createAdapter(effectiveProvider)
       const result = await adapter.callRawAPI(
@@ -108,14 +99,9 @@ export class AIService {
         options?.onStream
       )
       
-      if (verbose) {
-        console.log('[AIService] 响应长度:', result.length)
-      }
-      
       return result
       
     } catch (error: any) {
-      console.error('[AIService] API调用失败:', error.message)
       throw error
     }
   }

@@ -57,16 +57,8 @@ export async function preprocess(
 ): Promise<PreprocessingResponse> {
   const verbose = config?.verbose ?? true
   
-  if (verbose) {
-    console.log('[Preprocessor] 开始预处理阶段')
-  }
-  
   // 如果配置跳过预处理
   if (config?.skip) {
-    if (verbose) {
-      console.log('[Preprocessor] 跳过预处理')
-    }
-    
     workspace.workspace.preprocessed = true
     
     return {
@@ -82,10 +74,6 @@ export async function preprocess(
     const messages = workspace.workspace.processedMessages
     const userInput = workspace.input.rawUserInput
     
-    if (verbose) {
-      console.log(`[Preprocessor] 初始消息数: ${messages.length}`)
-    }
-    
     // ========== 操作1：文件概括 ==========
     // 选择 → 发送请求 → 替换内容
     const fileMessages = selectFileMessages(messages, true) // 只选择未处理的
@@ -94,16 +82,6 @@ export async function preprocess(
     const fileProviderId = aiConfig.agentConfig?.preprocessor?.fileProcessor?.providerId
     
     if (fileMessages.length > 0) {
-      if (verbose) {
-        console.log(`[Preprocessor] 操作1：概括 ${fileMessages.length} 个文件`)
-        if (fileProviderId) {
-          const provider = aiConfig.providers.find(p => p.id === fileProviderId)
-          console.log(`[Preprocessor] 使用独立模型: ${provider?.name || fileProviderId}`)
-        } else {
-          const mainProvider = aiConfig.providers.find(p => p.id === aiConfig.currentProviderId)
-          console.log(`[Preprocessor] 使用主模型: ${mainProvider?.name || aiConfig.currentProviderId}`)
-        }
-      }
       
       const parallelFiles = config?.parallelFiles ?? true
       const maxConcurrency = config?.maxConcurrency || 3
@@ -131,10 +109,6 @@ export async function preprocess(
           }
         }
       }
-      
-      if (verbose) {
-        console.log(`[Preprocessor] 文件概括完成，tokens: ${totalTokens}`)
-      }
     }
     
     // ========== 操作2：上下文概括 ==========
@@ -145,16 +119,6 @@ export async function preprocess(
     const contextProviderId = aiConfig.agentConfig?.preprocessor?.contextProcessor?.providerId
     
     if (contextMessages.length > 1) {
-      if (verbose) {
-        console.log(`[Preprocessor] 操作2：概括 ${contextMessages.length} 条上下文`)
-        if (contextProviderId) {
-          const provider = aiConfig.providers.find(p => p.id === contextProviderId)
-          console.log(`[Preprocessor] 使用独立模型: ${provider?.name || contextProviderId}`)
-        } else {
-          const mainProvider = aiConfig.providers.find(p => p.id === aiConfig.currentProviderId)
-          console.log(`[Preprocessor] 使用主模型: ${mainProvider?.name || aiConfig.currentProviderId}`)
-        }
-      }
       
       const result = await processContextRange(
         contextMessages,
@@ -167,20 +131,11 @@ export async function preprocess(
       
       if (result.success) {
         totalTokens += result.tokensUsed
-        
-        if (verbose) {
-          console.log(`[Preprocessor] 上下文概括完成，tokens: ${result.tokensUsed}`)
-        }
       }
     }
     
     // 标记预处理完成
     workspace.workspace.preprocessed = true
-    
-    if (verbose) {
-      console.log(`[Preprocessor] 预处理完成，总 tokens: ${totalTokens}`)
-      console.log(`[Preprocessor] 最终消息数: ${messages.length}`)
-    }
     
     return {
       success: true,
@@ -188,7 +143,6 @@ export async function preprocess(
     }
     
   } catch (error: any) {
-    console.error('[Preprocessor] 预处理失败:', error)
     
     return {
       success: false,

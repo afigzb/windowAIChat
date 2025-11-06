@@ -18,10 +18,10 @@ class WindowManager {
    */
   createWindow() {
     this.mainWindow = new BrowserWindow({
-      width: 1200,
-      height: 800,
-      minWidth: 800,
-      minHeight: 600,
+      width: 1600,
+      height: 1000,
+      minWidth: 600,
+      minHeight: 400,
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,

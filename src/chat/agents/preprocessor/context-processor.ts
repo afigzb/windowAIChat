@@ -48,15 +48,8 @@ export async function processContextRange(
     // 1. 计算当前所有上下文消息的总字符数
     const currentTotalChars = calculateTotalChars(contextMessages)
     
-    console.log('[ContextProcessor] 上下文概括检查:', {
-      messageCount: contextMessages.length,
-      totalChars: currentTotalChars,
-      threshold: 2000
-    })
-    
     // 2. 检查是否需要概括：小于2000字符则跳过
     if (currentTotalChars < 2000) {
-      console.log('[ContextProcessor] 上下文字符数小于2000，跳过概括')
       // 标记为已处理但不概括
       contextMessages.forEach(m => {
         m._meta.processed = true
@@ -68,7 +61,6 @@ export async function processContextRange(
     const keepRecentCount = 4  // 保留最新的4条消息不概括
     
     if (contextMessages.length <= keepRecentCount) {
-      console.log('[ContextProcessor] 上下文消息数量不超过4条，跳过概括')
       contextMessages.forEach(m => {
         m._meta.processed = true
       })
@@ -78,12 +70,6 @@ export async function processContextRange(
     // 4. 选择需要概括的消息（排除最新的4条）
     const messagesToSummarize = contextMessages.slice(0, -keepRecentCount)
     const recentMessages = contextMessages.slice(-keepRecentCount)
-    
-    console.log('[ContextProcessor] 上下文概括策略:', {
-      总消息数: contextMessages.length,
-      需要概括: messagesToSummarize.length,
-      保留最新: recentMessages.length
-    })
     
     // 5. 执行概括
     // 如果指定了自定义provider，临时覆盖配置
@@ -145,9 +131,6 @@ export async function processContextRange(
       recentMessages.forEach(m => {
         m._meta.processed = true
       })
-      
-      console.log('[ContextProcessor] 上下文概括完成，原 %d 条消息已合并为 1 条（保留最新 %d 条）', 
-        messagesToSummarize.length, recentMessages.length)
     }
     
     return {
@@ -155,7 +138,6 @@ export async function processContextRange(
       tokensUsed: 500 // 估算
     }
   } catch (error: any) {
-    console.error('[ContextProcessor] 上下文概括失败:', error)
     
     // 失败时标记所有消息为已处理，但保留原内容
     contextMessages.forEach(m => {

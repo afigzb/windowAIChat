@@ -88,13 +88,6 @@ export async function runAgentEngine(input: AgentEngineInput): Promise<AgentEngi
   const verbose = config.verbose ?? true
   const startTime = Date.now()
   
-  if (verbose) {
-    console.log('\n' + '='.repeat(80))
-    console.log('🚀 AI写作引擎启动（简化版）')
-    console.log('='.repeat(80))
-    console.log(`[AgentEngine] Messages 总数: ${input.messages.length}`)
-  }
-  
   // 1. 创建WorkspaceData
   const workspace = createWorkspace(input.messages, input.rawUserInput)
   let totalTokens = 0
@@ -102,10 +95,6 @@ export async function runAgentEngine(input: AgentEngineInput): Promise<AgentEngi
   try {
     // ========== 阶段1：Preprocessing ==========
     updateStage(workspace, 'preprocessing')
-    
-    if (verbose) {
-      console.log('\n🔍 [Preprocessing阶段] 预处理中...')
-    }
     
     if (config.onProgress) {
       config.onProgress('正在预处理输入...', 'preprocessing')
@@ -120,20 +109,10 @@ export async function runAgentEngine(input: AgentEngineInput): Promise<AgentEngi
     
     if (preprocessingResult.success) {
       totalTokens += preprocessingResult.tokensUsed
-      if (verbose) {
-        console.log('✓ Preprocessing完成')
-        console.log(`  Token使用: ${preprocessingResult.tokensUsed}`)
-      }
-    } else {
-      console.warn('[AgentEngine] Preprocessing失败，继续执行')
     }
     
     // ========== 阶段2：直接生成回答 ==========
     updateStage(workspace, 'generating')
-    
-    if (verbose) {
-      console.log('\n✨ [Generating阶段] 生成回答...')
-    }
     
     if (config.onProgress) {
       config.onProgress('正在生成回答...', 'generating')
@@ -144,10 +123,6 @@ export async function runAgentEngine(input: AgentEngineInput): Promise<AgentEngi
     
     // 转换为发送格式（直接使用已经构建好的消息，包括系统提示词）
     const requestMessages = selectForSending(messages)
-    
-    if (verbose) {
-      console.log(`[AgentEngine] 使用 ${requestMessages.length} 条消息`)
-    }
     
     // 发送AI请求
     const aiService = createAIService(input.aiConfig)
@@ -166,27 +141,11 @@ export async function runAgentEngine(input: AgentEngineInput): Promise<AgentEngi
     const answerTokens = estimateTokens(finalAnswer)
     totalTokens += answerTokens
     
-    if (verbose) {
-      console.log('✓ 回答生成完成')
-      console.log(`  回答长度: ${finalAnswer.length} 字符`)
-      console.log(`  Token使用: ${answerTokens}`)
-    }
-    
     // 设置最终答案
     workspace.output.finalAnswer = finalAnswer.trim()
     
     // ========== 完成 ==========
     updateStage(workspace, 'completed')
-    
-    const duration = Date.now() - startTime
-    
-    if (verbose) {
-      console.log('\n' + '='.repeat(80))
-      console.log('✅ Agent引擎执行成功')
-      console.log('='.repeat(80))
-      console.log(`总耗时: ${duration}ms`)
-      console.log(`总Token: ${totalTokens}`)
-    }
     
     return {
       success: true,
@@ -196,19 +155,7 @@ export async function runAgentEngine(input: AgentEngineInput): Promise<AgentEngi
     }
     
   } catch (error: any) {
-    console.error('[AgentEngine] 执行失败:', error)
-    
     updateStage(workspace, 'failed')
-    
-    const duration = Date.now() - startTime
-    
-    if (verbose) {
-      console.log('\n' + '='.repeat(80))
-      console.log('❌ Agent引擎执行失败')
-      console.log('='.repeat(80))
-      console.log(`耗时: ${duration}ms`)
-      console.log(`错误: ${error.message}`)
-    }
     
     return {
       success: false,

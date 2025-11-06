@@ -97,8 +97,6 @@ export function parseJSONResponse(response: string): any {
     return JSON.parse(jsonText)
     
   } catch (error: any) {
-    console.error('[Utils] JSON解析失败:', error.message)
-    console.error('[Utils] 原始响应预览:', response.substring(0, 300))
     return {}
   }
 }
