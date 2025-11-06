@@ -28,6 +28,7 @@ import { useBranchManager } from '../core/branch-manager'
 import { useConversationHistory } from '../core/conversation-history'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { useConfirm } from '../../components/useConfirm'
+import { Icon } from '../../components'
 import { contextEngine, setSystemPrompt, clearSystemPrompt, buildSummarizePlan } from '../core/context'
 import { MessagePreviewDialog } from './MessagePreviewDialog'
 import { getPreviewData } from '../core/api'
@@ -495,10 +496,7 @@ export function ChatPanel({
               }`}
               title="预览消息"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
+              <Icon name="eye" className="w-5 h-5" />
             </button>
 
             <div className="relative" ref={historyDrawerRef}>
@@ -511,9 +509,7 @@ export function ChatPanel({
                 }`}
                 title="对话历史"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <Icon name="clock" className="w-5 h-5" />
               </button>
               
               {/* 对话历史抽屉 */}
@@ -535,9 +531,7 @@ export function ChatPanel({
                           className="p-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-sm hover:shadow-md" 
                           title="新建对话"
                         >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                          </svg>
+                          <Icon name="add" className="w-3 h-3" />
                         </button>
                         <button 
                           onClick={handleClearConversations}
@@ -553,9 +547,7 @@ export function ChatPanel({
                     <div className="flex-1 overflow-y-auto p-4 space-y-2">
                       {conversationHistory.conversations.length === 0 ? (
                         <div className="text-center py-12 text-gray-400">
-                          <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                          </svg>
+                          <Icon name="message" className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                           <p className="text-base font-medium">暂无对话历史</p>
                         </div>
                       ) : (
@@ -604,9 +596,7 @@ export function ChatPanel({
                                       className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all duration-200 rounded-lg flex items-center justify-center"
                                       title="删除对话"
                                     >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                      </svg>
+                                      <Icon name="delete" className="w-4 h-4" />
                                     </button>
                                     <div className="w-3 h-3 flex items-center justify-center">
                                       {isActive && (
@@ -655,9 +645,7 @@ export function ChatPanel({
                     className="px-2 py-1 rounded text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-100/50 transition-all duration-200 flex items-center gap-1 border border-blue-200 hover:border-blue-300 whitespace-nowrap"
                     title="新建对话并对当前上下文进行概括"
                   >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 6h8M6 10h12M8 14h8M10 18h4" />
-                    </svg>
+                    <Icon name="summarize" className="w-3 h-3" />
                     <span>概括</span>
                   </button>
                 </div>

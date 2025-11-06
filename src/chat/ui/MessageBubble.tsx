@@ -17,7 +17,7 @@
 import { useState, useRef, useEffect } from 'react'
 import type { MessageBubbleProps } from '../types'
 import { MarkdownRenderer } from '../../md-html-dock/renderers/MarkdownRenderer'
-import { Icon, AnimatedDots } from './components'
+import { Icon, AnimatedDots } from '../../components'
 import { AgentResults } from './AgentResults'
 
 // ===== 子组件：分支导航控件 =====

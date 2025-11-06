@@ -11,7 +11,7 @@
 import { useState } from 'react'
 import type { ApiProviderConfig, ProviderType } from '../types'
 import { Tooltip } from '../../components'
-import { CustomSelect, type SelectOption } from './components'
+import { CustomSelect, type SelectOption } from '../../components'
 
 export function ApiProviderForm({ provider, onSave, onCancel, inline = false }: {
   provider: ApiProviderConfig | null

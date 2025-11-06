@@ -6,6 +6,7 @@ import { InlineEdit } from './InlineEdit'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { useConfirm } from '../hooks/useConfirm'
 import { useFileTree } from '../hooks/useFileTree'
+import { Icon } from '../../components'
 import type { FileSystemNode } from '../../storage/file-system'
 import { getFileName } from '../utils/fileHelper'
 
@@ -91,9 +92,7 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
           className="w-full p-5 border-2 border-dashed border-gray-300 rounded-2xl text-gray-700 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-300 disabled:opacity-50 group hover:shadow-lg"
         >
           <div className="flex items-center justify-center gap-3">
-            <svg className="w-6 h-6 text-blue-600 group-hover:animate-pulse" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M1 21V6h2v13h17v2zm4-4V2h7l2 2h9v13zm2-2h14V6h-7.825l-2-2H7zm0 0V4z"/>
-            </svg>
+            <Icon name="folder" className="w-6 h-6 text-blue-600 group-hover:animate-pulse" />
             <span className="text-base font-semibold">{isLoading ? '正在加载...' : '选择工作目录'}</span>
           </div>
         </button>
@@ -149,14 +148,10 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
                   }`}
                 >
                   {onReorderFiles && (
-                    <svg className="w-3 h-3 text-gray-400 flex-shrink-0 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M9 3h2v18H9V3zm4 0h2v18h-2V3z"/>
-                    </svg>
+                    <Icon name="grip" className="w-4 h-4 text-gray-400 flex-shrink-0 mr-1" />
                   )}
                   <div className="text-blue-800 flex items-center flex-1 mr-1 min-w-0" title={filePath}>
-                    <svg className="w-3.5 h-3.5 text-blue-600 flex-shrink-0 mr-1" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M4 22V2h10l6 6v6h-2V9h-5V4H6v16h9v2zm17.95.375L19 19.425v2.225h-2V16h5.65v2H20.4l2.95 2.95zM6 20V4z"/>
-                    </svg>
+                    <Icon name="file" className="w-3.5 h-3.5 text-blue-600 flex-shrink-0 mr-1" />
                     <span className="truncate flex-1 min-w-0 text-xs font-medium">{getFileName(filePath)}</span>
                   </div>
                   {onFileSelect && (
@@ -165,9 +160,7 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
                       className="text-gray-400 hover:text-red-500 p-0.5 rounded opacity-0 group-hover:opacity-100 transition-all duration-150 flex-shrink-0"
                       title="移除此文件"
                     >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                    <Icon name="close" className="w-3 h-3" />
                     </button>
                   )}
                 </div>
@@ -175,9 +168,7 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
               {/* 空状态提示 */}
               {(!selectedFiles || selectedFiles.length === 0) && (
                 <div className="h-full flex flex-col items-center justify-center text-blue-400 space-y-2">
-                  <svg className="w-8 h-8 text-blue-300" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M1 21V6h2v13h17v2zm4-4V2h7l2 2h9v13zm2-2h14V6h-7.825l-2-2H7zm0 0V4z"/>
-                  </svg>
+                  <Icon name="folder" className="w-8 h-8 text-blue-300" />
                   <div className="text-center">
                     <div className="text-sm font-medium text-blue-500">暂无选中文件</div>
                     <div className="text-xs text-blue-300 mt-1">勾选下方文件来选择</div>
@@ -196,9 +187,7 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
       <div className="flex-shrink-0 px-5 py-4 border-b-2 border-gray-200 bg-white">
         <div className="flex items-center justify-between mb-3 min-w-0">
           <div className="flex items-center min-w-0 flex-1">
-            <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mr-2" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M1 21V6h2v13h17v2zm4-4V2h7l2 2h9v13zm2-2h14V6h-7.825l-2-2H7zm0 0V4z"/>
-            </svg>
+            <Icon name="folder" className="w-5 h-5 text-blue-600 flex-shrink-0 mr-2" />
             <span className="font-bold text-gray-900 text-base truncate">{workspace.name}</span>
           </div>
           <button
@@ -292,9 +281,7 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
             )}
             {fileTree.length === 0 && (
               <div className="py-12 text-center">
-                <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                </svg>
+                <Icon name="folderEmpty" className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                 <p className="text-gray-500 text-base font-medium">空文件夹</p>
                 <p className="text-gray-400 text-sm mt-1">右键可新建文件或文件夹</p>
               </div>

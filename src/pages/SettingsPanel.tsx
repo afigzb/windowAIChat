@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { AIConfig } from '../chat'
 import { DEFAULT_SUMMARIZE_PROMPT } from '../chat/core/defaults'
 import { DEFAULT_COMPRESSION_OPTIONS, type TextCompressionOptions } from '../chat/core/context/text-compressor'
-import { Icon } from '../chat/ui/components'
+import { Icon } from '../components'
 
 interface SettingsPanelProps {
   config: AIConfig

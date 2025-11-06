@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { ConfirmDialog } from '../components'
+import { ConfirmDialog, Icon } from '../components'
 
 /**
  * 空白文本编辑器页面
@@ -97,9 +97,7 @@ export function TextEditorPage() {
             }`}
             title={isAlwaysOnTop ? '取消置顶' : '窗口置顶'}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" fill={isAlwaysOnTop ? 'currentColor' : 'none'} />
-            </svg>
+            <Icon name="pin" className={`w-4 h-4 ${isAlwaysOnTop ? 'fill-current' : ''}`} />
           </button>
           
           <button

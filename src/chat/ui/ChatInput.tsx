@@ -10,7 +10,8 @@
 
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
 import type { AIConfig } from '../types'
-import { Icon, ApiProviderToggle } from './components'
+import { Icon } from '../../components'
+import { ApiProviderToggle } from './components'
 
 // 聊天输入区域
 export const ChatInputArea = forwardRef<

@@ -4,6 +4,7 @@ import type { AIConfig } from '../chat'
 import { ChatPanel } from '../chat'
 import { FileTreePanel } from '../file-manager'
 import { FileContentViewer } from '../document-editor'
+import { Icon } from '../components'
 import type { FileContent } from '../types/file-api'
 import type { WordCountResult } from '../md-html-dock/types'
 
@@ -120,9 +121,7 @@ export function WorkspaceView({
                     className="px-2 py-1.5 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
                     title="保存 (Ctrl+S)"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                    </svg>
+                    <Icon name="save" className="w-4 h-4" />
                     <span className="hidden xl:inline">保存</span>
                   </button>
                 )}
@@ -132,9 +131,7 @@ export function WorkspaceView({
                     className="px-2 py-1.5 bg-gray-500 text-white text-sm rounded-md hover:bg-gray-600 transition-colors flex items-center gap-1"
                     title="关闭"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <Icon name="close" className="w-4 h-4" />
                     <span className="hidden xl:inline">关闭</span>
                   </button>
                 )}

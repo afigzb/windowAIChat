@@ -1,6 +1,7 @@
 // 内联编辑组件
 
 import { useState, useEffect, useRef } from 'react'
+import { Icon } from '../../components'
 
 interface InlineEditProps {
   type: 'file' | 'directory'
@@ -65,13 +66,9 @@ export function InlineEdit({
     >
       <div className="flex-shrink-0">
         {type === 'directory' ? (
-          <svg className="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M1 21V6h2v13h17v2zm4-4V2h7l2 2h9v13zm2-2h14V6h-7.825l-2-2H7zm0 0V4z"/>
-          </svg>
+          <Icon name="folder" className="w-5 h-5 text-blue-600" />
         ) : (
-          <svg className="w-5 h-5 text-gray-600" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M4 22V2h10l6 6v6h-2V9h-5V4H6v16h9v2zm17.95.375L19 19.425v2.225h-2V16h5.65v2H20.4l2.95 2.95zM6 20V4z"/>
-          </svg>
+          <Icon name="file" className="w-5 h-5 text-gray-600" />
         )}
       </div>
       <input

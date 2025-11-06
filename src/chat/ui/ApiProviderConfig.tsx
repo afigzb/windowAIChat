@@ -12,7 +12,7 @@ import { useState } from 'react'
 import type { AIConfig, ApiProviderConfig } from '../types'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { useConfirm } from '../../components/useConfirm'
-import { Icon } from './components'
+import { Icon } from '../../components'
 import { ApiProviderForm } from './ApiProviderForm'
 
 export function ApiProviderManager({ config, onConfigChange }: {
@@ -92,9 +92,7 @@ export function ApiProviderManager({ config, onConfigChange }: {
           }}
           className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-semibold rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-md hover:shadow-xl transform hover:scale-105"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
+          <Icon name="add" className="w-4 h-4" />
           添加配置
         </button>
       </div>
@@ -175,9 +173,7 @@ export function ApiProviderManager({ config, onConfigChange }: {
                     title={isActive ? '当前使用的配置' : '切换到此配置'}
                     disabled={isActive}
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <Icon name="check" className="w-4 h-4" />
                   </button>
                   
                   <button
@@ -206,9 +202,7 @@ export function ApiProviderManager({ config, onConfigChange }: {
                       className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 hover:shadow-sm"
                       title="删除配置"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
+                      <Icon name="delete" className="w-4 h-4" />
                     </button>
                   )}
                 </div>
@@ -241,9 +235,7 @@ export function ApiProviderManager({ config, onConfigChange }: {
             onClick={() => setShowAddForm(true)}
             className="inline-flex items-center gap-2 px-5 py-3 bg-blue-500 text-white text-sm font-semibold rounded-xl hover:bg-blue-600 transition-all duration-300 shadow-md hover:shadow-xl transform hover:scale-105"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+            <Icon name="add" className="w-4 h-4" />
             添加配置
           </button>
         </div>

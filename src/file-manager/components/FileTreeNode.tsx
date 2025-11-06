@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { InlineEdit } from './InlineEdit'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { useConfirm } from '../hooks/useConfirm'
+import { Icon } from '../../components'
 import type { FileSystemNode } from '../../storage/file-system'
 import { fileSystemManager } from '../../storage/file-system'
 
@@ -34,17 +35,9 @@ interface FileTreeNodeProps {
 
 function FileIcon({ node }: { node: FileSystemNode }) {
   if (node.isDirectory) {
-    return (
-      <svg className="w-5 h-5 text-blue-600 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M1 21V6h2v13h17v2zm4-4V2h7l2 2h9v13zm2-2h14V6h-7.825l-2-2H7zm0 0V4z"/>
-      </svg>
-    )
+    return <Icon name="folder" className="w-5 h-5 text-blue-600 flex-shrink-0" />
   }
-  return (
-    <svg className="w-5 h-5 text-gray-600 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M4 22V2h10l6 6v6h-2V9h-5V4H6v16h9v2zm17.95.375L19 19.425v2.225h-2V16h5.65v2H20.4l2.95 2.95zM6 20V4z"/>
-    </svg>
-  )
+  return <Icon name="file" className="w-5 h-5 text-gray-600 flex-shrink-0" />
 }
 
 export function FileTreeNode({ 
@@ -190,10 +183,8 @@ export function FileTreeNode({
           onDrop={handleDrop}
         >
         {node.isDirectory && (
-          <div className={`transition-transform duration-300 w-4 h-4 ${isExpanded ? '' : '-rotate-90'}`}>
-            <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M8.465 10.293a1 1 0 0 1 1.414 0L12 12.414l2.121-2.121a1 1 0 0 1 1.415 1.414l-2.829 2.829a1 1 0 0 1-1.414 0l-2.828-2.829a1 1 0 0 1 0-1.414"/>
-            </svg>
+          <div className={`transition-transform duration-300 ${isExpanded ? '' : '-rotate-90'}`}>
+            <Icon name="chevronDown" className="w-4 h-4 text-gray-500" />
           </div>
         )}
         {!node.isDirectory && (
