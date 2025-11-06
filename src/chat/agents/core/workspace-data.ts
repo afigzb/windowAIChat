@@ -54,6 +54,13 @@ export interface MessageMetadata {
   
   /** 上一次记录的字符数量（用于上下文概括的增量机制） */
   lastRecordedChars?: number
+  
+  /**
+   * 消息唯一标识符（可选）
+   * 用于增量上下文处理，追踪已概括的消息
+   * 如果未设置，将通过内容哈希动态生成
+   */
+  messageId?: string
 }
 
 /**
