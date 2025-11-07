@@ -4,39 +4,21 @@
  * 职责：
  * 1. 封装所有AI API调用
  * 2. 统一处理消息格式转换（过滤_meta标记）
- * 3. 统一错误处理和重试逻辑
- * 4. 提供不同场景的调用方法
+ * 3. 统一错误处理
  */
 
 import type { ApiProviderConfig, AIConfig } from '../../types'
 import { OpenAIAdapter } from '../../adapters/openai-adapter'
 import { GeminiAdapter } from '../../adapters/gemini-adapter'
-import type { Message } from '../core/workspace-data'
-import { stripMetadata } from '../core/workspace-data'
+import type { Message, ApiMessage, AICallOptions } from '../types'
+import { stripMetadata } from '../core/agent-context'
 
-// AI调用配置
+// 重新导出类型
+export type { AICallOptions }
 
-export interface AICallOptions {
-  /** 温度参数（0-1） */
-  temperature?: number
-  
-  /** 最大token数 */
-  maxTokens?: number
-  
-  /** 流式回调 */
-  onStream?: (content: string) => void
-  
-  /** 中止信号 */
-  abortSignal?: AbortSignal
-  
-  /** 是否启用详细日志 */
-  verbose?: boolean
-}
-
-// 
-// AI服务类
-// 
-
+/**
+ * AI服务类
+ */
 export class AIService {
   constructor(
     private aiConfig: AIConfig
@@ -70,11 +52,9 @@ export class AIService {
    * 调用AI API
    */
   async call(
-    messages: Message[] | Array<{ role: string; content: string }>,
+    messages: Message[] | ApiMessage[],
     options?: AICallOptions
   ): Promise<string> {
-    const verbose = options?.verbose ?? false
-    
     try {
       // 获取provider
       const provider = this.getCurrentProvider()
@@ -98,43 +78,6 @@ export class AIService {
     } catch (error: any) {
       throw error
     }
-  }
-  
-  /**
-   * 批量调用（用于并行处理）
-   */
-  async callBatch(
-    messagesArray: Array<Message[] | Array<{ role: string; content: string }>>,
-    options?: AICallOptions,
-    maxConcurrency: number = 3
-  ): Promise<string[]> {
-    const results: string[] = []
-    const executing: Promise<any>[] = []
-    
-    for (const messages of messagesArray) {
-      // 等待有空位
-      if (executing.length >= maxConcurrency) {
-        await Promise.race(executing)
-      }
-      
-      const promise = this.call(messages, options)
-        .then(result => {
-          results.push(result)
-          return result
-        })
-        .finally(() => {
-          const index = executing.indexOf(promise)
-          if (index > -1) {
-            executing.splice(index, 1)
-          }
-        })
-      
-      executing.push(promise)
-    }
-    
-    await Promise.all(executing)
-    
-    return results
   }
   
   /**
@@ -164,21 +107,17 @@ export class AIService {
    * 准备消息（过滤_meta标记）
    */
   private prepareMessages(
-    messages: Message[] | Array<{ role: string; content: string }>
-  ): Array<{ role: string; content: string }> {
+    messages: Message[] | ApiMessage[]
+  ): ApiMessage[] {
     // 如果是Message[]类型（有_meta），使用stripMetadata
     if (messages.length > 0 && '_meta' in messages[0]) {
       return stripMetadata(messages as Message[])
     }
     
     // 否则直接返回
-    return messages as Array<{ role: string; content: string }>
+    return messages as ApiMessage[]
   }
 }
-
-// 
-// 工厂函数
-// 
 
 /**
  * 创建AI服务实例
@@ -186,4 +125,3 @@ export class AIService {
 export function createAIService(aiConfig: AIConfig): AIService {
   return new AIService(aiConfig)
 }
-

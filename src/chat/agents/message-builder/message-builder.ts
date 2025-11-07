@@ -2,8 +2,16 @@
  * Message Builder - 消息构建器
  */
 
-import type { Message } from '../core/workspace-data'
+import type {
+  Message,
+  MessageBuilderInput,
+  MessageBuilderOutput,
+  MessageType
+} from '../types'
 import { systemPrompt } from '../../core/context/system-prompt'
+
+// 重新导出类型
+export type { MessageBuilderInput, MessageBuilderOutput }
 
 /**
  * 消息来源类型
@@ -22,44 +30,7 @@ interface MessageSourceInfo {
   start: number          // 在最终消息数组中的起始索引
   end: number            // 在最终消息数组中的结束索引（不包含）
   source: MessageSource  // 来源类型
-  metadata?: any         // 额外的元数据
-}
-
-/**
- * 消息构建器输入
- */
-export interface MessageBuilderInput {
-  /** 用户输入 */
-  userInput: string
-  
-  /** 对话历史 */
-  conversationHistory: Array<{ role: string; content: string }>
-  
-  /** 附加文件内容 */
-  attachedContents: string[]
-  
-  /** 提示词卡片 */
-  promptCards?: Array<{
-    id: string
-    title: string
-    content: string
-    placement: 'system' | 'after_system' | 'user_end'
-    priority?: number
-  }>
-  
-  /** AI配置 */
-  aiConfig: any
-}
-
-/**
- * 消息构建器输出
- */
-export interface MessageBuilderOutput {
-  /** 构建的消息数组 */
-  messages: Message[]
-  
-  /** 原始用户输入 */
-  rawUserInput: string
+  metadata?: unknown     // 额外的元数据
 }
 
 /**

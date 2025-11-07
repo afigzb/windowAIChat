@@ -1,39 +1,16 @@
 /**
- * 消息操作工具 - 统一的消息选择、读取、写入接口
+ * 消息操作工具 - 线性流程专用版
+ * 
+ * 只保留实际使用的函数
  */
 
-import type { Message, MessageType } from './workspace-data'
+import type { Message, MessageType, MessageRole, MessageSelector, ApiMessage } from '../types'
 
-// 消息选择器
-/**
- * 选择器配置
- */
-export interface MessageSelector {
-  /** 按类型选择 */
-  types?: MessageType[]
-  
-  /** 排除特定类型 */
-  excludeTypes?: MessageType[]
-  
-  /** 按角色选择 */
-  roles?: ('system' | 'user' | 'assistant')[]
-  
-  /** 自定义过滤器 */
-  filter?: (msg: Message) => boolean
-  
-  /** 限制数量 */
-  limit?: number
-  
-  /** 是否只选择未处理的 */
-  onlyUnprocessed?: boolean
-}
+// 重新导出类型
+export type { MessageSelector }
 
 /**
  * 从消息数组中选择符合条件的消息
- * 
- * @param messages 消息数组
- * @param selector 选择器配置
- * @returns 选中的消息数组
  */
 export function selectMessages(messages: Message[], selector: MessageSelector): Message[] {
   let result = messages
@@ -92,31 +69,17 @@ export function selectContextMessages(messages: Message[], onlyUnprocessed = fal
 }
 
 /**
- * 选择所有非提示词消息（用于规划和生成）
- */
-export function selectNonPromptMessages(messages: Message[]): Message[] {
-  return selectMessages(messages, {
-    excludeTypes: ['prompt_card']
-  })
-}
-
-/**
  * 选择用于发送的消息（去除元数据标记）
  */
-export function selectForSending(messages: Message[]): Array<{ role: string; content: string }> {
+export function selectForSending(messages: Message[]): ApiMessage[] {
   return messages.map(m => ({
     role: m.role,
     content: m.content
   }))
 }
 
-// 消息写入器
 /**
  * 替换消息内容（原地修改）
- * 
- * @param message 要修改的消息
- * @param newContent 新内容
- * @param markAsProcessed 是否标记为已处理
  */
 export function replaceContent(
   message: Message,
@@ -166,24 +129,10 @@ export function replaceRange(
 }
 
 /**
- * 在消息数组末尾追加消息
- */
-export function appendMessage(messages: Message[], message: Message): void {
-  messages.push(message)
-}
-
-/**
- * 在指定位置插入消息
- */
-export function insertMessage(messages: Message[], index: number, message: Message): void {
-  messages.splice(index, 0, message)
-}
-
-/**
  * 创建新消息
  */
 export function createMessage(
-  role: 'system' | 'user' | 'assistant',
+  role: MessageRole,
   content: string,
   type: MessageType,
   needsProcessing = false
@@ -198,51 +147,3 @@ export function createMessage(
     }
   }
 }
-
-// 消息查找工具
-/**
- * 查找消息在数组中的索引
- */
-export function findMessageIndex(messages: Message[], message: Message): number {
-  return messages.indexOf(message)
-}
-
-/**
- * 查找连续的同类型消息的范围
- */
-export function findMessageRange(
-  messages: Message[],
-  type: MessageType
-): { start: number; count: number } | null {
-  const firstIndex = messages.findIndex(m => m._meta.type === type)
-  
-  if (firstIndex === -1) {
-    return null
-  }
-  
-  let count = 1
-  for (let i = firstIndex + 1; i < messages.length; i++) {
-    if (messages[i]._meta.type === type) {
-      count++
-    } else {
-      break
-    }
-  }
-  
-  return { start: firstIndex, count }
-}
-
-/**
- * 统计消息类型
- */
-export function countMessageTypes(messages: Message[]): Record<string, number> {
-  const counts: Record<string, number> = {}
-  
-  for (const msg of messages) {
-    const type = msg._meta.type
-    counts[type] = (counts[type] || 0) + 1
-  }
-  
-  return counts
-}
-
