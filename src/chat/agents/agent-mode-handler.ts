@@ -14,10 +14,6 @@ import { buildMessages } from './message-builder/message-builder'
 
 /**
  * Agent模式处理器
- * 
- * @param data 初始请求数据
- * @param callbacks 流式回调
- * @returns 请求结果
  */
 export async function executeAgentMode(
   data: InitialRequestData,

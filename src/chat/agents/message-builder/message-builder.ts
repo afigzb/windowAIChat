@@ -1,8 +1,5 @@
 /**
  * Message Builder - 消息构建器
- * 
- * 职责：从 InitialRequestData 构建带标记的 messages 数组
- * 核心思路：分步骤构建各个部分的消息，记录每部分的位置，根据位置信息为每条消息添加来源标记
  */
 
 import type { Message } from '../core/workspace-data'
@@ -67,9 +64,6 @@ export interface MessageBuilderOutput {
 
 /**
  * 构建带标记的 messages 数组
- * 
- * @param input 消息构建器输入
- * @returns 带标记的标准格式消息数组
  */
 export function buildMessages(input: MessageBuilderInput): MessageBuilderOutput {
   const messages: Message[] = []
@@ -98,7 +92,7 @@ export function buildMessages(input: MessageBuilderInput): MessageBuilderOutput 
     currentIndex++
   }
   
-  // ==================== 阶段2：插入提示词卡片和文件（after_system 位置） ====================
+  // 阶段2：插入提示词卡片和文件（after_system 位置）
   const placement = input.aiConfig.fileContentPlacement || 'append'
   
   if (placement === 'after_system') {
@@ -176,7 +170,7 @@ export function buildMessages(input: MessageBuilderInput): MessageBuilderOutput 
     })
   }
   
-  // ==================== 阶段3：处理对话历史 ====================
+  // 阶段3：处理对话历史
   const historyLimit = input.aiConfig.historyLimit || 0
   const historyToInclude = historyLimit > 0 
     ? input.conversationHistory.slice(-historyLimit)
@@ -205,7 +199,7 @@ export function buildMessages(input: MessageBuilderInput): MessageBuilderOutput 
     })
   }
   
-  // ==================== 阶段4：处理其他位置的提示词卡片 ====================
+  // 阶段4：处理其他位置的提示词卡片
   // system 位置的卡片 - 追加到系统提示词
   const systemCards = promptCards.filter(card => card.placement === 'system')
   if (systemCards.length > 0) {
@@ -230,7 +224,7 @@ export function buildMessages(input: MessageBuilderInput): MessageBuilderOutput 
     }
   }
   
-  // ==================== 阶段5：添加用户输入 ====================
+  // 阶段5：添加用户输入
   let userInputContent = input.userInput.trim()
   
   if (placement === 'append' && input.attachedContents.length > 0) {

@@ -1,5 +1,5 @@
 /**
- * AgentEngine - AI写作专用引擎（简化版）
+ * AgentEngine - AI写作专用引擎
  */
 
 import type { AIConfig } from '../../types'
@@ -13,9 +13,7 @@ import { preprocess, type PreprocessorConfig } from '../preprocessor'
 import { createAIService } from '../services/ai-service'
 import { selectForSending } from './message-ops'
 
-// ============================================================
 // Agent引擎配置
-// ============================================================
 
 export interface AgentEngineConfig {
   /** Preprocessing配置 */
@@ -71,16 +69,9 @@ export interface AgentEngineResult {
   error?: string
 }
 
-// ============================================================
 // Agent引擎主函数
-// ============================================================
-
 /**
  * 运行AI写作引擎
- * 
- * 简化流程：Preprocessing → 直接发送请求
- * 
- * 注意：系统提示词已经在 buildMessages 阶段构建，这里直接使用
  */
 export async function runAgentEngine(input: AgentEngineInput): Promise<AgentEngineResult> {
   const config = input.config || {}

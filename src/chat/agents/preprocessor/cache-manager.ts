@@ -1,16 +1,5 @@
 /**
- * File Summary Cache Manager - 文件概括缓存管理
- * 
- * 功能：
- * 1. 检查文件是否有缓存的概括
- * 2. 读取缓存的概括
- * 3. 保存新的概括到缓存
- * 
- * 缓存策略：
- * - 在原文件所在目录下创建 gaikuo 文件夹
- * - 缓存文件命名：原文件名.原扩展名.gaikuo
- * - 缓存手动管理：只要缓存存在就会使用，不会自动失效
- * - 要重新生成概括，需要手动删除 gaikuo 文件夹中的对应缓存文件
+ * File Summary Cache Manager
  */
 
 export interface SummaryCacheResult {
@@ -23,15 +12,11 @@ export interface SummaryCacheResult {
 export interface FileSummaryCacheManager {
   /**
    * 尝试从缓存读取文件概括
-   * @param filePath 原文件路径
-   * @returns 如果缓存存在且有效，返回概括内容；否则返回 null
    */
   readCache(filePath: string): Promise<SummaryCacheResult | null>
 
   /**
    * 保存文件概括到缓存
-   * @param filePath 原文件路径
-   * @param summary 概括内容
    */
   writeCache(filePath: string, summary: string): Promise<void>
 }

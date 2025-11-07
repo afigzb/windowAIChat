@@ -14,9 +14,7 @@ import { selectFileMessages, selectContextMessages } from '../core/message-ops'
 import { processFile } from './file-processor'
 import { processContextRange } from './context-processor'
 
-// ============================================================
 // 预处理配置
-// ============================================================
 
 export interface PreprocessorConfig {
   /** 是否启用详细日志 */
@@ -38,9 +36,9 @@ export interface PreprocessingResponse {
   error?: string
 }
 
-// ============================================================
+// 
 // 预处理器主函数
-// ============================================================
+// 
 
 /**
  * 执行预处理阶段
@@ -74,7 +72,7 @@ export async function preprocess(
     const messages = workspace.workspace.processedMessages
     const userInput = workspace.input.rawUserInput
     
-    // ========== 操作1：文件概括 ==========
+    // 操作1：文件概括
     // 选择 → 发送请求 → 替换内容
     const fileMessages = selectFileMessages(messages, true) // 只选择未处理的
     
@@ -111,7 +109,7 @@ export async function preprocess(
       }
     }
     
-    // ========== 操作2：上下文概括 ==========
+    // 操作2：上下文概括
     // 选择 → 发送请求 → 替换区域
     const contextMessages = selectContextMessages(messages, true) // 只选择未处理的
     
@@ -152,9 +150,9 @@ export async function preprocess(
   }
 }
 
-// ============================================================
+// 
 // 导出子模块
-// ============================================================
+// 
 
 export { processFile } from './file-processor'
 export { processContextRange } from './context-processor'

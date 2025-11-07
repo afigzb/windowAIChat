@@ -14,9 +14,7 @@ import { GeminiAdapter } from '../../adapters/gemini-adapter'
 import type { Message } from '../core/workspace-data'
 import { stripMetadata } from '../core/workspace-data'
 
-// ============================================================
 // AI调用配置
-// ============================================================
 
 export interface AICallOptions {
   /** 温度参数（0-1） */
@@ -35,9 +33,9 @@ export interface AICallOptions {
   verbose?: boolean
 }
 
-// ============================================================
+// 
 // AI服务类
-// ============================================================
+// 
 
 export class AIService {
   constructor(
@@ -70,10 +68,6 @@ export class AIService {
   
   /**
    * 调用AI API
-   * 
-   * @param messages 消息数组（可包含_meta标记）
-   * @param options 调用选项
-   * @returns AI响应文本
    */
   async call(
     messages: Message[] | Array<{ role: string; content: string }>,
@@ -182,9 +176,9 @@ export class AIService {
   }
 }
 
-// ============================================================
+// 
 // 工厂函数
-// ============================================================
+// 
 
 /**
  * 创建AI服务实例

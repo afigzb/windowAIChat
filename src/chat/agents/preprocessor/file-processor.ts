@@ -16,12 +16,6 @@ import { fileSummaryCacheManager } from './cache-manager'
  * 
  * 缓存策略：手动管理，只要缓存存在就使用，不自动失效
  * 路径处理：从 <!PATH:...!> 标记中提取完整路径用于缓存，最终消息中只保留文件名
- * 
- * @param fileMessage 文件消息
- * @param userInput 用户输入
- * @param aiConfig AI配置
- * @param abortSignal 中止信号
- * @param customProviderId 可选：使用指定的provider ID（用于独立模型配置）
  */
 export async function processFile(
   fileMessage: Message,
@@ -65,7 +59,7 @@ export async function processFile(
       }
     }
     
-    // ========== 尝试从缓存读取概括（使用完整路径） ==========
+    //  尝试从缓存读取概括（使用完整路径） 
     let summary: string | null = null
     
     if (fullPath) {
@@ -85,7 +79,7 @@ export async function processFile(
       }
     }
     
-    // ========== 缓存未命中，执行概括 ==========
+    //  缓存未命中，执行概括 
     // 如果指定了自定义provider，临时覆盖配置
     const effectiveConfig = customProviderId 
       ? { ...aiConfig, currentProviderId: customProviderId }
@@ -121,7 +115,7 @@ export async function processFile(
       { abortSignal }
     )
     
-    // ========== 保存概括到缓存（使用完整路径） ==========
+    //  保存概括到缓存（使用完整路径） 
     if (fullPath && summary) {
       await fileSummaryCacheManager.writeCache(fullPath, summary)
     }

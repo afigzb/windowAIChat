@@ -9,10 +9,8 @@
  * - utils/: 工具函数
  */
 
-// ============================================================
-// 核心引擎
-// ============================================================
 
+// 核心引擎
 export {
   runAgentEngine,
   type AgentEngineConfig,
@@ -20,10 +18,8 @@ export {
   type AgentEngineResult
 } from './core/agent-engine'
 
-// ============================================================
-// 预处理器
-// ============================================================
 
+// 预处理器
 export {
   preprocess,
   processFile,
@@ -33,10 +29,8 @@ export {
   type PreprocessingResponse
 } from './preprocessor'
 
-// ============================================================
-// 核心数据结构
-// ============================================================
 
+// 核心数据结构
 export type {
   // 消息类型
   Message,
@@ -61,10 +55,8 @@ export {
   formatWorkspaceForDebug
 } from './core/workspace-data'
 
-// ============================================================
-// 消息操作
-// ============================================================
 
+// 消息操作
 export {
   selectMessages,
   selectFileMessages,
@@ -83,30 +75,24 @@ export {
   type MessageSelector
 } from './core/message-ops'
 
-// ============================================================
-// 消息构建器
-// ============================================================
 
+// 消息构建器
 export {
   buildMessages,
   type MessageBuilderInput,
   type MessageBuilderOutput
 } from './message-builder/message-builder'
 
-// ============================================================
-// 核心服务
-// ============================================================
 
+// 核心服务
 export { 
   AIService, 
   createAIService, 
   type AICallOptions 
 } from './services/ai-service'
 
-// ============================================================
-// Agent Pipeline 配置（向后兼容）
-// ============================================================
 
+// Agent Pipeline 配置（向后兼容）
 /**
  * Agent Pipeline 配置
  */
@@ -143,10 +129,7 @@ export type AgentPipelineConfig = {
   }
 }
 
-// ============================================================
 // 通用工具函数
-// ============================================================
-
 export {
   generateId,
   generateTaskId,
@@ -163,9 +146,8 @@ export {
   getNestedProperty
 } from './utils/utils'
 
-// ============================================================
+
 // HMR 支持
-// ============================================================
 
 if (import.meta.hot) {
   import.meta.hot.accept()

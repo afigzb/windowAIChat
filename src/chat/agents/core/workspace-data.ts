@@ -4,10 +4,7 @@
 
 import { generateWorkspaceId, generateDocumentId, getNestedProperty } from '../utils/utils'
 
-// ============================================================
 // 消息类型定义（带内部标记）
-// ============================================================
-
 /**
  * 消息类型标记
  */
@@ -72,10 +69,7 @@ export interface Message {
   _meta: MessageMetadata  // 下划线前缀表示内部字段
 }
 
-// ============================================================
 // 核心数据结构
-// ============================================================
-
 /**
  * 文档数据
  */
@@ -93,12 +87,10 @@ export interface Document {
 export type ExecutionStage = 'preprocessing' | 'generating' | 'completed' | 'failed'
 
 /**
- * WorkspaceData - Agent工作区数据（重构版）
- * 
- * 核心变化：使用 messages 数组替代分散的字段
+ * WorkspaceData - Agent工作区数据
  */
 export interface WorkspaceData {
-  // ========== 输入区（只读） ==========
+  // 输入区（只读）
   input: {
     /** 原始 messages 数组（带标记） */
     readonly rawMessages: Message[]
@@ -107,7 +99,7 @@ export interface WorkspaceData {
     readonly rawUserInput: string
   }
   
-  // ========== 工作区（可变） ==========
+  // 工作区（可变）
   workspace: {
     /** 预处理后的 messages 数组 */
     processedMessages: Message[]
@@ -132,7 +124,7 @@ export interface WorkspaceData {
     }>
   }
   
-  // ========== 输出区（最终结果） ==========
+  // 输出区（最终结果）
   output: {
     /** 最终答案 */
     finalAnswer?: string
@@ -147,7 +139,7 @@ export interface WorkspaceData {
     metadata: Record<string, any>
   }
   
-  // ========== 元数据 ==========
+  // 元数据
   meta: {
     /** 创建时间 */
     createdAt: number
@@ -160,10 +152,7 @@ export interface WorkspaceData {
   }
 }
 
-// ============================================================
 // 数据引用系统
-// ============================================================
-
 /**
  * DataReference - 数据引用
  * 
@@ -177,8 +166,6 @@ export type DataReference =
 
 /**
  * DataPath - 数据路径类型
- * 
- * 用于类型安全的路径访问
  */
 export type DataPath =
   | 'input.rawMessages'
@@ -194,15 +181,10 @@ export type DataPath =
   | 'output.metadata'
   | string  // 允许动态路径
 
-// ============================================================
 // 工具函数
-// ============================================================
 
 /**
  * 创建 WorkspaceData（新版本，基于 messages 数组）
- * 
- * @param rawMessages 带标记的原始 messages 数组
- * @param rawUserInput 原始用户输入文本
  */
 export function createWorkspace(
   rawMessages: Message[],
@@ -354,9 +336,7 @@ export function stripMetadata(messages: Message[]): Array<{ role: string; conten
   }))
 }
 
-// ============================================================
 // 辅助函数
-// ============================================================
 
 /**
  * 格式化WorkspaceData用于调试

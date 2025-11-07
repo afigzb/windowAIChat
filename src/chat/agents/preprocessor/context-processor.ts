@@ -8,7 +8,7 @@ import { createAIService } from '../services/ai-service'
 import { createMessage, findMessageIndex } from '../core/message-ops'
 import { globalMessageCache } from '../core/global-message-cache'
 
-// ==================== 配置常量 ====================
+// 配置常量
 
 const CONFIG = {
   /** 触发概括的最小消息数 */
@@ -21,7 +21,7 @@ const CONFIG = {
   DEFAULT_CACHE_KEY: 'default'
 } as const
 
-// ==================== 类型定义 ====================
+// 类型定义
 
 interface SummarizeDecision {
   shouldSummarize: boolean
@@ -30,7 +30,7 @@ interface SummarizeDecision {
   previousSummary?: Message
 }
 
-// ==================== 工具函数 ====================
+// 工具函数
 
 /**
  * 计算消息的总字符数
@@ -85,7 +85,7 @@ function findNewMessages(
   return { newMessages, newStartIndex }
 }
 
-// ==================== 核心业务逻辑 ====================
+// 核心业务逻辑 
 
 /**
  * 判断是否需要进行概括
@@ -164,8 +164,6 @@ function decideSummarization(
 
 /**
  * 概括消息列表
- * @param messages 要概括的消息
- * @param previousSummary 之前的概括（如果有）
  */
 async function summarizeMessages(
   messages: Message[],
@@ -230,7 +228,7 @@ function replaceMessages(
   return true
 }
 
-// ==================== 概括处理 ====================
+//  概括处理 
 
 /**
  * 执行概括处理
@@ -287,7 +285,7 @@ async function performSummarization(
   return { success: true, tokensUsed: CONFIG.ESTIMATED_TOKENS }
 }
 
-// ==================== 主函数 ====================
+//  主函数 
 
 /**
  * 处理上下文消息区域

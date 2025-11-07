@@ -1,10 +1,5 @@
 /**
  * 请求构建器 - 统一收集初始数据
- * 
- * 职责：
- * 1. 在发送请求前，统一收集所有必要的数据
- * 2. 规范化数据格式，确保后续流程不需要再做数据转换
- * 3. 这是整个请求流程的唯一数据源
  */
 
 import type { 
@@ -22,7 +17,6 @@ import { isInOverrideMode } from './context/system-prompt'
 
 /**
  * 收集附加内容
- * 统一处理各种形式的附加内容（tempContent, tempContentList）
  */
 function collectAttachedContents(
   tempContent?: string,
