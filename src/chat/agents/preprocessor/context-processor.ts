@@ -1,5 +1,15 @@
 /**
- * Context Processor - 上下文处理器
+ * Context Processor - 上下文处理器（滑动窗口版 + 乐观渲染）
+ * 
+ * 策略：
+ * 1. 保留最新8条消息（包括概括消息）
+ * 2. 超过8条时，通过概括压缩历史，使总数回到8条以内
+ * 3. 通过messageId匹配，检测用户是否切换了对话分支
+ * 
+ * 性能优化（乐观渲染）：
+ * - 有旧概括时：立即返回旧概括，后台异步更新（不阻塞）
+ * - 无旧概括时：首次必须等待概括完成（阻塞）
+ * - 下次请求时立即享受到后台概括的成果
  */
 
 import type { AIConfig } from '../../types'
@@ -8,52 +18,54 @@ import { createAIService } from '../services/ai-service'
 import { createMessage } from '../core/message-ops'
 import { globalMessageCache } from '../core/global-message-cache'
 
-// 配置常量
+//  配置常量 
 
 const CONFIG = {
-  /** 触发概括的最小消息数 */
-  MIN_MESSAGE_COUNT: 4,
-  /** 触发概括的新增字符数阈值 */
-  MIN_NEW_CHARS: 2000,
+  /** 滑动窗口大小：期望保留的总消息数（含概括） */
+  WINDOW_SIZE: 8,
+  /** 保护窗口大小：不参与概括的最新消息数 */
+  PROTECTED_SIZE: 4,
   /** 概括操作的估算token消耗 */
   ESTIMATED_TOKENS: 500,
   /** 默认缓存键 */
   DEFAULT_CACHE_KEY: 'default'
 } as const
 
-// 类型定义
-
-interface SummarizeDecision {
-  shouldSummarize: boolean
-  reason: string
-  cutIndex: number  // 概括截断点（概括覆盖到这个索引，不含）
-  newMessages: Message[]  // 新增的消息
-  previousSummaryText?: string  // 之前的概括文本
-}
-
-// 工具函数
+//  工具函数 
 
 /**
- * 获取或生成消息的唯一ID
+ * 获取消息的唯一ID
+ * 优先使用外部提供的稳定ID（来自FlatMessage）
  */
-function getMessageId(message: Message, index: number): string {
-  // 优先使用消息自带的ID
-  if (message._meta.messageId) {
-    return message._meta.messageId
+function getMessageId(message: Message): string {
+  if (!message._meta.messageId) {
+    throw new Error('[ContextProcessor] 消息缺少messageId，无法进行上下文处理')
   }
-  // 如果没有ID，生成一个基于位置和内容的ID
-  const contentHash = `${message.role}_${message.content.substring(0, 50)}_${message.content.length}`
-  const id = `${index}_${contentHash}`
-  // 保存到消息元数据中
-  message._meta.messageId = id
-  return id
+  return message._meta.messageId
 }
 
 /**
- * 计算消息的总字符数
+ * 为消息列表生成ID列表
  */
-function calculateTotalChars(messages: Message[]): number {
-  return messages.reduce((sum, msg) => sum + msg.content.length, 0)
+function generateMessageIds(messages: Message[]): string[] {
+  return messages.map(msg => getMessageId(msg))
+}
+
+/**
+ * 检查两个数组是否完全相等
+ */
+function isArrayEqual(arr1: string[], arr2: string[]): boolean {
+  if (arr1.length !== arr2.length) {
+    return false
+  }
+  
+  for (let i = 0; i < arr1.length; i++) {
+    if (arr1[i] !== arr2[i]) {
+      return false
+    }
+  }
+  
+  return true
 }
 
 /**
@@ -63,272 +75,376 @@ function markAsProcessed(messages: Message[]): void {
   messages.forEach(m => { m._meta.processed = true })
 }
 
-// 核心业务逻辑 
+//  概括逻辑 
 
 /**
- * 判断是否需要进行概括
+ * 调用AI执行概括
  */
-function decideSummarization(
-  messages: Message[], 
-  cacheKey: string
-): SummarizeDecision {
-  // 规则1: 消息数量太少，跳过概括
-  if (messages.length <= CONFIG.MIN_MESSAGE_COUNT) {
-    return {
-      shouldSummarize: false,
-      reason: `消息数量(${messages.length})未达到阈值(${CONFIG.MIN_MESSAGE_COUNT})`,
-      cutIndex: 0,
-      newMessages: messages
-    }
-  }
-  
-  // 确保所有消息都有ID
-  messages.forEach((msg, idx) => getMessageId(msg, idx))
-  
-  // 获取缓存中的概括信息
-  const cachedSummary = globalMessageCache.getContextSummary(cacheKey)
-  
-  if (!cachedSummary) {
-    // 首次概括：检查总字符数
-    const totalChars = calculateTotalChars(messages)
-    if (totalChars < CONFIG.MIN_NEW_CHARS) {
-      return {
-        shouldSummarize: false,
-        reason: `首次概括但字符数(${totalChars})未达到阈值(${CONFIG.MIN_NEW_CHARS})`,
-        cutIndex: 0,
-        newMessages: messages
-      }
-    }
-    
-    // 首次概括：概括所有消息
-    return {
-      shouldSummarize: true,
-      reason: `首次概括，消息数${messages.length}条，字符数${totalChars}`,
-      cutIndex: messages.length,  // 截断点：所有消息都概括
-      newMessages: messages,
-      previousSummaryText: undefined
-    }
-  }
-  
-  // 非首次概括：找出新增消息
-  // 获取最后一个已概括的消息ID
-  const lastSummarizedIds = cachedSummary.summarizedMessageIds
-  if (lastSummarizedIds.length === 0) {
-    // 缓存异常，当作首次概括
-    const totalChars = calculateTotalChars(messages)
-    return {
-      shouldSummarize: totalChars >= CONFIG.MIN_NEW_CHARS,
-      reason: totalChars >= CONFIG.MIN_NEW_CHARS 
-        ? `缓存异常，重新概括，字符数${totalChars}`
-        : `缓存异常但字符数不足(${totalChars})`,
-      cutIndex: totalChars >= CONFIG.MIN_NEW_CHARS ? messages.length : 0,
-      newMessages: messages,
-      previousSummaryText: undefined
-    }
-  }
-  
-  // 找到截断点：最后一个已概括消息的位置
-  const lastSummarizedId = lastSummarizedIds[lastSummarizedIds.length - 1]
-  let cutIndex = -1
-  
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if (getMessageId(messages[i], i) === lastSummarizedId) {
-      cutIndex = i + 1  // 截断点是这个消息的下一个位置
-      break
-    }
-  }
-  
-  // 如果找不到截断点，说明消息列表已经完全不同了，当作首次概括
-  if (cutIndex < 0) {
-    const totalChars = calculateTotalChars(messages)
-    return {
-      shouldSummarize: totalChars >= CONFIG.MIN_NEW_CHARS,
-      reason: totalChars >= CONFIG.MIN_NEW_CHARS
-        ? `找不到上次概括的位置，重新概括，字符数${totalChars}`
-        : `找不到上次概括的位置但字符数不足(${totalChars})`,
-      cutIndex: totalChars >= CONFIG.MIN_NEW_CHARS ? messages.length : 0,
-      newMessages: messages,
-      previousSummaryText: undefined
-    }
-  }
-  
-  // 提取新增消息
-  const newMessages = messages.slice(cutIndex)
-  
-  if (newMessages.length === 0) {
-    return {
-      shouldSummarize: false,
-      reason: '没有新增消息',
-      cutIndex: cutIndex,
-      newMessages: []
-    }
-  }
-  
-  // 检查新增消息数量
-  if (newMessages.length <= CONFIG.MIN_MESSAGE_COUNT) {
-    return {
-      shouldSummarize: false,
-      reason: `新增消息数(${newMessages.length})未达到阈值(${CONFIG.MIN_MESSAGE_COUNT})`,
-      cutIndex: cutIndex,
-      newMessages
-    }
-  }
-  
-  // 检查新增字符数
-  const newChars = calculateTotalChars(newMessages)
-  if (newChars < CONFIG.MIN_NEW_CHARS) {
-    return {
-      shouldSummarize: false,
-      reason: `新增字符数(${newChars})未达到阈值(${CONFIG.MIN_NEW_CHARS})`,
-      cutIndex: cutIndex,
-      newMessages
-    }
-  }
-  
-  // 需要概括：旧概括 + 新消息 一起概括
-  const previousSummaryText = cachedSummary.summaryMessage.content
-  
-  return {
-    shouldSummarize: true,
-    reason: `新增${newMessages.length}条消息，字符数${newChars}，与旧概括合并`,
-    cutIndex: messages.length,  // 新的截断点：概括到最后
-    newMessages,
-    previousSummaryText
-  }
-}
-
-/**
- * 概括消息列表
- * 
- * @param messages 要概括的消息列表
- * @param previousSummaryText 之前的概括文本（如果有）
- */
-async function summarizeMessages(
+async function callAiForSummary(
   messages: Message[],
   aiConfig: AIConfig,
-  previousSummaryText?: string,
+  previousSummary?: string,
   customProviderId?: string,
   abortSignal?: AbortSignal
 ): Promise<string> {
   const effectiveConfig = customProviderId 
     ? { ...aiConfig, currentProviderId: customProviderId }
     : aiConfig
+  
   const aiService = createAIService(effectiveConfig)
   
-  const customSystemPrompt = aiConfig.agentConfig?.preprocessor?.contextProcessor?.systemPrompt
-  const defaultPrompt = `你是一个对话历史概括助手。请概括对话历史，保留关键信息。
-# 概括要求
-1. 提炼对话中的关键信息和结论
-2. 保持时间顺序和逻辑连贯性
-3. 压缩冗余信息，保持简洁
-4. 如果有之前的概括，要将新旧内容整合为一个连贯的概括
-# 输出格式
-直接输出概括内容，不要添加额外说明。`
+  // 获取自定义提示词或使用默认
+  const customPrompt = aiConfig.agentConfig?.preprocessor?.contextProcessor?.systemPrompt
+  const defaultPrompt = `你是对话历史概括助手。请简洁地概括对话内容，保留关键信息和结论。
+# 要求
+1. 保持时间顺序和逻辑连贯
+2. 压缩冗余，突出重点
+3. 如有旧概括，整合新旧内容为连贯概括
+# 输出
+直接输出概括内容，无需额外说明。`
   
   const promptMessages: any[] = [
     {
       role: 'system',
-      content: customSystemPrompt || defaultPrompt
+      content: customPrompt || defaultPrompt
     }
   ]
   
-  // 如果有之前的概括，先添加
-  if (previousSummaryText) {
+  // 如果有旧概括，先添加
+  if (previousSummary) {
     promptMessages.push({
       role: 'assistant',
-      content: `[之前的对话概括]\n${previousSummaryText}`
+      content: `[之前的概括]\n${previousSummary}`
     })
   }
   
-  // 添加新消息（只保留真实对话，过滤掉概括类型的消息）
+  // 添加要概括的消息（过滤掉概括类型的消息）
   const realMessages = messages.filter(m => m._meta.type !== 'context_summary')
   promptMessages.push(...realMessages.map(m => ({
     role: m.role,
     content: m.content
   })))
   
-  const summary = await aiService.call(promptMessages, { abortSignal })
-  return summary
+  return await aiService.call(promptMessages, { abortSignal })
 }
 
 /**
- * 替换消息数组中的指定范围
+ * 创建概括消息并更新缓存
  */
-function replaceMessages(
+function createSummaryAndCache(
+  summaryText: string,
+  allSummarizedMessages: Message[],
+  cacheKey: string
+): Message {
+  const summaryMessage = createMessage(
+    'assistant',
+    `[对话历史概括]\n\n${summaryText}`,
+    'context_summary',
+    false
+  )
+  
+  // 生成所有已概括消息的ID列表
+  const allSummarizedIds = generateMessageIds(allSummarizedMessages)
+  
+  // 更新缓存
+  globalMessageCache.setContextSummary(cacheKey, {
+    summaryMessage,
+    summarizedMessageIds: allSummarizedIds,
+    totalChars: allSummarizedMessages.reduce((sum, m) => sum + m.content.length, 0),
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  })
+  
+  return summaryMessage
+}
+
+//  缓存状态管理 
+
+/**
+ * 缓存状态
+ */
+interface CacheState {
+  /** 已概括的消息数量 */
+  summarizedCount: number
+  /** 概括消息对象 */
+  summaryMessage?: Message
+  /** 概括文本内容 */
+  summaryText?: string
+}
+
+/**
+ * 检查并获取有效的缓存状态
+ * 
+ * 策略：只验证已概括部分的ID是否匹配
+ * - 已概括部分ID匹配 → 缓存有效（未概括部分的修改不影响）
+ * - 已概括部分ID不匹配 → 缓存失效（分支切换或历史修改）
+ */
+function validateCache(
+  cacheKey: string,
+  currentIds: string[]
+): CacheState {
+  const cachedSummary = globalMessageCache.getContextSummary(cacheKey)
+  
+  if (!cachedSummary) {
+    return { summarizedCount: 0 }
+  }
+  
+  const summarizedIds = cachedSummary.summarizedMessageIds
+  const summarizedCount = summarizedIds.length
+  
+  // 检查当前消息数是否足够覆盖已概括的部分
+  if (currentIds.length < summarizedCount) {
+    // 当前消息比已概括的少，说明历史被删除了，缓存失效
+    globalMessageCache.deleteContextSummary(cacheKey)
+    pendingSummaries.delete(cacheKey)
+    return { summarizedCount: 0 }
+  }
+  
+  // 只比较已概括部分的ID（前N条）
+  const currentSummarizedIds = currentIds.slice(0, summarizedCount)
+  const isMatch = isArrayEqual(summarizedIds, currentSummarizedIds)
+  
+  if (!isMatch) {
+    // 已概括部分ID不匹配，缓存失效
+    globalMessageCache.deleteContextSummary(cacheKey)
+    pendingSummaries.delete(cacheKey)
+    return { summarizedCount: 0 }
+  }
+  
+  // 缓存有效，返回状态
+  return {
+    summarizedCount,
+    summaryMessage: cachedSummary.summaryMessage,
+    summaryText: cachedSummary.summaryMessage.content.replace(/^\[对话历史概括\]\n\n/, '')
+  }
+}
+
+//  消息替换操作 
+
+/**
+ * 在完整消息列表中替换指定范围的消息
+ */
+function replaceMessagesInContext(
   allMessages: Message[],
-  contextMessages: Message[],
+  originalMessages: Message[],
   replacements: Message[]
-): boolean {
-  if (contextMessages.length === 0) return false
-  
-  const firstIndex = allMessages.indexOf(contextMessages[0])
-  if (firstIndex < 0) return false
-  
-  // 替换指定范围的消息
-  allMessages.splice(firstIndex, contextMessages.length, ...replacements)
-  return true
+): void {
+  const firstIndex = allMessages.indexOf(originalMessages[0])
+  if (firstIndex >= 0) {
+    allMessages.splice(firstIndex, originalMessages.length, ...replacements)
+  }
 }
 
-//  概括处理 
+/**
+ * 应用概括到消息列表（概括 + 未概括的新消息）
+ */
+function applyOptimisticSummary(
+  allMessages: Message[],
+  contextMessages: Message[],
+  summaryMessage: Message,
+  summarizedCount: number
+): void {
+  const newMessages = contextMessages.slice(summarizedCount)
+  replaceMessagesInContext(allMessages, contextMessages, [summaryMessage, ...newMessages])
+}
+
+// 后台概括任务
 
 /**
- * 执行概括处理
+ * 后台任务队列（避免重复触发）
  */
-async function performSummarization(
+const pendingSummaries = new Map<string, Promise<void>>()
+
+/**
+ * 验证后台任务是否应该写入缓存
+ * 
+ * 策略：只验证已概括部分的ID是否匹配（与 validateCache 保持一致）
+ */
+function shouldCommitBackgroundSummary(
+  cacheKey: string,
+  expectedMessageIds: string[]
+): boolean {
+  const cachedSummary = globalMessageCache.getContextSummary(cacheKey)
+  
+  if (!cachedSummary) {
+    return false // 缓存被删除，说明对话已切换
+  }
+  
+  const summarizedIds = cachedSummary.summarizedMessageIds
+  const summarizedCount = summarizedIds.length
+  
+  // 检查预期的消息ID数量是否足够
+  if (expectedMessageIds.length < summarizedCount) {
+    return false
+  }
+  
+  // 只比较已概括部分的ID
+  const expectedSummarizedIds = expectedMessageIds.slice(0, summarizedCount)
+  return isArrayEqual(summarizedIds, expectedSummarizedIds)
+}
+
+/**
+ * 后台异步执行概括（不阻塞主流程）
+ */
+function triggerBackgroundSummary(
   contextMessages: Message[],
+  aiConfig: AIConfig,
+  cacheState: CacheState,
+  expectedMessageIds: string[],
+  cacheKey: string,
+  customProviderId?: string
+): void {
+  // 避免重复触发相同任务
+  if (pendingSummaries.has(cacheKey)) {
+    return
+  }
+  
+  const promise = (async () => {
+    try {
+      const needSummarizeCount = contextMessages.length - CONFIG.PROTECTED_SIZE
+      
+      // 已概括数量足够，无需更新
+      if (needSummarizeCount <= cacheState.summarizedCount) {
+        return
+      }
+      
+      // 只概括新增部分
+      const newMessagesToSummarize = contextMessages.slice(
+        cacheState.summarizedCount,
+        needSummarizeCount
+      )
+      
+      const summaryText = await callAiForSummary(
+        newMessagesToSummarize,
+        aiConfig,
+        cacheState.summaryText,
+        customProviderId
+        // 注意：后台任务不传 abortSignal，避免被意外取消
+      )
+      
+      // 概括完成后验证：确保对话未切换
+      if (!shouldCommitBackgroundSummary(cacheKey, expectedMessageIds)) {
+        return
+      }
+      
+      // 创建并缓存新概括
+      const allSummarizedMessages = contextMessages.slice(0, needSummarizeCount)
+      createSummaryAndCache(summaryText, allSummarizedMessages, cacheKey)
+      
+    } catch (error: any) {
+      console.warn(`[ContextProcessor] 后台概括失败: ${error.message}`)
+    } finally {
+      pendingSummaries.delete(cacheKey)
+    }
+  })()
+  
+  pendingSummaries.set(cacheKey, promise)
+}
+
+//  主处理流程 
+
+/**
+ * 处理情况1：消息未超过窗口大小
+ */
+function handleWithinWindow(
   allMessages: Message[],
-  decision: SummarizeDecision,
+  contextMessages: Message[],
+  cacheState: CacheState
+): ProcessResult {
+  if (cacheState.summaryMessage) {
+    // 有旧概括：用概括替换已概括的消息
+    applyOptimisticSummary(
+      allMessages,
+      contextMessages,
+      cacheState.summaryMessage,
+      cacheState.summarizedCount
+    )
+  } else {
+    // 无概括：保留所有原始消息
+    markAsProcessed(contextMessages)
+  }
+  
+  return { success: true, tokensUsed: 0 }
+}
+
+/**
+ * 处理情况2：超过窗口，有旧概括（乐观渲染）
+ */
+function handleOptimisticRender(
+  allMessages: Message[],
+  contextMessages: Message[],
+  cacheState: CacheState,
+  aiConfig: AIConfig,
+  currentIds: string[],
+  cacheKey: string,
+  customProviderId?: string
+): ProcessResult {
+  // 立即使用旧概括返回（不阻塞）
+  applyOptimisticSummary(
+    allMessages,
+    contextMessages,
+    cacheState.summaryMessage!,
+    cacheState.summarizedCount
+  )
+  
+  // 检查是否需要后台更新
+  const needSummarizeCount = contextMessages.length - CONFIG.PROTECTED_SIZE
+  if (needSummarizeCount > cacheState.summarizedCount) {
+    triggerBackgroundSummary(
+      contextMessages,
+      aiConfig,
+      cacheState,
+      currentIds,
+      cacheKey,
+      customProviderId
+    )
+  }
+  
+  return { success: true, tokensUsed: 0 }
+}
+
+/**
+ * 处理情况3：首次概括，无旧概括（必须等待）
+ */
+async function handleFirstTimeSummary(
+  allMessages: Message[],
+  contextMessages: Message[],
+  cacheState: CacheState,
   aiConfig: AIConfig,
   cacheKey: string,
   customProviderId?: string,
   abortSignal?: AbortSignal
 ): Promise<ProcessResult> {
-  // 执行概括：旧概括文本 + 新消息 一起概括
-  const summary = await summarizeMessages(
-    decision.newMessages,
+  const needSummarizeCount = contextMessages.length - CONFIG.PROTECTED_SIZE
+  
+  // 只概括新增部分
+  const newMessagesToSummarize = contextMessages.slice(
+    cacheState.summarizedCount,
+    needSummarizeCount
+  )
+  
+  // 调用AI概括（会整合旧概括）
+  const summaryText = await callAiForSummary(
+    newMessagesToSummarize,
     aiConfig,
-    decision.previousSummaryText,
+    cacheState.summaryText,
     customProviderId,
     abortSignal
   )
   
-  // 创建新的概括消息
-  const summaryMessage = createMessage(
-    'assistant',
-    `[对话历史概括]\n\n${summary}`,
-    'context_summary',
-    false  // 概括消息不需要预处理
-  )
+  // 创建新概括并更新缓存
+  const allSummarizedMessages = contextMessages.slice(0, needSummarizeCount)
+  const summaryMessage = createSummaryAndCache(summaryText, allSummarizedMessages, cacheKey)
   
-  // 准备替换的消息列表
-  // 如果cutIndex小于contextMessages.length，说明有剩余未概括的消息
-  const remainingMessages = contextMessages.slice(decision.cutIndex)
-  const replacements = remainingMessages.length > 0 
-    ? [summaryMessage, ...remainingMessages]
-    : [summaryMessage]
-  
-  // 更新缓存：记录所有已概括的消息ID
-  const summarizedMessages = contextMessages.slice(0, decision.cutIndex)
-  const newSummarizedIds = summarizedMessages.map((msg, idx) => getMessageId(msg, idx))
-  
-  globalMessageCache.setContextSummary(cacheKey, {
-    summaryMessage,
-    summarizedMessageIds: newSummarizedIds,  // 只记录已概括的消息ID
-    totalChars: calculateTotalChars(summarizedMessages),
-    createdAt: Date.now(),
-    updatedAt: Date.now()
-  })
-  
-  // 替换消息：用概括+剩余消息替换所有context消息
-  replaceMessages(allMessages, contextMessages, replacements)
+  // 替换为：新概括 + 保护窗口内的消息
+  const protectedMessages = contextMessages.slice(needSummarizeCount)
+  replaceMessagesInContext(allMessages, contextMessages, [summaryMessage, ...protectedMessages])
   
   return { success: true, tokensUsed: CONFIG.ESTIMATED_TOKENS }
 }
 
-//  主函数 
-
 /**
- * 处理上下文消息区域
+ * 滑动窗口策略处理上下文消息
  */
 export async function processContextRange(
   contextMessages: Message[],
@@ -338,50 +454,54 @@ export async function processContextRange(
   customProviderId?: string,
   cacheKey: string = CONFIG.DEFAULT_CACHE_KEY
 ): Promise<ProcessResult> {
-  // 从 context 中提取需要的数据
-  const userInput = context.input.userInput
-  const aiConfig = context.input.aiConfig
   // 空消息直接返回
   if (contextMessages.length === 0) {
     return { success: true, tokensUsed: 0 }
   }
   
   try {
-    // 1. 判断是否需要概括
-    const decision = decideSummarization(contextMessages, cacheKey)
+    const aiConfig = context.input.aiConfig
+    const currentIds = generateMessageIds(contextMessages)
     
-    if (!decision.shouldSummarize) {
-      // 不需要概括
-      const cachedSummary = globalMessageCache.getContextSummary(cacheKey)
-      
-      if (cachedSummary && decision.newMessages.length > 0) {
-        // 有旧概括，且有新消息（但不足以触发概括）
-        // 替换为：旧概括 + 新消息
-        replaceMessages(allMessages, contextMessages, [
-          cachedSummary.summaryMessage,
-          ...decision.newMessages
-        ])
-      } else {
-        // 完全不需要概括：标记为已处理，保留所有消息
-        markAsProcessed(contextMessages)
-      }
-      
-      return { success: true, tokensUsed: 0 }
+    // 验证缓存并获取状态
+    const cacheState = validateCache(cacheKey, currentIds)
+    
+    // 计算当前有效消息数
+    const unSummarizedCount = contextMessages.length - cacheState.summarizedCount
+    const effectiveMessageCount = (cacheState.summaryMessage ? 1 : 0) + unSummarizedCount
+    
+    // 情况1：未超过窗口，不需要新概括
+    if (effectiveMessageCount <= CONFIG.WINDOW_SIZE) {
+      return handleWithinWindow(allMessages, contextMessages, cacheState)
     }
     
-    // 2. 需要概括：执行概括处理
-    return await performSummarization(
-      contextMessages,
+    // 情况2：超过窗口 + 有旧概括（乐观渲染）
+    if (cacheState.summaryMessage) {
+      return handleOptimisticRender(
+        allMessages,
+        contextMessages,
+        cacheState,
+        aiConfig,
+        currentIds,
+        cacheKey,
+        customProviderId
+      )
+    }
+    
+    // 情况3：超过窗口 + 无旧概括（首次等待）
+    return await handleFirstTimeSummary(
       allMessages,
-      decision,
+      contextMessages,
+      cacheState,
       aiConfig,
       cacheKey,
       customProviderId,
       abortSignal
     )
+    
   } catch (error: any) {
-    // 失败时保留原内容，标记为已处理
+    // 失败时保留原消息，标记为已处理
     markAsProcessed(contextMessages)
-    return { success: false, tokensUsed: 0 }
+    return { success: false, tokensUsed: 0, error: error.message }
   }
 }

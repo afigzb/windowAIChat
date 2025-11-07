@@ -86,6 +86,8 @@ export interface Message {
 export interface ApiMessage {
   role: string
   content: string
+  /** 消息ID（如果来自FlatMessage） */
+  id?: string
 }
 
  

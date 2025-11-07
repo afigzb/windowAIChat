@@ -156,7 +156,8 @@ export function buildMessages(input: MessageBuilderInput): MessageBuilderOutput 
         type: 'context',
         needsProcessing: true,
         canMerge: true,
-        originalIndex: currentIndex
+        originalIndex: currentIndex,
+        messageId: msg.id  // 保留原始消息ID
       }
     })
     currentIndex++
