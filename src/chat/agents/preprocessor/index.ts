@@ -1,11 +1,5 @@
 /**
  * Preprocessor - 预处理器统一入口
- * 
- * 核心模式：选择消息 → 发送请求 → 写入结果
- * 
- * 两个主要操作：
- * 1. 文件概括：选择 type === 'file' 的消息 → 发送概括请求 → 替换原消息的 content
- * 2. 上下文概括：选择 type === 'context' 的连续消息 → 发送概括请求 → 用一条 'context_summary' 替换
  */
 
 import type { AgentContext, PreprocessorConfig, PreprocessingResponse } from '../types'

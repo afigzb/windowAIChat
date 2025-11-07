@@ -1,5 +1,5 @@
 /**
- * Agent Context - 上下文管理（替代 workspace-data.ts）
+ * Agent Context - 上下文管理
  * 
  * 核心原则：
  * - input 区域是原始数据的副本，只读不可变

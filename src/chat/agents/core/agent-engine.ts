@@ -24,7 +24,7 @@ export async function runAgentEngine(input: AgentEngineInput): Promise<AgentEngi
   const verbose = config?.verbose ?? true
   
   try {
-    // ========== 阶段1：Preprocessing ==========
+    // 阶段1：Preprocessing
     updateStage(context, 'preprocessing')
     
     if (config?.onProgress) {
@@ -41,7 +41,7 @@ export async function runAgentEngine(input: AgentEngineInput): Promise<AgentEngi
       context.output.tokensUsed += preprocessingResult.tokensUsed
     }
     
-    // ========== 阶段2：直接生成回答 ==========
+    // 阶段2：直接生成回答
     updateStage(context, 'generating')
     
     if (config?.onProgress) {
@@ -51,7 +51,7 @@ export async function runAgentEngine(input: AgentEngineInput): Promise<AgentEngi
     // 构建请求消息
     const messages = context.processing.messages
     
-    // 转换为发送格式（直接使用已经构建好的消息，包括系统提示词）
+    // 转换为发送格式
     const requestMessages = selectForSending(messages)
     
     // 发送AI请求
@@ -71,7 +71,7 @@ export async function runAgentEngine(input: AgentEngineInput): Promise<AgentEngi
     // 设置最终答案
     context.output.finalAnswer = finalAnswer.trim()
     
-    // ========== 完成 ==========
+    // 完成
     updateStage(context, 'completed')
     
     return {

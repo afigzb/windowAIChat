@@ -1,8 +1,5 @@
 /**
  * File Processor - 文件处理器
- * 
- * 职责：处理文件消息的概括
- * 模式：读取文件消息 → 检查缓存 → 发送概括请求（如需要） → 保存缓存 → 替换原消息内容
  */
 
 import type { AgentContext, Message, ProcessResult } from '../types'
