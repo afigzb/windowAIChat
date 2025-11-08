@@ -18,6 +18,21 @@ import { createAIService } from '../services/ai-service'
 import { createMessage } from '../core/message-ops'
 import { globalMessageCache } from '../core/global-message-cache'
 
+/**
+ * 默认的上下文概括系统提示词
+ */
+export const DEFAULT_CONTEXT_SUMMARY_PROMPT = `你是一位专业的对话历史概括助手，擅长从多轮对话中提炼核心信息与逻辑脉络。
+你的任务是将用户提供的对话记录进行简洁而连贯的概括，帮助AI高效理解历史上下文。
+概括要求：
+1.保持逻辑与时间顺序：按对话发展顺序整理信息，避免打乱因果或主题关系。
+2.突出核心内容：保留关键问题、结论、决策与重要观点。
+3.压缩冗余：删除闲聊、重复表达和无关内容，使概括简洁高效。
+4.整合旧概括：若存在之前的概括，将新旧内容融合为一份连贯的总结，避免重复或断裂。
+5.自然输出：直接输出概括后的内容，不要添加"概括"、"总结"等提示语。
+输出目标：
+1.概括应清晰、紧凑、具备上下文连贯性。
+2.让AI或读者能快速理解对话的主题、方向与结论。`
+
 //  配置常量 
 
 const CONFIG = {
@@ -95,18 +110,11 @@ async function callAiForSummary(
   
   // 获取自定义提示词或使用默认
   const customPrompt = aiConfig.agentConfig?.preprocessor?.contextProcessor?.systemPrompt
-  const defaultPrompt = `你是对话历史概括助手。请简洁地概括对话内容，保留关键信息和结论。
-# 要求
-1. 保持时间顺序和逻辑连贯
-2. 压缩冗余，突出重点
-3. 如有旧概括，整合新旧内容为连贯概括
-# 输出
-直接输出概括内容，无需额外说明。`
   
   const promptMessages: any[] = [
     {
       role: 'system',
-      content: customPrompt || defaultPrompt
+      content: customPrompt || DEFAULT_CONTEXT_SUMMARY_PROMPT
     }
   ]
   

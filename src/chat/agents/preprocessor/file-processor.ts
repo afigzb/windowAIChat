@@ -8,6 +8,18 @@ import { replaceContent } from '../core/message-ops'
 import { fileSummaryCacheManager } from './cache-manager'
 
 /**
+ * 默认的文件概括系统提示词
+ */
+export const DEFAULT_FILE_SUMMARY_PROMPT = `你是一位专业的小说文档概括助手，擅长在保留故事结构和叙事重点的前提下，对小说文本进行智能压缩和提炼。
+你的任务是对用户提供的文本进行内容概括，输出一个简洁但信息完整的版本。
+概括要求：
+1.保留核心要素：保留故事主线、关键人物、主要冲突、叙事结构和重要情节转折。
+2.删除冗余细节：删去过多的环境描写、重复情节或无关对白。
+3.保持逻辑连贯：概括后的内容应让AI或读者能清晰理解文本的结构与核心作用。
+3.避免格式化说明：直接输出概括后的内容，不要添加"摘要"、"概括"等提示性前缀。
+4.压缩比例：目标为原文长度的 30%–50%，在保证完整性的前提下尽可能凝练。`
+
+/**
  * 处理单个文件消息
  */
 export async function processFile(
@@ -62,8 +74,9 @@ export async function processFile(
     
     // 如果没有缓存，调用AI生成概括
     if (!summaryContent) {
-      // 构建概括提示词（不依赖用户问题，通用概括）
-      const systemPrompt = buildFileSummarySystemPrompt()
+      // 获取自定义提示词或使用默认
+      const customPrompt = context.input.aiConfig.agentConfig?.preprocessor?.fileProcessor?.systemPrompt
+      const systemPrompt = customPrompt || DEFAULT_FILE_SUMMARY_PROMPT
       const userPrompt = buildFileSummaryUserPrompt(actualContent, fileName || '未知文件')
       
       // 创建AI服务（使用 context 中的 aiConfig）
@@ -108,20 +121,6 @@ export async function processFile(
       error: error.message || '文件处理失败'
     }
   }
-}
-
-/**
- * 构建文件概括的 System Prompt
- */
-function buildFileSummarySystemPrompt(): string {
-  return `你是一位专业的小说文档概括助手，擅长在保留故事结构和叙事重点的前提下，对小说文本进行智能压缩和提炼。
-你的任务是对用户提供的文本进行内容概括，输出一个简洁但信息完整的版本。
-概括要求：
-1.保留核心要素：保留故事主线、关键人物、主要冲突、叙事结构和重要情节转折。
-2.删除冗余细节：删去过多的环境描写、重复情节或无关对白。
-3.保持逻辑连贯：概括后的内容应让AI或读者能清晰理解文本的结构与核心作用。
-3.避免格式化说明：直接输出概括后的内容，不要添加“摘要”、“概括”等提示性前缀。
-4.压缩比例：目标为原文长度的 30%–50%，在保证完整性的前提下尽可能凝练。`
 }
 
 /**

@@ -165,6 +165,8 @@ export interface AgentContext {
  * 处理器配置（文件和上下文处理器共用）
  */
 export interface ProcessorConfig {
+  /** 是否启用该处理器（默认：文件处理器关闭，上下文处理器开启） */
+  enabled?: boolean
   /** 使用的模型ID（未设置则使用主模型） */
   providerId?: string
   /** 自定义提示词（未设置则使用默认） */
@@ -175,9 +177,6 @@ export interface ProcessorConfig {
  * 预处理器配置
  */
 export interface PreprocessorConfig {
-  /** 是否跳过预处理（直接使用原始输入） */
-  skip?: boolean
-  
   /** 是否并行处理文件（默认true） */
   parallelFiles?: boolean
   

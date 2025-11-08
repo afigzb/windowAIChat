@@ -1,10 +1,127 @@
 import { useState, useEffect } from 'react'
 import type { AIConfig } from '../chat'
 import { Tooltip } from '../components'
+import { DEFAULT_FILE_SUMMARY_PROMPT } from '../chat/agents/preprocessor/file-processor'
+import { DEFAULT_CONTEXT_SUMMARY_PROMPT } from '../chat/agents/preprocessor/context-processor'
 
 interface AgentsPageProps {
   config: AIConfig
   onConfigChange: (config: AIConfig) => void
+}
+
+interface ProcessorConfigSectionProps {
+  title: string
+  tooltip: string
+  enabled: boolean
+  providerId: string
+  prompt: string
+  defaultPrompt: string
+  providers: AIConfig['providers']
+  currentProviderId: string
+  onToggle: (enabled: boolean) => void
+  onProviderChange: (providerId: string) => void
+  onPromptChange: (prompt: string) => void
+  onPromptReset: () => void
+  onSave: () => void
+}
+
+/**
+ * 处理器配置区块组件（文件/上下文共用）
+ */
+function ProcessorConfigSection({
+  title,
+  tooltip,
+  enabled,
+  providerId,
+  prompt,
+  defaultPrompt,
+  providers,
+  currentProviderId,
+  onToggle,
+  onProviderChange,
+  onPromptChange,
+  onPromptReset,
+  onSave
+}: ProcessorConfigSectionProps) {
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
+      <div className="flex items-center justify-between border-b pb-3">
+        <div className="flex items-center space-x-2">
+          <h2 className="text-lg font-medium text-gray-900">{title}</h2>
+          <Tooltip content={tooltip} />
+        </div>
+        <ToggleSwitch checked={enabled} onChange={onToggle} />
+      </div>
+
+      {enabled && (
+        <>
+          {/* 模型选择 */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">使用模型</label>
+            <select
+              value={providerId}
+              onChange={(e) => onProviderChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+            >
+              {providers.map(provider => (
+                <option key={provider.id} value={provider.id}>
+                  {provider.name} ({provider.model})
+                </option>
+              ))}
+            </select>
+            {providerId === currentProviderId && (
+              <p className="text-xs text-gray-500">使用主对话模型</p>
+            )}
+          </div>
+
+          {/* 系统提示词 */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-gray-700">系统提示词</label>
+              {prompt && (
+                <button
+                  onClick={onPromptReset}
+                  className="text-xs text-blue-600 hover:text-blue-700"
+                >
+                  恢复默认
+                </button>
+              )}
+            </div>
+            <textarea
+              value={prompt || defaultPrompt}
+              onChange={(e) => onPromptChange(e.target.value)}
+              onBlur={onSave}
+              placeholder="自定义系统提示词"
+              rows={8}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono resize-none bg-white"
+            />
+            <p className="text-xs text-gray-500">
+              {prompt 
+                ? '使用自定义提示词。点击"恢复默认"可清空并使用默认提示词。' 
+                : '当前显示默认提示词。可直接编辑修改，点击"恢复默认"可清空自定义内容。'}
+            </p>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+/**
+ * 开关组件
+ */
+function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (checked: boolean) => void }) {
+  return (
+    <label className="relative inline-flex items-center cursor-pointer">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="sr-only peer"
+      />
+      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+    </label>
+  )
 }
 
 /**
@@ -14,6 +131,9 @@ export function AgentsPage({ config, onConfigChange }: AgentsPageProps) {
   const [agentEnabled, setAgentEnabled] = useState(config.agentConfig?.enabled ?? false)
   
   // 文件概括配置
+  const [fileProcessorEnabled, setFileProcessorEnabled] = useState(
+    config.agentConfig?.preprocessor?.fileProcessor?.enabled ?? false
+  )
   const [fileProviderId, setFileProviderId] = useState(
     config.agentConfig?.preprocessor?.fileProcessor?.providerId || config.currentProviderId
   )
@@ -22,6 +142,9 @@ export function AgentsPage({ config, onConfigChange }: AgentsPageProps) {
   )
 
   // 上下文概括配置
+  const [contextProcessorEnabled, setContextProcessorEnabled] = useState(
+    config.agentConfig?.preprocessor?.contextProcessor?.enabled ?? true
+  )
   const [contextProviderId, setContextProviderId] = useState(
     config.agentConfig?.preprocessor?.contextProcessor?.providerId || config.currentProviderId
   )
@@ -29,81 +152,129 @@ export function AgentsPage({ config, onConfigChange }: AgentsPageProps) {
     config.agentConfig?.preprocessor?.contextProcessor?.systemPrompt || ''
   )
 
-  // 同步配置变化（只在必要时更新，避免覆盖用户正在编辑的值）
+  // 同步配置变化
   useEffect(() => {
     setAgentEnabled(config.agentConfig?.enabled ?? false)
-    
-    // 只在配置中有明确值时才更新，否则保持当前状态
-    const newFileProviderId = config.agentConfig?.preprocessor?.fileProcessor?.providerId || config.currentProviderId
-    const newFilePrompt = config.agentConfig?.preprocessor?.fileProcessor?.systemPrompt || ''
-    const newContextProviderId = config.agentConfig?.preprocessor?.contextProcessor?.providerId || config.currentProviderId
-    const newContextPrompt = config.agentConfig?.preprocessor?.contextProcessor?.systemPrompt || ''
-    
-    setFileProviderId(newFileProviderId)
-    setFilePrompt(newFilePrompt)
-    setContextProviderId(newContextProviderId)
-    setContextPrompt(newContextPrompt)
+    setFileProcessorEnabled(config.agentConfig?.preprocessor?.fileProcessor?.enabled ?? false)
+    setContextProcessorEnabled(config.agentConfig?.preprocessor?.contextProcessor?.enabled ?? true)
+    setFileProviderId(config.agentConfig?.preprocessor?.fileProcessor?.providerId || config.currentProviderId)
+    setFilePrompt(config.agentConfig?.preprocessor?.fileProcessor?.systemPrompt || '')
+    setContextProviderId(config.agentConfig?.preprocessor?.contextProcessor?.providerId || config.currentProviderId)
+    setContextPrompt(config.agentConfig?.preprocessor?.contextProcessor?.systemPrompt || '')
   }, [
     config.agentConfig?.enabled,
+    config.agentConfig?.preprocessor?.fileProcessor?.enabled,
     config.agentConfig?.preprocessor?.fileProcessor?.providerId,
     config.agentConfig?.preprocessor?.fileProcessor?.systemPrompt,
+    config.agentConfig?.preprocessor?.contextProcessor?.enabled,
     config.agentConfig?.preprocessor?.contextProcessor?.providerId,
     config.agentConfig?.preprocessor?.contextProcessor?.systemPrompt,
     config.currentProviderId
   ])
 
-  // 更新配置（保留 agentConfig 的其他属性）
-  const updateConfig = () => {
+  // 更新配置的通用函数
+  const updateConfig = (updates: {
+    agentEnabled?: boolean
+    fileProcessor?: { enabled?: boolean; providerId?: string; systemPrompt?: string }
+    contextProcessor?: { enabled?: boolean; providerId?: string; systemPrompt?: string }
+  }) => {
     onConfigChange({
       ...config,
       agentConfig: {
         ...config.agentConfig,
-        enabled: agentEnabled,
+        enabled: updates.agentEnabled ?? agentEnabled,
         preprocessor: {
           ...config.agentConfig?.preprocessor,
           fileProcessor: {
-            providerId: fileProviderId,
-            systemPrompt: filePrompt.trim() || undefined
+            enabled: updates.fileProcessor?.enabled ?? fileProcessorEnabled,
+            providerId: updates.fileProcessor?.providerId ?? fileProviderId,
+            systemPrompt: (updates.fileProcessor?.systemPrompt ?? filePrompt).trim() || undefined
           },
           contextProcessor: {
-            providerId: contextProviderId,
-            systemPrompt: contextPrompt.trim() || undefined
+            enabled: updates.contextProcessor?.enabled ?? contextProcessorEnabled,
+            providerId: updates.contextProcessor?.providerId ?? contextProviderId,
+            systemPrompt: (updates.contextProcessor?.systemPrompt ?? contextPrompt).trim() || undefined
           }
         }
       }
     })
   }
 
-  // 保存配置（失焦时）
-  const handleSave = () => {
-    updateConfig()
-  }
+  // 处理器配置变更处理函数
+  const createProcessorHandlers = (type: 'file' | 'context') => {
+    const isFile = type === 'file'
+    const enabled = isFile ? fileProcessorEnabled : contextProcessorEnabled
+    const providerId = isFile ? fileProviderId : contextProviderId
+    const prompt = isFile ? filePrompt : contextPrompt
 
-  // 切换开关
-  const handleToggle = (enabled: boolean) => {
-    setAgentEnabled(enabled)
-    onConfigChange({
-      ...config,
-      agentConfig: {
-        ...config.agentConfig,
-        enabled
+    return {
+      onToggle: (newEnabled: boolean) => {
+        if (isFile) {
+          setFileProcessorEnabled(newEnabled)
+        } else {
+          setContextProcessorEnabled(newEnabled)
+        }
+        updateConfig({
+          [isFile ? 'fileProcessor' : 'contextProcessor']: {
+            enabled: newEnabled,
+            providerId,
+            systemPrompt: prompt
+          }
+        })
+      },
+      onProviderChange: (newProviderId: string) => {
+        if (isFile) {
+          setFileProviderId(newProviderId)
+        } else {
+          setContextProviderId(newProviderId)
+        }
+        updateConfig({
+          [isFile ? 'fileProcessor' : 'contextProcessor']: {
+            enabled,
+            providerId: newProviderId,
+            systemPrompt: prompt
+          }
+        })
+      },
+      onPromptChange: (newPrompt: string) => {
+        if (isFile) {
+          setFilePrompt(newPrompt)
+        } else {
+          setContextPrompt(newPrompt)
+        }
+      },
+      onPromptReset: () => {
+        if (isFile) {
+          setFilePrompt('')
+        } else {
+          setContextPrompt('')
+        }
+        setTimeout(() => {
+          updateConfig({
+            [isFile ? 'fileProcessor' : 'contextProcessor']: {
+              enabled,
+              providerId,
+              systemPrompt: ''
+            }
+          })
+        }, 0)
+      },
+      onSave: () => {
+        updateConfig({
+          [isFile ? 'fileProcessor' : 'contextProcessor']: {
+            enabled,
+            providerId,
+            systemPrompt: prompt
+          }
+        })
       }
-    })
+    }
   }
 
-  // 重置提示词
-  const handleResetFilePrompt = () => {
-    setFilePrompt('')
-    setTimeout(handleSave, 0)
-  }
-
-  const handleResetContextPrompt = () => {
-    setContextPrompt('')
-    setTimeout(handleSave, 0)
-  }
+  const fileHandlers = createProcessorHandlers('file')
+  const contextHandlers = createProcessorHandlers('context')
 
   const currentMainProvider = config.providers.find(p => p.id === config.currentProviderId)
-  const getProvider = (id: string) => config.providers.find(p => p.id === id)
 
   return (
     <div className="h-full overflow-y-auto bg-gray-50 p-6">
@@ -125,178 +296,39 @@ export function AgentsPage({ config, onConfigChange }: AgentsPageProps) {
               <h2 className="text-lg font-medium text-gray-900">启用 Agent 系统</h2>
               <Tooltip content="开启后，系统会在发送请求前自动对长文件和对话历史进行智能概括" />
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={agentEnabled}
-                onChange={(e) => handleToggle(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-            </label>
+            <ToggleSwitch 
+              checked={agentEnabled} 
+              onChange={(enabled) => updateConfig({ agentEnabled: enabled })} 
+            />
           </div>
         </div>
 
         {/* 预处理配置 */}
         {agentEnabled && (
           <>
-            {/* 文件概括配置 */}
-            <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
-              <div className="flex items-center space-x-2 border-b pb-3">
-                <h2 className="text-lg font-medium text-gray-900">文件概括</h2>
-                <Tooltip content="对超过 1000 字符的文件内容进行智能概括" />
-              </div>
+            <ProcessorConfigSection
+              title="文件概括"
+              tooltip="对超过 1000 字符的文件内容进行智能概括"
+              enabled={fileProcessorEnabled}
+              providerId={fileProviderId}
+              prompt={filePrompt}
+              defaultPrompt={DEFAULT_FILE_SUMMARY_PROMPT}
+              providers={config.providers}
+              currentProviderId={config.currentProviderId}
+              {...fileHandlers}
+            />
 
-              {/* 模型选择 */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  使用模型
-                </label>
-                <select
-                  value={fileProviderId}
-                  onChange={(e) => {
-                    const newProviderId = e.target.value
-                    setFileProviderId(newProviderId)
-                    // 立即保存配置
-                    onConfigChange({
-                      ...config,
-                      agentConfig: {
-                        ...config.agentConfig,
-                        enabled: agentEnabled,
-                        preprocessor: {
-                          ...config.agentConfig?.preprocessor,
-                          fileProcessor: {
-                            providerId: newProviderId,
-                            systemPrompt: filePrompt.trim() || undefined
-                          },
-                          contextProcessor: {
-                            providerId: contextProviderId,
-                            systemPrompt: contextPrompt.trim() || undefined
-                          }
-                        }
-                      }
-                    })
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
-                >
-                  {config.providers.map(provider => (
-                    <option key={provider.id} value={provider.id}>
-                      {provider.name} ({provider.model})
-                    </option>
-                  ))}
-                </select>
-                {fileProviderId === config.currentProviderId && (
-                  <p className="text-xs text-gray-500">使用主对话模型</p>
-                )}
-              </div>
-
-              {/* 系统提示词 */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block text-sm font-medium text-gray-700">
-                    系统提示词（可选）
-                  </label>
-                  {filePrompt && (
-                    <button
-                      onClick={handleResetFilePrompt}
-                      className="text-xs text-blue-600 hover:text-blue-700"
-                    >
-                      恢复默认
-                    </button>
-                  )}
-                </div>
-                <textarea
-                  value={filePrompt}
-                  onChange={(e) => setFilePrompt(e.target.value)}
-                  onBlur={handleSave}
-                  placeholder="留空使用默认提示词。自定义提示词中可以使用变量：用户的需求会自动填充到提示词中。"
-                  rows={6}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono resize-none"
-                />
-                <p className="text-xs text-gray-500">
-                  默认提示词会要求 AI 分析文件类型、提炼关键信息、保留重要细节
-                </p>
-              </div>
-            </div>
-
-            {/* 上下文概括配置 */}
-            <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
-              <div className="flex items-center space-x-2 border-b pb-3">
-                <h2 className="text-lg font-medium text-gray-900">对话历史概括</h2>
-                <Tooltip content="对超过 2000 字符的对话历史进行智能概括" />
-              </div>
-
-              {/* 模型选择 */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  使用模型
-                </label>
-                <select
-                  value={contextProviderId}
-                  onChange={(e) => {
-                    const newProviderId = e.target.value
-                    setContextProviderId(newProviderId)
-                    // 立即保存配置
-                    onConfigChange({
-                      ...config,
-                      agentConfig: {
-                        ...config.agentConfig,
-                        enabled: agentEnabled,
-                        preprocessor: {
-                          ...config.agentConfig?.preprocessor,
-                          fileProcessor: {
-                            providerId: fileProviderId,
-                            systemPrompt: filePrompt.trim() || undefined
-                          },
-                          contextProcessor: {
-                            providerId: newProviderId,
-                            systemPrompt: contextPrompt.trim() || undefined
-                          }
-                        }
-                      }
-                    })
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
-                >
-                  {config.providers.map(provider => (
-                    <option key={provider.id} value={provider.id}>
-                      {provider.name} ({provider.model})
-                    </option>
-                  ))}
-                </select>
-                {contextProviderId === config.currentProviderId && (
-                  <p className="text-xs text-gray-500">使用主对话模型</p>
-                )}
-              </div>
-
-              {/* 系统提示词 */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block text-sm font-medium text-gray-700">
-                    系统提示词（可选）
-                  </label>
-                  {contextPrompt && (
-                    <button
-                      onClick={handleResetContextPrompt}
-                      className="text-xs text-blue-600 hover:text-blue-700"
-                    >
-                      恢复默认
-                    </button>
-                  )}
-                </div>
-                <textarea
-                  value={contextPrompt}
-                  onChange={(e) => setContextPrompt(e.target.value)}
-                  onBlur={handleSave}
-                  placeholder="留空使用默认提示词。自定义提示词中会自动包含对话历史和用户当前需求。"
-                  rows={6}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono resize-none"
-                />
-                <p className="text-xs text-gray-500">
-                  默认提示词会要求 AI 提炼关键信息和结论、保留与当前需求相关的内容
-                </p>
-              </div>
-            </div>
+            <ProcessorConfigSection
+              title="对话历史概括"
+              tooltip="对超过 8 条消息的对话历史进行智能概括"
+              enabled={contextProcessorEnabled}
+              providerId={contextProviderId}
+              prompt={contextPrompt}
+              defaultPrompt={DEFAULT_CONTEXT_SUMMARY_PROMPT}
+              providers={config.providers}
+              currentProviderId={config.currentProviderId}
+              {...contextHandlers}
+            />
 
             {/* 最终生成步骤说明 */}
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">

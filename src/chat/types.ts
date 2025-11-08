@@ -97,7 +97,7 @@ export interface ApiProviderConfig {
   codeConfigJson?: string               // 用户填写的原始JSON字符串
 }
 
-// AI配置类型（精细参数已废弃）
+// AI配置类型
 export interface AIConfig {
   currentProviderId: string              // 当前使用的API配置ID
   providers: ApiProviderConfig[]         // 可用的API配置列表

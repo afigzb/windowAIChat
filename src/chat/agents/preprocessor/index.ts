@@ -22,16 +22,6 @@ export async function preprocess(
   config?: PreprocessorConfig,
   abortSignal?: AbortSignal
 ): Promise<PreprocessingResponse> {
-  // 如果配置跳过预处理
-  if (config?.skip) {
-    context.processing.preprocessed = true
-    
-    return {
-      success: true,
-      tokensUsed: 0
-    }
-  }
-  
   try {
     let totalTokens = 0
     
@@ -39,59 +29,69 @@ export async function preprocess(
     const messages = context.processing.messages
     
     // 操作1：文件概括
-    // 选择 → 发送请求 → 替换内容
-    const fileMessages = selectFileMessages(messages, true) // 只选择未处理的
+    // 检查是否启用文件处理器（默认禁用）
+    const fileProcessorEnabled = context.input.aiConfig.agentConfig?.preprocessor?.fileProcessor?.enabled ?? false
     
-    // 获取文件概括使用的模型ID
-    const fileProviderId = context.input.aiConfig.agentConfig?.preprocessor?.fileProcessor?.providerId
-    
-    if (fileMessages.length > 0) {
-      const parallelFiles = config?.parallelFiles ?? true
-      const maxConcurrency = config?.maxConcurrency || 5
+    if (fileProcessorEnabled) {
+      // 选择 → 发送请求 → 替换内容
+      const fileMessages = selectFileMessages(messages, true) // 只选择未处理的
       
-      if (parallelFiles && fileMessages.length > 1) {
-        // 并行处理
-        for (let i = 0; i < fileMessages.length; i += maxConcurrency) {
-          const batch = fileMessages.slice(i, i + maxConcurrency)
-          const results = await Promise.all(
-            batch.map(fileMsg => processFile(fileMsg, context, abortSignal, fileProviderId))
-          )
-          
-          results.forEach(result => {
+      // 获取文件概括使用的模型ID
+      const fileProviderId = context.input.aiConfig.agentConfig?.preprocessor?.fileProcessor?.providerId
+      
+      if (fileMessages.length > 0) {
+        const parallelFiles = config?.parallelFiles ?? true
+        const maxConcurrency = config?.maxConcurrency || 5
+        
+        if (parallelFiles && fileMessages.length > 1) {
+          // 并行处理
+          for (let i = 0; i < fileMessages.length; i += maxConcurrency) {
+            const batch = fileMessages.slice(i, i + maxConcurrency)
+            const results = await Promise.all(
+              batch.map(fileMsg => processFile(fileMsg, context, abortSignal, fileProviderId))
+            )
+            
+            results.forEach(result => {
+              if (result.success) {
+                totalTokens += result.tokensUsed
+              }
+            })
+          }
+        } else {
+          // 串行处理
+          for (const fileMsg of fileMessages) {
+            const result = await processFile(fileMsg, context, abortSignal, fileProviderId)
             if (result.success) {
               totalTokens += result.tokensUsed
             }
-          })
-        }
-      } else {
-        // 串行处理
-        for (const fileMsg of fileMessages) {
-          const result = await processFile(fileMsg, context, abortSignal, fileProviderId)
-          if (result.success) {
-            totalTokens += result.tokensUsed
           }
         }
       }
     }
     
     // 操作2：上下文概括
-    // 选择 → 发送请求 → 替换区域
-    const contextMessages = selectContextMessages(messages, true) // 只选择未处理的
+    // 检查是否启用上下文处理器（默认启用）
+    const contextProcessorEnabled = context.input.aiConfig.agentConfig?.preprocessor?.contextProcessor?.enabled ?? true
     
-    // 获取上下文概括使用的模型ID
-    const contextProviderId = context.input.aiConfig.agentConfig?.preprocessor?.contextProcessor?.providerId
-    
-    if (contextMessages.length > 1) {
-      const result = await processContextRange(
-        contextMessages,
-        messages,
-        context,
-        abortSignal,
-        contextProviderId
-      )
+    if (contextProcessorEnabled) {
+      // 选择 → 发送请求 → 替换区域
+      const contextMessages = selectContextMessages(messages, true) // 只选择未处理的
       
-      if (result.success) {
-        totalTokens += result.tokensUsed
+      // 获取上下文概括使用的模型ID
+      const contextProviderId = context.input.aiConfig.agentConfig?.preprocessor?.contextProcessor?.providerId
+      
+      if (contextMessages.length > 1) {
+        const result = await processContextRange(
+          contextMessages,
+          messages,
+          context,
+          abortSignal,
+          contextProviderId
+        )
+        
+        if (result.success) {
+          totalTokens += result.tokensUsed
+        }
       }
     }
     
