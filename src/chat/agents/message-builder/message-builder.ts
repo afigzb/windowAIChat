@@ -43,7 +43,7 @@ export function buildMessages(input: MessageBuilderInput): MessageBuilderOutput 
   
   const promptCards = input.promptCards || []
   
-  // ==================== 阶段1：构建系统提示词 ====================
+  //  阶段1：构建系统提示词 
   const finalSystemPrompt = systemPrompt.getPrompt(input.aiConfig)
   if (finalSystemPrompt && finalSystemPrompt.trim()) {
     messages.push({

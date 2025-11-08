@@ -159,13 +159,6 @@ export interface AgentContext {
   }
 }
 
-/**
- * 旧的 WorkspaceData 类型别名（向后兼容）
- * @deprecated 使用 AgentContext 替代
- */
-export type WorkspaceData = AgentContext
-
- 
 // 配置类型
 
 /**
@@ -188,7 +181,7 @@ export interface PreprocessorConfig {
   /** 是否并行处理文件（默认true） */
   parallelFiles?: boolean
   
-  /** 最大并行数（默认3） */
+  /** 最大并行数（默认5） */
   maxConcurrency?: number
   
   /** 文件处理器配置 */
@@ -207,9 +200,6 @@ export interface AgentEngineConfig {
   
   /** 温度参数 */
   temperature?: number
-  
-  /** 是否启用详细日志 */
-  verbose?: boolean
   
   /** 进度回调 */
   onProgress?: (message: string, stage: 'preprocessing' | 'generating') => void
@@ -250,9 +240,6 @@ export interface AICallOptions {
   
   /** 中止信号 */
   abortSignal?: AbortSignal
-  
-  /** 是否启用详细日志 */
-  verbose?: boolean
 }
 
  

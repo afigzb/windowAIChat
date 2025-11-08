@@ -25,9 +25,6 @@ export type {
   CreateContextInput,
   ExecutionStage,
   
-  // 向后兼容
-  WorkspaceData,
-  
   // 配置类型
   ProcessorConfig,
   PreprocessorConfig,
@@ -70,7 +67,6 @@ export {
   createContext,
   updateStage,
   stripMetadata,
-  formatContextForDebug
 } from './core/agent-context'
 
 // 消息操作

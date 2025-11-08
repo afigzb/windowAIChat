@@ -22,8 +22,6 @@ export async function preprocess(
   config?: PreprocessorConfig,
   abortSignal?: AbortSignal
 ): Promise<PreprocessingResponse> {
-  // const verbose = config?.verbose ?? true
-  
   // 如果配置跳过预处理
   if (config?.skip) {
     context.processing.preprocessed = true
@@ -49,7 +47,7 @@ export async function preprocess(
     
     if (fileMessages.length > 0) {
       const parallelFiles = config?.parallelFiles ?? true
-      const maxConcurrency = config?.maxConcurrency || 3
+      const maxConcurrency = config?.maxConcurrency || 5
       
       if (parallelFiles && fileMessages.length > 1) {
         // 并行处理

@@ -41,19 +41,10 @@ export async function executeAgentMode(
       aiConfig: data.aiConfig
     })
     
-    // 输出处理好后的数据
-    console.log('=== Agents 处理好后的数据 ===')
-    console.log(JSON.stringify({ 
-      contextId: context.meta.id,
-      messagesCount: context.processing.messages.length,
-      inputUserInput: context.input.userInput.substring(0, 100)
-    }, null, 2))
-    
     // 2. 调用 Agent Engine（传递 context）
     const result = await runAgentEngine({
       context,
       config: {
-        verbose: true,
         onProgress: callbacks.onAgentProgress
           ? (message, stage) => {
             const stageIcon = {

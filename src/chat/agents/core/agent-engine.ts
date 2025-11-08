@@ -21,7 +21,6 @@ export type { AgentEngineConfig, AgentEngineInput, AgentEngineResult }
  */
 export async function runAgentEngine(input: AgentEngineInput): Promise<AgentEngineResult> {
   const { context, config, abortSignal } = input
-  const verbose = config?.verbose ?? true
   
   try {
     // 阶段1：Preprocessing
