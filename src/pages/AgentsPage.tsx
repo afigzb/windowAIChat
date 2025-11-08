@@ -282,19 +282,19 @@ export function AgentsPage({ config, onConfigChange }: AgentsPageProps) {
         {/* 页面标题 */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-            Agent 系统配置
+            预处理配置
           </h1>
           <p className="text-sm text-gray-600">
-            配置 AI Agent 的智能预处理功能，包括文件概括和对话历史压缩
+            在发送给 AI 前自动优化输入内容，减少 token 消耗并提升响应质量
           </p>
         </div>
 
-        {/* Agent 系统开关 */}
+        {/* 预处理总开关 */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <h2 className="text-lg font-medium text-gray-900">启用 Agent 系统</h2>
-              <Tooltip content="开启后，系统会在发送请求前自动对长文件和对话历史进行智能概括" />
+              <h2 className="text-lg font-medium text-gray-900">启用预处理</h2>
+              <Tooltip content="开启后，在发送请求前自动优化文件和对话历史，减少不必要的 token 消耗" />
             </div>
             <ToggleSwitch 
               checked={agentEnabled} 
@@ -307,8 +307,8 @@ export function AgentsPage({ config, onConfigChange }: AgentsPageProps) {
         {agentEnabled && (
           <>
             <ProcessorConfigSection
-              title="文件概括"
-              tooltip="对超过 1000 字符的文件内容进行智能概括"
+              title="文件内容优化"
+              tooltip="对长文件（>1000字符）进行压缩，概括后会生成gaikuo文件夹，在概括文件夹中会用对应的（名字+后缀+.gaikuo）文件来存储概括内容，需要手动清理或修改。"
               enabled={fileProcessorEnabled}
               providerId={fileProviderId}
               prompt={filePrompt}
@@ -319,8 +319,8 @@ export function AgentsPage({ config, onConfigChange }: AgentsPageProps) {
             />
 
             <ProcessorConfigSection
-              title="对话历史概括"
-              tooltip="对超过 8 条消息的对话历史进行智能概括"
+              title="对话历史优化"
+              tooltip="采用滑动窗口策略：保留最近8条消息 → 超过8条时保留最新4条 → 将较早消息压缩为1条概括 → 首次概括需等待完成，后续概括在后台执行，当被概括区域被用户修改后，会重新生成新的概括"
               enabled={contextProcessorEnabled}
               providerId={contextProviderId}
               prompt={contextPrompt}
@@ -330,13 +330,16 @@ export function AgentsPage({ config, onConfigChange }: AgentsPageProps) {
               {...contextHandlers}
             />
 
-            {/* 最终生成步骤说明 */}
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            {/* 最终生成说明 */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-start space-x-3">
+                <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900 mb-1">最终生成步骤</p>
-                  <p className="text-sm text-gray-600">
-                    最终生成始终使用主对话模型：<strong>{currentMainProvider?.name}</strong> ({currentMainProvider?.model})
+                  <p className="text-sm font-medium text-blue-900 mb-1">主模型生成</p>
+                  <p className="text-sm text-blue-700">
+                    预处理可使用不同模型进行优化，但最终回答始终由主对话模型生成：<strong>{currentMainProvider?.name}</strong> ({currentMainProvider?.model})
                   </p>
                 </div>
               </div>
