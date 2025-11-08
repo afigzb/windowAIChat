@@ -7,7 +7,7 @@
  * 3. 统一错误处理
  */
 
-import type { ApiProviderConfig, AIConfig } from '../../types'
+import type { ApiProviderConfig, AIConfig, FlatMessage } from '../../types'
 import { OpenAIAdapter } from '../../adapters/openai-adapter'
 import { GeminiAdapter } from '../../adapters/gemini-adapter'
 import type { Message, ApiMessage, AICallOptions } from '../types'
@@ -49,7 +49,7 @@ export class AIService {
   }
   
   /**
-   * 调用AI API
+   * 调用AI API（支持思考过程和答案的分别流式回调）
    */
   async call(
     messages: Message[] | ApiMessage[],
@@ -65,8 +65,35 @@ export class AIService {
       // 过滤_meta标记
       const apiMessages = this.prepareMessages(messages)
       
-      // 创建适配器并调用
+      // 创建适配器
       const adapter = this.createAdapter(effectiveProvider)
+      
+      // 如果有思考/答案的分别回调，使用完整的 callAPI 方法
+      if (options?.onThinkingUpdate || options?.onAnswerUpdate) {
+        // 将 ApiMessage[] 转换为 FlatMessage[] (简单转换，保留 id)
+        const flatMessages = apiMessages.map(msg => ({
+          id: msg.id || `temp_${Date.now()}_${Math.random()}`,
+          role: msg.role as 'system' | 'user' | 'assistant',
+          content: msg.content,
+          timestamp: new Date(),
+          parentId: null
+        }))
+        
+        const result = await adapter.callAPI(
+          flatMessages,
+          this.aiConfig,
+          options.abortSignal!,
+          options.onThinkingUpdate || (() => {}),
+          options.onAnswerUpdate || (() => {}),
+          undefined,
+          'append',
+          undefined
+        )
+        
+        return result.content
+      }
+      
+      // 否则使用简单的 callRawAPI 方法
       const result = await adapter.callRawAPI(
         apiMessages,
         options?.abortSignal,

@@ -40,7 +40,7 @@ export async function runAgentEngine(input: AgentEngineInput): Promise<AgentEngi
       context.output.tokensUsed += preprocessingResult.tokensUsed
     }
     
-    // 阶段2：直接生成回答
+    // 阶段2：直接生成回答（流式）
     updateStage(context, 'generating')
     
     if (config?.onProgress) {
@@ -53,13 +53,15 @@ export async function runAgentEngine(input: AgentEngineInput): Promise<AgentEngi
     // 转换为发送格式
     const requestMessages = selectForSending(messages)
     
-    // 发送AI请求
+    // 发送AI请求（流式）
     const aiService = createAIService(context.input.aiConfig)
     const finalAnswer = await aiService.call(
       requestMessages,
       { 
         abortSignal,
-        temperature: config?.temperature
+        temperature: config?.temperature,
+        onThinkingUpdate: config?.onThinkingUpdate,
+        onAnswerUpdate: config?.onAnswerUpdate
       }
     )
     

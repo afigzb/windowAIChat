@@ -19,6 +19,9 @@ export async function executeAgentMode(
   data: InitialRequestData,
   callbacks: StreamCallbacks
 ): Promise<RequestResult> {
+  let accumulatedThinking = ''
+  let accumulatedAnswer = ''
+  
   try {
     // 输出原始数据（用于调试）
     console.log('=== Agents 原始数据 ===')
@@ -41,7 +44,7 @@ export async function executeAgentMode(
       aiConfig: data.aiConfig
     })
     
-    // 2. 调用 Agent Engine（传递 context）
+    // 2. 调用 Agent Engine（传递 context 和流式回调）
     const result = await runAgentEngine({
       context,
       config: {
@@ -56,7 +59,19 @@ export async function executeAgentMode(
               callbacks.onAgentProgress(`${stageIcon} ${message}`)
             }
           }
-          : undefined
+          : undefined,
+        onThinkingUpdate: (thinking) => {
+          accumulatedThinking = thinking
+          if (callbacks.onThinkingUpdate) {
+            callbacks.onThinkingUpdate(thinking)
+          }
+        },
+        onAnswerUpdate: (answer) => {
+          accumulatedAnswer = answer
+          if (callbacks.onAnswerUpdate) {
+            callbacks.onAnswerUpdate(answer)
+          }
+        }
       },
       abortSignal: data.abortSignal
     })
@@ -65,9 +80,10 @@ export async function executeAgentMode(
       throw new Error(result.error || 'Agent Engine 执行失败')
     }
     
-    // 3. 返回结果
+    // 3. 返回结果（包含思考过程）
     return {
-      content: result.finalAnswer
+      content: result.finalAnswer,
+      reasoning_content: accumulatedThinking || undefined
     }
     
   } catch (error: any) {

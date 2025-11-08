@@ -202,6 +202,12 @@ export interface AgentEngineConfig {
   
   /** 进度回调 */
   onProgress?: (message: string, stage: 'preprocessing' | 'generating') => void
+  
+  /** 思考过程流式回调 */
+  onThinkingUpdate?: (thinking: string) => void
+  
+  /** 答案内容流式回调 */
+  onAnswerUpdate?: (answer: string) => void
 }
 
 /**
@@ -234,8 +240,14 @@ export interface AICallOptions {
   /** 最大token数 */
   maxTokens?: number
   
-  /** 流式回调 */
+  /** 流式回调（单一回调） */
   onStream?: (content: string) => void
+  
+  /** 思考过程流式回调 */
+  onThinkingUpdate?: (thinking: string) => void
+  
+  /** 答案内容流式回调 */
+  onAnswerUpdate?: (answer: string) => void
   
   /** 中止信号 */
   abortSignal?: AbortSignal
