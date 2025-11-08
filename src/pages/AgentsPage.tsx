@@ -29,20 +29,30 @@ export function AgentsPage({ config, onConfigChange }: AgentsPageProps) {
     config.agentConfig?.preprocessor?.contextProcessor?.systemPrompt || ''
   )
 
-  // 同步配置变化
+  // 同步配置变化（只在必要时更新，避免覆盖用户正在编辑的值）
   useEffect(() => {
     setAgentEnabled(config.agentConfig?.enabled ?? false)
-    setFileProviderId(
-      config.agentConfig?.preprocessor?.fileProcessor?.providerId || config.currentProviderId
-    )
-    setFilePrompt(config.agentConfig?.preprocessor?.fileProcessor?.systemPrompt || '')
-    setContextProviderId(
-      config.agentConfig?.preprocessor?.contextProcessor?.providerId || config.currentProviderId
-    )
-    setContextPrompt(config.agentConfig?.preprocessor?.contextProcessor?.systemPrompt || '')
-  }, [config])
+    
+    // 只在配置中有明确值时才更新，否则保持当前状态
+    const newFileProviderId = config.agentConfig?.preprocessor?.fileProcessor?.providerId || config.currentProviderId
+    const newFilePrompt = config.agentConfig?.preprocessor?.fileProcessor?.systemPrompt || ''
+    const newContextProviderId = config.agentConfig?.preprocessor?.contextProcessor?.providerId || config.currentProviderId
+    const newContextPrompt = config.agentConfig?.preprocessor?.contextProcessor?.systemPrompt || ''
+    
+    setFileProviderId(newFileProviderId)
+    setFilePrompt(newFilePrompt)
+    setContextProviderId(newContextProviderId)
+    setContextPrompt(newContextPrompt)
+  }, [
+    config.agentConfig?.enabled,
+    config.agentConfig?.preprocessor?.fileProcessor?.providerId,
+    config.agentConfig?.preprocessor?.fileProcessor?.systemPrompt,
+    config.agentConfig?.preprocessor?.contextProcessor?.providerId,
+    config.agentConfig?.preprocessor?.contextProcessor?.systemPrompt,
+    config.currentProviderId
+  ])
 
-  // 更新配置
+  // 更新配置（保留 agentConfig 的其他属性）
   const updateConfig = () => {
     onConfigChange({
       ...config,
@@ -50,6 +60,7 @@ export function AgentsPage({ config, onConfigChange }: AgentsPageProps) {
         ...config.agentConfig,
         enabled: agentEnabled,
         preprocessor: {
+          ...config.agentConfig?.preprocessor,
           fileProcessor: {
             providerId: fileProviderId,
             systemPrompt: filePrompt.trim() || undefined
@@ -144,8 +155,27 @@ export function AgentsPage({ config, onConfigChange }: AgentsPageProps) {
                 <select
                   value={fileProviderId}
                   onChange={(e) => {
-                    setFileProviderId(e.target.value)
-                    setTimeout(handleSave, 0)
+                    const newProviderId = e.target.value
+                    setFileProviderId(newProviderId)
+                    // 立即保存配置
+                    onConfigChange({
+                      ...config,
+                      agentConfig: {
+                        ...config.agentConfig,
+                        enabled: agentEnabled,
+                        preprocessor: {
+                          ...config.agentConfig?.preprocessor,
+                          fileProcessor: {
+                            providerId: newProviderId,
+                            systemPrompt: filePrompt.trim() || undefined
+                          },
+                          contextProcessor: {
+                            providerId: contextProviderId,
+                            systemPrompt: contextPrompt.trim() || undefined
+                          }
+                        }
+                      }
+                    })
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
                 >
@@ -204,8 +234,27 @@ export function AgentsPage({ config, onConfigChange }: AgentsPageProps) {
                 <select
                   value={contextProviderId}
                   onChange={(e) => {
-                    setContextProviderId(e.target.value)
-                    setTimeout(handleSave, 0)
+                    const newProviderId = e.target.value
+                    setContextProviderId(newProviderId)
+                    // 立即保存配置
+                    onConfigChange({
+                      ...config,
+                      agentConfig: {
+                        ...config.agentConfig,
+                        enabled: agentEnabled,
+                        preprocessor: {
+                          ...config.agentConfig?.preprocessor,
+                          fileProcessor: {
+                            providerId: fileProviderId,
+                            systemPrompt: filePrompt.trim() || undefined
+                          },
+                          contextProcessor: {
+                            providerId: newProviderId,
+                            systemPrompt: contextPrompt.trim() || undefined
+                          }
+                        }
+                      }
+                    })
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
                 >
