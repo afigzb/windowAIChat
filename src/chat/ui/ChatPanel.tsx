@@ -115,7 +115,7 @@ export function ChatPanel({
   })
 
   // 智能滚动管理
-  const { scrollContainerRef } = useSmartScroll({
+  const { scrollContainerRef, suppressNextTriggerForceScroll } = useSmartScroll({
     trigger: conversationState.conversationTree.flatMessages.size,
     isGenerating: conversationState.isLoading
   })
@@ -460,6 +460,7 @@ export function ChatPanel({
       return
     }
     
+    suppressNextTriggerForceScroll()
     conversationActions.deleteNode(nodeId)
     
     // 恢复输入区域焦点

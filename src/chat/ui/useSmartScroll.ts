@@ -62,6 +62,11 @@ export function useSmartScroll(options: UseSmartScrollOptions = {}) {
   
   // 用于消息生成时的持续滚动检查
   const autoScrollTimerRef = useRef<number | null>(null)
+  // 跳过下一次触发器引发的强制滚动
+  const skipNextTriggerForceRef = useRef(false)
+  const suppressNextTriggerForceScroll = useCallback(() => {
+    skipNextTriggerForceRef.current = true
+  }, [])
   
   /**
    * 处理滚动事件，检测用户是否手动滚动
@@ -116,6 +121,10 @@ export function useSmartScroll(options: UseSmartScrollOptions = {}) {
    */
   useEffect(() => {
     if (trigger !== undefined) {
+      if (skipNextTriggerForceRef.current) {
+        skipNextTriggerForceRef.current = false
+        return
+      }
       forceScrollToBottom('smooth')
     }
   }, [trigger, forceScrollToBottom])
@@ -178,7 +187,8 @@ export function useSmartScroll(options: UseSmartScrollOptions = {}) {
     scrollContainerRef,
     smartScroll,
     forceScrollToBottom,
-    isUserScrolledUp: userHasScrolledUpRef.current
+    isUserScrolledUp: userHasScrolledUpRef.current,
+    suppressNextTriggerForceScroll
   }
 }
 
