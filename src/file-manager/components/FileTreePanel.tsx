@@ -206,7 +206,7 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
       {/* 文件树 - 占据剩余空间 */}
       <div className="flex-1 overflow-hidden">
         <div 
-          className="h-full border-2 border-gray-200 rounded-xl overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 bg-white shadow-sm hover:shadow-md transition-shadow duration-300"
+          className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 bg-white shadow-sm hover:shadow-md transition-shadow duration-300"
           onContextMenu={(e) => {
             const target = e.target as HTMLElement
             // 如果点击的不是文件节点，则在空白区域显示根目录菜单
