@@ -10,7 +10,7 @@
 
 import { useState } from 'react'
 import type { ApiProviderConfig, ProviderType } from '../types'
-import { Tooltip } from '../../components'
+import { Tooltip, NumberInput } from '../../components'
 import { CustomSelect, type SelectOption } from '../../components'
 
 export function ApiProviderForm({ provider, onSave, onCancel, inline = false }: {
@@ -216,14 +216,13 @@ export function ApiProviderForm({ provider, onSave, onCancel, inline = false }: 
             <label className="block text-sm font-semibold text-gray-800 mb-3">
               最大输出Tokens
             </label>
-            <input
-              type="number"
-              min="1"
-              max="10000000"
-              value={formData.maxTokens || ''}
-              onChange={(e) => setFormData({ 
+            <NumberInput
+              min={1}
+              max={10000000}
+              value={formData.maxTokens}
+              onChange={(value) => setFormData({ 
                 ...formData, 
-                maxTokens: e.target.value ? parseInt(e.target.value) : undefined 
+                maxTokens: value
               })}
               placeholder="如果没查看api文档，请留空，错误的值会导致api报错"
               className={getFieldClass('maxTokens')}

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { AIConfig } from '../chat'
 import { DEFAULT_SUMMARIZE_PROMPT } from '../chat/core/defaults'
 import { DEFAULT_COMPRESSION_OPTIONS, type TextCompressionOptions } from '../chat/core/context/text-compressor'
-import { Icon } from '../components'
+import { Icon, NumberInput } from '../components'
 
 interface SettingsPanelProps {
   config: AIConfig
@@ -57,26 +57,38 @@ export function SettingsPanel({ config, onConfigChange, onRequestReset }: Settin
               <p className="text-xs text-gray-500 mt-1">为节约 tokens，只保留最近的消息发送给 AI</p>
             </div>
             <div className="bg-gray-50 rounded-lg p-5">
-              <div className="mb-2 text-center">
+              <div className="mb-4 flex items-center justify-center gap-3">
                 <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-sm font-semibold rounded-full">
                   {config.historyLimit} 条消息
                 </span>
+                <NumberInput
+                  min={1}
+                  max={999}
+                  value={config.historyLimit}
+                  onChange={(value) => {
+                    onConfigChange({ ...config, historyLimit: value ?? config.historyLimit })
+                  }}
+                  defaultValue={config.historyLimit}
+                  className="w-20"
+                />
               </div>
               <input
                 type="range"
-                min={4}
-                max={80}
-                step={2}
+                min={1}
+                max={999}
+                step={1}
                 value={config.historyLimit}
                 onChange={(e) => onConfigChange({ ...config, historyLimit: parseInt(e.target.value, 10) })}
                 className="w-full h-2 accent-blue-600 cursor-pointer"
               />
               <div className="relative text-xs text-gray-400 mt-3">
-                <span className="absolute left-0">4</span>
-                <span className="absolute left-[21%] -translate-x-1/2">20</span>
-                <span className="absolute left-[47.4%] -translate-x-1/2 text-blue-600 font-medium">40 推荐</span>
-                <span className="absolute left-[73.7%] -translate-x-1/2">60</span>
-                <span className="absolute right-0">80</span>
+                <span className="absolute left-0">1</span>
+                <span className="absolute left-[10%] -translate-x-1/2">100</span>
+                <span className="absolute left-[20%] -translate-x-1/2">200</span>
+                <span className="absolute left-[40%] -translate-x-1/2 text-blue-600 font-medium">400</span>
+                <span className="absolute left-[60%] -translate-x-1/2">600</span>
+                <span className="absolute left-[80%] -translate-x-1/2">800</span>
+                <span className="absolute right-0">999</span>
               </div>
             </div>
           </div>
@@ -124,14 +136,16 @@ export function SettingsPanel({ config, onConfigChange, onRequestReset }: Settin
                   <label className="block text-xs font-medium text-gray-700 mb-2">
                     优先级 <span className="text-gray-400">（数值越大越靠前，默认10）</span>
                   </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="999"
-                    value={config.fileContentPriority ?? 10}
-                    onChange={(e) => onConfigChange({ ...config, fileContentPriority: parseInt(e.target.value, 10) || 10 })}
-                    onWheel={(e) => e.currentTarget.blur()}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  <NumberInput
+                    min={0}
+                    max={99999}
+                    value={config.fileContentPriority}
+                    onChange={(value) => {
+                      onConfigChange({ ...config, fileContentPriority: value ?? 10 })
+                    }}
+                    defaultValue={10}
+                    placeholder="默认10"
+                    className="w-full bg-white"
                   />
                   <p className="text-xs text-gray-400 mt-1.5">提示词卡片默认优先级为 5</p>
                 </div>

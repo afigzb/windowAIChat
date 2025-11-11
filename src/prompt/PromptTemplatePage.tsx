@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { promptCardManager } from './prompt-manager'
 import type { PromptCard, PromptCardPlacement } from './types'
 import { ConfirmDialog } from '../components/ConfirmDialog'
-import { Icon } from '../components'
+import { Icon, NumberInput } from '../components'
 
 /**
  * 提示词模板页面
@@ -380,15 +380,16 @@ function PromptCardEditor({ card, isCreating, onChange, onSave, onCancel }: Prom
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 优先级（数值越大越靠前）
               </label>
-              <input
-                type="number"
-                min="0"
-                max="999"
-                value={card.priority ?? 5}
-                onChange={e => onChange({ ...card, priority: parseInt(e.target.value, 10) || 5 })}
-                onWheel={(e) => e.currentTarget.blur()}
+              <NumberInput
+                min={0}
+                max={99999}
+                value={card.priority}
+                onChange={(value) => {
+                  onChange({ ...card, priority: value ?? 5 })
+                }}
+                defaultValue={5}
                 placeholder="默认5"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                className="w-full"
               />
               <p className="text-xs text-gray-500 mt-1">
                 优先级决定在"System后"位置的插入顺序。文件内容默认优先级为10。
