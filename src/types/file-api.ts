@@ -7,7 +7,7 @@
  * 3. 移除所有补丁逻辑和可选字段
  */
 
-// ==================== 后端API返回类型 ====================
+//  后端API返回类型 
 
 /**
  * 图片数据
@@ -70,7 +70,7 @@ export interface SupportedFormatsInfo {
   all: string[]
 }
 
-// ==================== 前端文件内容类型（联合类型） ====================
+//  前端文件内容类型（联合类型） 
 
 /**
  * 文档内容
@@ -124,7 +124,7 @@ export type FileContent =
   | ImageContent 
   | UnsupportedContent
 
-// ==================== 类型守卫函数 ====================
+//  类型守卫函数 
 
 export function isDocumentContent(content: FileContent): content is DocumentContent {
   return content.type === 'document'
@@ -146,7 +146,7 @@ export function isEditableContent(content: FileContent): content is DocumentCont
   return content.type === 'document' || content.type === 'text'
 }
 
-// ==================== Electron API类型定义 ====================
+//  Electron API类型定义 
 
 declare global {
   interface Window {
@@ -154,7 +154,7 @@ declare global {
       // 系统信息
       platform: string
 
-      // === 文件转换API ===
+      //  文件转换API 
       readFileAuto: (filePath: string) => Promise<FileReadResult>
       saveFileAuto: (filePath: string, content: string) => Promise<FileSaveResult>
       readFileAsText: (filePath: string) => Promise<FileReadAsTextResult>
@@ -162,12 +162,12 @@ declare global {
       getSupportedFormatsInfo: () => Promise<SupportedFormatsInfo>
       extractTextFromHtml: (html: string) => Promise<string>
       
-      // === 文件系统管理 ===
+      //  文件系统管理 
       selectDirectory: () => Promise<string | null>
       isValidDirectory: (path: string) => Promise<boolean>
       getDirectoryTree: (path: string) => Promise<any>
       
-      // === 基础文件操作 ===
+      //  基础文件操作 
       readFile: (filePath: string) => Promise<string>
       writeFile: (filePath: string, content: string) => Promise<void>
       createFile: (dirPath: string, fileName: string) => Promise<string>
@@ -177,7 +177,7 @@ declare global {
       movePath: (sourcePath: string, targetDirPath: string, newName?: string) => Promise<string>
       getFileStats: (path: string) => Promise<any>
       
-      // === 存储 ===
+      //  存储
       initStorageDir: () => Promise<void>
       kvGet: (key: string) => Promise<any>
       kvSet: (key: string, value: any) => Promise<void>
@@ -186,14 +186,14 @@ declare global {
       kvSetSync: (key: string, value: any) => void
       kvRemoveSync: (key: string) => void
       
-      // === 右键菜单 ===
+      //  右键菜单 
       setWorkspacePath: (workspacePath: string) => Promise<void>
       showFileContextMenu: (fileInfo: any) => Promise<void>
       showDirectoryContextMenu: (dirPath: string) => Promise<void>
       onFileSystemChanged: (callback: (data: any) => void) => void
       onTriggerInlineEdit: (callback: (data: any) => void) => void
       
-      // === 子窗口管理 ===
+      //  子窗口管理 
       openChildWindow: (windowId: string) => Promise<void>
       isChildWindowOpen: (windowId: string) => Promise<boolean>
       closeChildWindow: (windowId: string) => Promise<void>
@@ -202,7 +202,7 @@ declare global {
       getChildWindowAlwaysOnTop: (windowId: string) => Promise<boolean>
       onChildWindowStateChanged: (windowId: string, callback: (isOpen: boolean) => void) => void
       
-      // === 业务API ===
+      //  业务API 
       notifyPromptCardsChanged: () => void
       onPromptCardsChanged: (callback: () => void) => void
     }

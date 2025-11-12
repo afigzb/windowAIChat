@@ -46,7 +46,7 @@ class StorageManager {
     }
   }
 
-  // ===== AI配置相关 =====
+  //  AI配置相关 
   
   private currentConfig: AIConfig | null = null
 
@@ -128,7 +128,7 @@ class StorageManager {
     this.currentConfig = null
   }
 
-  // ===== 通用数据存储 =====
+  //  通用数据存储 
 
   /**
    * 保存通用数据
@@ -158,7 +158,7 @@ class StorageManager {
     }
   }
 
-  // ===== 对话历史专用存储方法 =====
+  //  对话历史专用存储方法 
 
   /**
    * 保存单个对话到独立文件
