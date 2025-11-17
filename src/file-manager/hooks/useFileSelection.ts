@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { formatFileContent } from '../utils/fileHelper'
+import { formatFileContent, type FormattedFileContent } from '../utils/fileHelper'
 import type { FileContent } from '../../types/file-api'
 
 /**
@@ -78,6 +78,8 @@ export function useFileSelection(openFile: FileContent | null) {
    * 注意：对于正在编辑的文档，我们使用前端DOM提取文本而不是后端API，
    * 因为编辑器中的内容可能尚未保存，直接提取可以获得最新状态。
    * 这是唯一保留前端HTML转文本的场景，其他场景统一使用后端API。
+   * 
+   * 改进：现在返回格式化内容的字符串，元数据通过 getAdditionalContentList 单独获取
    */
   const getAdditionalContent = async (): Promise<string> => {
     if (selectedFiles.length === 0) return ''
@@ -90,16 +92,20 @@ export function useFileSelection(openFile: FileContent | null) {
         
         for (const filePath of selectedFiles) {
           try {
+            let formatted: FormattedFileContent
+            
             // 特殊处理：如果文件正在编辑器中打开且已修改，使用编辑器中的最新内容
             if (openFile && openFile.path === filePath && openFile.type === 'document') {
               // 直接从编辑器内容提取文本（快速、实时、无需后端）
               const text = extractTextFromHtml(openFile.htmlContent || '')
-              parts.push(formatFileContent(filePath, text))
+              formatted = formatFileContent(filePath, text)
             } else {
               // 标准路径：通过后端统一API读取（后端负责HTML到文本的转换）
               const content = await readFileContent(filePath)
-              parts.push(formatFileContent(filePath, content))
+              formatted = formatFileContent(filePath, content)
             }
+            
+            parts.push(formatted.content)
           } catch (error) {
             console.error(`读取文件失败: ${filePath}`, error)
             // 继续处理其他文件，不中断整个流程
@@ -128,27 +134,31 @@ export function useFileSelection(openFile: FileContent | null) {
 
   /**
    * 获取选中文件的内容列表（用于独立插入模式）
-   * 返回按顺序排列的文件内容数组，每个元素包含完整的格式化文件内容
+   * 返回按顺序排列的文件内容数组，每个元素包含完整的格式化文件内容和元数据
    */
-  const getAdditionalContentList = async (): Promise<string[]> => {
+  const getAdditionalContentList = async (): Promise<FormattedFileContent[]> => {
     if (selectedFiles.length === 0) return []
 
     try {
       setLoadingFiles(new Set(selectedFiles))
       
       try {
-        const contents: string[] = []
+        const contents: FormattedFileContent[] = []
         
         for (const filePath of selectedFiles) {
           try {
+            let formatted: FormattedFileContent
+            
             // 特殊处理：如果文件正在编辑器中打开且已修改，使用编辑器中的最新内容
             if (openFile && openFile.path === filePath && openFile.type === 'document') {
               const text = extractTextFromHtml(openFile.htmlContent || '')
-              contents.push(formatFileContent(filePath, text))
+              formatted = formatFileContent(filePath, text)
             } else {
               const content = await readFileContent(filePath)
-              contents.push(formatFileContent(filePath, content))
+              formatted = formatFileContent(filePath, content)
             }
+            
+            contents.push(formatted)
           } catch (error) {
             console.error(`读取文件失败: ${filePath}`, error)
             // 继续处理其他文件，不中断整个流程

@@ -27,6 +27,7 @@ export function createContext(input: CreateContextInput): AgentContext {
   const inputCopy = {
     userInput: input.userInput,
     attachedContents: [...input.attachedContents], // 复制数组
+    fileMetadata: input.fileMetadata?.map(meta => ({ ...meta })), // 复制元数据数组
     conversationHistory: input.conversationHistory.map(msg => ({ ...msg })), // 复制每个对象
     promptCards: input.promptCards?.map(card => ({ ...card })),
     aiConfig: input.aiConfig // AIConfig 本身是只读的，不需要深拷贝
@@ -37,6 +38,7 @@ export function createContext(input: CreateContextInput): AgentContext {
     userInput: inputCopy.userInput,
     conversationHistory: inputCopy.conversationHistory as ApiMessage[],
     attachedContents: inputCopy.attachedContents,
+    fileMetadata: inputCopy.fileMetadata,
     promptCards: inputCopy.promptCards,
     aiConfig: inputCopy.aiConfig
   })

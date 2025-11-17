@@ -23,8 +23,8 @@ export interface ConversationState {
  * 对话管理器的操作接口
  */
 export interface ConversationActions {
-  sendMessage: (content: string, parentNodeId?: string | null, tempContent?: string, tempPlacement?: 'append' | 'after_system', tempContentList?: string[]) => Promise<void>
-  editUserMessage: (nodeId: string, newContent: string, tempContent?: string, tempPlacement?: 'append' | 'after_system', tempContentList?: string[]) => Promise<void>
+  sendMessage: (content: string, parentNodeId?: string | null, tempContent?: string, tempPlacement?: 'append' | 'after_system', tempContentList?: import('../../file-manager/utils/fileHelper').FormattedFileContent[]) => Promise<void>
+  editUserMessage: (nodeId: string, newContent: string, tempContent?: string, tempPlacement?: 'append' | 'after_system', tempContentList?: import('../../file-manager/utils/fileHelper').FormattedFileContent[]) => Promise<void>
   editAssistantMessage: (nodeId: string, newContent: string) => void
   deleteNode: (nodeId: string) => void
   updateInputValue: (value: string) => void

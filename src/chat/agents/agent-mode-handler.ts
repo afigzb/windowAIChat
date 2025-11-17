@@ -39,6 +39,7 @@ export async function executeAgentMode(
     const context = createContext({
       userInput: data.userInput,
       attachedContents: data.attachedContents,
+      fileMetadata: data.fileMetadata,
       conversationHistory: data.conversationHistory,
       promptCards: data.userMessageNode.components?.promptCards,
       aiConfig: data.aiConfig

@@ -47,11 +47,23 @@ export async function callAIAPI(
   onAnswerUpdate: (answer: string) => void,
   tempContent?: string,
   tempPlacement: 'append' | 'after_system' = 'append',
-  tempContentList?: string[]
+  tempContentList?: string[] | import('../../file-manager/utils/fileHelper').FormattedFileContent[]
 ): Promise<{ reasoning_content?: string; content: string }> {
   const currentProvider = config.providers.find(p => p.id === config.currentProviderId)
   if (!currentProvider) {
     throw new Error(`找不到API配置: ${config.currentProviderId}`)
+  }
+
+  // 转换 FormattedFileContent[] 为 string[]（如果需要）
+  let normalizedList: string[] | undefined
+  if (tempContentList) {
+    if (typeof tempContentList[0] === 'object' && 'content' in tempContentList[0]) {
+      // 是 FormattedFileContent[]，提取 content
+      normalizedList = (tempContentList as import('../../file-manager/utils/fileHelper').FormattedFileContent[]).map(f => f.content)
+    } else {
+      // 已经是 string[]
+      normalizedList = tempContentList as string[]
+    }
   }
 
   const adapter = createAdapter(currentProvider)
@@ -64,7 +76,7 @@ export async function callAIAPI(
     onAnswerUpdate,
     tempContent,
     tempPlacement,
-    tempContentList
+    normalizedList
   )
 }
 
@@ -77,14 +89,26 @@ export function getPreviewData(
   config: AIConfig = DEFAULT_CONFIG,
   tempContent?: string,
   tempPlacement: 'append' | 'after_system' = 'append',
-  tempContentList?: string[]
+  tempContentList?: string[] | import('../../file-manager/utils/fileHelper').FormattedFileContent[]
 ): { url: string; headers: Record<string, string>; body: Record<string, any> } {
   const currentProvider = config.providers.find(p => p.id === config.currentProviderId)
   if (!currentProvider) {
     throw new Error(`找不到API配置: ${config.currentProviderId}`)
   }
 
+  // 转换 FormattedFileContent[] 为 string[]（如果需要）
+  let normalizedList: string[] | undefined
+  if (tempContentList) {
+    if (typeof tempContentList[0] === 'object' && 'content' in tempContentList[0]) {
+      // 是 FormattedFileContent[]，提取 content
+      normalizedList = (tempContentList as import('../../file-manager/utils/fileHelper').FormattedFileContent[]).map(f => f.content)
+    } else {
+      // 已经是 string[]
+      normalizedList = tempContentList as string[]
+    }
+  }
+
   const adapter = createAdapter(currentProvider)
 
-  return adapter.buildRequestData(messages, config, tempContent, tempPlacement, tempContentList)
+  return adapter.buildRequestData(messages, config, tempContent, tempPlacement, normalizedList)
 } 

@@ -29,18 +29,14 @@ export async function processFile(
   customProviderId?: string
 ): Promise<ProcessResult> {
   try {
-    // 提取完整路径（从特殊标记中）和文件名
-    const pathMarkMatch = fileMessage.content.match(/<!PATH:(.+?)!>/);
-    const fullPath = pathMarkMatch ? pathMarkMatch[1] : null
+    // 从元数据中读取文件路径和文件名（优雅的方式）
+    const fullPath = fileMessage._meta.filePath || null
+    const fileName = fileMessage._meta.fileName || null
     
-    // 提取文件名（从文件头中）
-    const fileNameMatch = fileMessage.content.match(/---\s*文件:\s*(.+?)\s*(?:<!PATH:.*?!>)?\s*---/);
-    const fileName = fileNameMatch ? fileNameMatch[1].trim() : null
-    
-    // 提取实际文件内容（去掉文件标识，包括路径标记）
+    // 提取实际文件内容（去掉文件标识）
     let actualContent = fileMessage.content
     if (fileName) {
-      // 去掉文件头和文件尾标识（包括 <!PATH:...!> 标记）
+      // 去掉文件头和文件尾标识
       actualContent = fileMessage.content
         .replace(/---\s*文件:.*?---\s*/g, '')
         .replace(/---\s*文件结束\s*---/g, '')

@@ -69,6 +69,18 @@ export interface MessageMetadata {
    * 如果未设置，将通过内容哈希动态生成
    */
   messageId?: string
+  
+  /**
+   * 文件路径（用于文件类型消息）
+   * 存储文件的完整路径，用于缓存识别等功能
+   */
+  filePath?: string
+  
+  /**
+   * 文件名（用于文件类型消息）
+   * 存储文件的简短名称，用于显示
+   */
+  fileName?: string
 }
 
 /**
@@ -114,6 +126,12 @@ export interface AgentContext {
     
     /** 附加文件内容列表 */
     readonly attachedContents: readonly string[]
+    
+    /** 文件元数据列表（与 attachedContents 一一对应） */
+    readonly fileMetadata?: ReadonlyArray<{
+      filePath: string
+      fileName: string
+    }>
     
     /** 对话历史 */
     readonly conversationHistory: readonly ApiMessage[]
@@ -310,6 +328,10 @@ export interface PreprocessingResponse extends ProcessResult {}
 export interface CreateContextInput {
   userInput: string
   attachedContents: string[]
+  fileMetadata?: Array<{
+    filePath: string
+    fileName: string
+  }>
   conversationHistory: ApiMessage[]
   promptCards?: PromptCard[]
   aiConfig: any
@@ -338,6 +360,12 @@ export interface MessageBuilderInput {
   
   /** 附加文件内容 */
   attachedContents: string[]
+  
+  /** 文件元数据（与 attachedContents 一一对应） */
+  fileMetadata?: Array<{
+    filePath: string
+    fileName: string
+  }>
   
   /** 提示词卡片 */
   promptCards?: PromptCard[]

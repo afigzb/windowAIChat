@@ -98,7 +98,7 @@ export function useConversationManager(
     parentNodeId: string | null = null, 
     tempContent?: string, 
     tempPlacement: 'append' | 'after_system' = 'append', 
-    tempContentList?: string[]
+    tempContentList?: import('../../file-manager/utils/fileHelper').FormattedFileContent[]
   ) => {
     if (isLoading) return
     
@@ -126,7 +126,7 @@ export function useConversationManager(
     newContent: string, 
     tempContent?: string, 
     tempPlacement: 'append' | 'after_system' = 'append', 
-    tempContentList?: string[]
+    tempContentList?: import('../../file-manager/utils/fileHelper').FormattedFileContent[]
   ) => {
     if (isLoading) return
     
@@ -180,7 +180,7 @@ export function useConversationManager(
     nodeId: string, 
     tempContent?: string, 
     tempPlacement: 'append' | 'after_system' = 'append',
-    tempContentList?: string[]
+    tempContentList?: import('../../file-manager/utils/fileHelper').FormattedFileContent[]
   ) => {
     if (isLoading) return
 

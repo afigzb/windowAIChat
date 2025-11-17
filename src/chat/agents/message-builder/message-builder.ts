@@ -97,11 +97,17 @@ export function buildMessages(input: MessageBuilderInput): MessageBuilderOutput 
       // 独立模式：每个文件单独插入
       input.attachedContents.forEach((fileContent, fileIndex) => {
         if (fileContent.trim()) {
+          // 获取文件元数据（如果有）
+          const fileMeta = input.fileMetadata?.[fileIndex]
           itemsToInsert.push({
             priority: filePriority,
             source: 'file',
             content: fileContent,
-            metadata: { fileIndex }
+            metadata: { 
+              fileIndex,
+              filePath: fileMeta?.filePath,
+              fileName: fileMeta?.fileName
+            }
           })
         }
       })
@@ -112,7 +118,10 @@ export function buildMessages(input: MessageBuilderInput): MessageBuilderOutput 
         priority: filePriority,
         source: 'file',
         content: mergedContent,
-        metadata: { fileCount: input.attachedContents.length }
+        metadata: { 
+          fileCount: input.attachedContents.length,
+          // 合并模式下不保存具体文件路径（因为是多个文件）
+        }
       })
     }
     
@@ -121,15 +130,23 @@ export function buildMessages(input: MessageBuilderInput): MessageBuilderOutput 
     
     // 插入消息
     itemsToInsert.forEach(item => {
+      const meta: any = {
+        type: item.source,
+        needsProcessing: item.source === 'file',
+        originalIndex: currentIndex,
+        ...item.metadata
+      }
+      
+      // 如果有文件路径信息，保存到 _meta（用于缓存识别）
+      if (item.source === 'file' && item.metadata?.filePath) {
+        meta.filePath = item.metadata.filePath
+        meta.fileName = item.metadata.fileName
+      }
+      
       messages.push({
         role: 'user',
         content: item.content,
-        _meta: {
-          type: item.source,
-          needsProcessing: item.source === 'file',
-          originalIndex: currentIndex,
-          ...item.metadata
-        }
+        _meta: meta
       })
       sourceMap.push({
         start: currentIndex,

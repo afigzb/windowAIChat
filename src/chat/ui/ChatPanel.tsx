@@ -34,12 +34,13 @@ import { MessagePreviewDialog } from './MessagePreviewDialog'
 import { getPreviewData } from '../core/api'
 import { getConversationHistory, createFlatMessage } from '../core/tree-utils'
 import { useSmartScroll } from './useSmartScroll'
+import type { FormattedFileContent } from '../../file-manager/utils/fileHelper'
 
 interface ChatPanelProps {
   config: AIConfig
   onConfigChange: (config: AIConfig) => void
   additionalContent?: (() => Promise<string>) | string // 额外的上下文内容（如选中的文件内容）
-  additionalContentList?: () => Promise<string[]> // 额外的上下文内容列表（用于独立插入模式）
+  additionalContentList?: () => Promise<FormattedFileContent[]> // 额外的上下文内容列表（用于独立插入模式，包含元数据）
 }
 
 /**
@@ -180,7 +181,7 @@ export function ChatPanel({
    */
   const getFileContent = async (): Promise<{
     extraContent: string
-    extraContentList: string[] | undefined
+    extraContentList: FormattedFileContent[] | undefined
     placement: 'append' | 'after_system'
   }> => {
     // 使用配置的文件内容插入位置和模式
@@ -189,10 +190,10 @@ export function ChatPanel({
     
     // 根据模式获取文件内容
     let extraContent = ''
-    let extraContentList: string[] | undefined = undefined
+    let extraContentList: FormattedFileContent[] | undefined = undefined
     
     if (placement === 'after_system' && mode === 'separate' && additionalContentList) {
-      // 独立模式：获取文件列表
+      // 独立模式：获取文件列表（包含元数据）
       extraContentList = await additionalContentList()
     } else if (additionalContent) {
       // 合并模式或 append 模式：获取合并后的内容

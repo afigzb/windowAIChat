@@ -14,24 +14,31 @@ import {
 } from './tree-utils'
 import { promptCardManager } from '../../prompt/prompt-manager'
 import { isInOverrideMode } from './context/system-prompt'
+import type { FormattedFileContent } from '../../file-manager/utils/fileHelper'
 
 /**
  * 收集附加内容
+ * 现在接受 FormattedFileContent[] 并提取内容字符串和元数据
  */
 function collectAttachedContents(
   tempContent?: string,
-  tempContentList?: string[]
-): string[] {
+  tempContentList?: FormattedFileContent[]
+): {
+  contents: string[]
+  metadata?: Array<{ filePath: string; fileName: string }>
+} {
   const contents: string[] = []
+  let metadata: Array<{ filePath: string; fileName: string }> | undefined
   
-  // 优先使用列表形式
+  // 优先使用列表形式（从 FormattedFileContent 中提取 content 和 metadata）
   if (tempContentList && tempContentList.length > 0) {
-    contents.push(...tempContentList)
+    contents.push(...tempContentList.map(f => f.content))
+    metadata = tempContentList.map(f => f.metadata)
   } else if (tempContent && tempContent.trim()) {
     contents.push(tempContent)
   }
   
-  return contents
+  return { contents, metadata }
 }
 
 /**
@@ -93,7 +100,7 @@ function buildUserMessageNode(
  * @param config AI配置
  * @param abortSignal 中断信号
  * @param tempContent 临时附加内容（单个）
- * @param tempContentList 临时附加内容列表（多个）
+ * @param tempContentList 临时附加内容列表（多个，包含元数据）
  * @returns 完整的初始请求数据
  */
 export function buildInitialRequestData(
@@ -103,10 +110,10 @@ export function buildInitialRequestData(
   config: AIConfig,
   abortSignal: AbortSignal,
   tempContent?: string,
-  tempContentList?: string[]
+  tempContentList?: FormattedFileContent[]
 ): InitialRequestData {
-  // 1. 收集附加内容
-  const attachedContents = collectAttachedContents(tempContent, tempContentList)
+  // 1. 收集附加内容和元数据
+  const { contents: attachedContents, metadata: fileMetadata } = collectAttachedContents(tempContent, tempContentList)
   
   // 2. 构建用户消息节点
   const userMessageNode = buildUserMessageNode(userInput, parentId, attachedContents)
@@ -123,6 +130,7 @@ export function buildInitialRequestData(
   return {
     userInput: userInput.trim(),
     attachedContents,
+    fileMetadata,
     conversationHistory,
     systemPrompt,
     aiConfig: config,
@@ -143,7 +151,7 @@ export function buildInitialRequestData(
  * @param config AI配置
  * @param abortSignal 中断信号
  * @param overrideTempContent 覆盖的临时内容（单个）
- * @param overrideTempContentList 覆盖的临时内容列表（多个）
+ * @param overrideTempContentList 覆盖的临时内容列表（多个，包含元数据）
  * @returns 完整的初始请求数据
  */
 export function buildInitialRequestDataForRegenerate(
@@ -152,14 +160,17 @@ export function buildInitialRequestDataForRegenerate(
   config: AIConfig,
   abortSignal: AbortSignal,
   overrideTempContent?: string,
-  overrideTempContentList?: string[]
+  overrideTempContentList?: FormattedFileContent[]
 ): InitialRequestData {
-  // 1. 确定附加内容：优先使用覆盖的，否则使用原有的
+  // 1. 确定附加内容和元数据：优先使用覆盖的，否则使用原有的
   let attachedContents: string[]
+  let fileMetadata: Array<{ filePath: string; fileName: string }> | undefined
   
   if (overrideTempContentList || overrideTempContent) {
     // 使用新提供的附加内容
-    attachedContents = collectAttachedContents(overrideTempContent, overrideTempContentList)
+    const result = collectAttachedContents(overrideTempContent, overrideTempContentList)
+    attachedContents = result.contents
+    fileMetadata = result.metadata
   } else {
     // 保留原有的附加内容
     attachedContents = userMessage.components?.attachedFiles || []
@@ -205,6 +216,7 @@ export function buildInitialRequestDataForRegenerate(
   return {
     userInput,
     attachedContents,
+    fileMetadata,
     conversationHistory,
     systemPrompt,
     aiConfig: config,

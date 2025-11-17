@@ -27,6 +27,7 @@ import {
 import { routeRequest } from './request-router'
 import { executeManualMode } from './manual-mode-handler'
 import { executeAgentMode } from '../agents/agent-mode-handler'
+import type { FormattedFileContent } from '../../file-manager/utils/fileHelper'
 
 /**
  * 统一的请求执行器
@@ -66,7 +67,7 @@ export async function handleSendMessage(
   updateConversationTree: (flatMessages: Map<string, FlatMessage>, activePath: string[]) => void,
   tempContent?: string,
   tempPlacement: 'append' | 'after_system' = 'append',
-  tempContentList?: string[]
+  tempContentList?: FormattedFileContent[]
 ): Promise<void> {
   if (!content.trim()) return
 
@@ -168,7 +169,7 @@ export async function handleEditUserMessage(
   updateConversationTree: (flatMessages: Map<string, FlatMessage>, activePath: string[]) => void,
   tempContent?: string,
   tempPlacement: 'append' | 'after_system' = 'append',
-  tempContentList?: string[]
+  tempContentList?: FormattedFileContent[]
 ): Promise<void> {
   // 获取原消息
   const originalMessage = conversationTree.flatMessages.get(nodeId)
@@ -322,7 +323,7 @@ export async function handleRegenerateMessage(
   updateConversationTree: (flatMessages: Map<string, FlatMessage>, activePath: string[]) => void,
   tempContent?: string,
   tempPlacement: 'append' | 'after_system' = 'append',
-  tempContentList?: string[]
+  tempContentList?: FormattedFileContent[]
 ): Promise<void> {
   const targetMessage = conversationTree.flatMessages.get(nodeId)
   if (!targetMessage) return

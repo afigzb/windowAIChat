@@ -144,6 +144,12 @@ export interface InitialRequestData {
   // 附加内容（文件、选中文本等）
   attachedContents: string[]
   
+  // 文件元数据（用于Agent模式保存到消息元数据）
+  fileMetadata?: Array<{
+    filePath: string
+    fileName: string
+  }>
+  
   // 对话历史（完整的消息链）
   conversationHistory: FlatMessage[]
   
