@@ -7,6 +7,7 @@ import { FileContentViewer } from '../document-editor'
 import { Icon } from '../components'
 import type { FileContent } from '../types/file-api'
 import type { WordCountResult } from '../md-html-dock/types'
+import type { FormattedFileContent } from '../file-manager/utils/fileHelper'
 
 interface WordCount {
   words: number
@@ -38,7 +39,7 @@ interface WorkspaceViewProps {
   config: AIConfig
   onConfigChange: (config: AIConfig) => void
   additionalContent: () => Promise<string>
-  additionalContentList?: () => Promise<string[]>
+  additionalContentList?: () => Promise<FormattedFileContent[]>
 }
 
 export function WorkspaceView({

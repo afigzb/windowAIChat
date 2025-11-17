@@ -139,6 +139,18 @@ class WindowManager {
         this.contextMenuManager?.showTextEditMenu(params)
       }
     })
+
+    // F12 切换开发者工具（在任何环境下都启用）
+    this.mainWindow.webContents.on('before-input-event', (event, input) => {
+      if (input.key === 'F12' && !input.control && !input.alt && !input.meta && !input.shift) {
+        event.preventDefault()
+        if (this.mainWindow.webContents.isDevToolsOpened()) {
+          this.mainWindow.webContents.closeDevTools()
+        } else {
+          this.mainWindow.webContents.openDevTools()
+        }
+      }
+    })
   }
 
   /**
