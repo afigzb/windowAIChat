@@ -26,23 +26,17 @@ export function ApiProviderToggle({
   
   const currentProvider = config.providers.find(p => p.id === config.currentProviderId)
   
-  const getProviderColor = (providerId: string) => {
-    const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-violet-500', 'bg-orange-500', 'bg-rose-500', 'bg-cyan-500']
-    return colors[providerId.length % colors.length]
-  }
-  
   return (
     <div className="relative">
       <button
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all duration-300 min-w-[9rem] max-w-[12rem] shadow-sm ${
+        className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border-2 text-sm font-semibold transition-colors duration-200 min-w-[9rem] max-w-[12rem] shadow-sm ${
           disabled 
             ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed' 
-            : 'border-gray-200 hover:border-blue-300 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:ring-offset-1 text-gray-700 cursor-pointer bg-white hover:bg-blue-50 hover:shadow-lg transform hover:scale-105'
+            : 'border-gray-200 hover:border-blue-200 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:ring-offset-1 text-gray-700 cursor-pointer bg-white hover:bg-gray-50'
         }`}
       >
-        <div className={`w-2.5 h-2.5 rounded-full ${getProviderColor(config.currentProviderId)} shadow-sm`} />
         <span className="truncate whitespace-nowrap overflow-hidden text-ellipsis flex-1">
           {currentProvider?.name || '未知配置'}
         </span>
@@ -72,7 +66,6 @@ export function ApiProviderToggle({
                     : 'text-gray-700 hover:pl-5'
                 }`}
               >
-                <div className={`w-2.5 h-2.5 rounded-full ${getProviderColor(provider.id)} shadow-sm`} />
                 <span className="truncate whitespace-nowrap overflow-hidden text-ellipsis flex-1">
                   {provider.name}
                 </span>

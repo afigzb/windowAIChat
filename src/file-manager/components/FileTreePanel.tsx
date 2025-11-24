@@ -85,17 +85,17 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
     return (
       <>
         <ConfirmDialog {...confirmProps} />
-        <div className="space-y-6">
-        <button
-          onClick={handleSelectWorkspace}
-          disabled={isLoading}
-          className="w-full p-5 border-2 border-dashed border-gray-300 rounded-2xl text-gray-700 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-300 disabled:opacity-50 group hover:shadow-lg"
-        >
-          <div className="flex items-center justify-center gap-3">
-            <Icon name="folder" className="w-6 h-6 text-blue-600 group-hover:animate-pulse" />
-            <span className="text-base font-semibold">{isLoading ? '正在加载...' : '选择工作目录'}</span>
-          </div>
-        </button>
+        <div className="h-full flex flex-col">
+          <button
+            onClick={handleSelectWorkspace}
+            disabled={isLoading}
+            className="w-full h-full flex flex-col items-start justify-start p-6 border-2 border-dashed border-gray-300 text-gray-700 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-300 disabled:opacity-50 group hover:shadow-lg cursor-pointer"
+          >
+            <div className="w-full flex items-center gap-3">
+              <Icon name="folder" className="w-6 h-6 text-blue-600 group-hover:animate-pulse flex-shrink-0" />
+              <span className="text-base font-semibold">{isLoading ? '正在加载...' : '选择工作目录'}</span>
+            </div>
+          </button>
         </div>
       </>
     )
@@ -106,7 +106,7 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
       <ConfirmDialog {...confirmProps} />
       <div className="h-full flex flex-col">
       {/* 选中文件显示区域 - 始终显示，固定高度 */}
-      <div className="flex-shrink-0 p-3 border-b-2 border-gray-200 bg-gradient-to-r from-gray-50 to-slate-50">
+      <div className="flex-shrink-0 border-b-2 border-gray-200 bg-gradient-to-r rounded-xl from-gray-50 to-slate-50">
         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-3 min-w-0 shadow-sm">
           <div className="flex items-center justify-between mb-2 min-w-0 gap-2">
             <div className="flex items-center min-w-0 flex-1">
@@ -185,7 +185,7 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
 
       {/* 工作区信息 */}
       <div className="flex-shrink-0 px-5 py-4 border-b-2 border-gray-200 bg-white">
-        <div className="flex items-center justify-between mb-3 min-w-0">
+        <div className="flex items-center justify-between min-w-0">
           <div className="flex items-center min-w-0 flex-1">
             <Icon name="folder" className="w-5 h-5 text-blue-600 flex-shrink-0 mr-2" />
             <span className="font-bold text-gray-900 text-base truncate">{workspace.name}</span>
@@ -197,9 +197,6 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
           >
             更换
           </button>
-        </div>
-        <div className="text-sm text-gray-600 truncate bg-gray-50 rounded-lg px-3 py-1.5 mt-2" title={workspace.rootPath}>
-          {workspace.rootPath}
         </div>
       </div>
 

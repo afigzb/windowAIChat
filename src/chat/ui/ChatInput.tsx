@@ -92,7 +92,7 @@ export const ChatInputArea = forwardRef<
             />
           </div>
 
-          <div className="flex items-center justify-between px-5 py-4 border-t-2 border-gray-100 bg-gradient-to-r from-gray-50 to-slate-50 rounded-b-2xl min-w-[20rem]">
+          <div className="flex items-center justify-between px-5 py-4 rounded-b-2xl min-w-[20rem]">
             <div className="flex items-center gap-4 flex-shrink">
               <ApiProviderToggle config={config} onProviderChange={onProviderChange} disabled={isLoading} />
               

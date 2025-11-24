@@ -477,7 +477,6 @@ export function ChatPanel({
       <header className="flex-shrink-0 px-6 py-4 h-16 border-b-2 border-gray-200 bg-white shadow-sm">
         <div className="flex items-center justify-between h-full min-w-0 gap-3">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="w-3 h-3 bg-blue-500 rounded-full flex-shrink-0 animate-pulse shadow-lg shadow-blue-500/30"></div>
             <h2 className="font-bold text-gray-900 text-lg whitespace-nowrap overflow-hidden text-ellipsis" title="AI写作助手">
               AI写作助手
             </h2>
