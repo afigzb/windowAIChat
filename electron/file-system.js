@@ -29,6 +29,12 @@ class FileSystemManager {
       const targetName = newName || path.basename(sourcePath)
       const destinationPath = path.join(targetDirPath, targetName)
 
+      // 如果源路径和目标路径相同，直接返回成功
+      // 使用 relative 检查路径是否相同（处理大小写和规范化）
+      if (path.relative(sourcePath, destinationPath) === '') {
+        return destinationPath
+      }
+
       // 目标存在则报错，避免无提示覆盖
       if (fsSync.existsSync(destinationPath)) {
         throw new Error('目标位置已存在同名项目')

@@ -183,7 +183,7 @@ export function MessageBubble({
           <div className={`flex items-center mb-4 gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
             <div className="flex items-center gap-3">
               <span className={`text-base font-semibold min-w-[2rem] max-w-[6rem] whitespace-nowrap overflow-hidden text-ellipsis ${isUser ? 'text-blue-600' : 'text-gray-800'}`}>
-                {isUser ? 'You' : 'AI Assistant'}
+                {isUser ? 'You' : 'Assistant'}
               </span>
               {(node.role === 'user' || node.role === 'assistant') && typeof isInContext === 'boolean' && (
                 <div className={`w-2 h-2 rounded-full flex-shrink-0 ${

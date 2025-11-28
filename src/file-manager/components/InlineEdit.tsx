@@ -41,12 +41,14 @@ export function InlineEdit({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
+      e.stopPropagation() // 防止事件冒泡
       if (value.trim()) {
         onConfirm(value.trim())
       } else {
         onCancel()
       }
     } else if (e.key === 'Escape') {
+      e.stopPropagation()
       onCancel()
     }
   }
@@ -61,7 +63,7 @@ export function InlineEdit({
 
   return (
     <div 
-      className="flex items-center gap-2 py-2 px-3 rounded-lg bg-blue-50 border-2 border-blue-300 shadow-md"
+      className="flex items-center gap-2 py-2 px-3"
       style={{ marginLeft: level * 20 }}
     >
       <div className="flex-shrink-0">
@@ -78,8 +80,10 @@ export function InlineEdit({
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
+        onClick={(e) => e.stopPropagation()}
         placeholder={type === 'directory' ? '文件夹名称' : '文件名称'}
-        className="flex-1 text-sm font-medium px-3 py-2 border-2 border-gray-300 rounded-lg text-gray-900 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:ring-offset-1"
+        className="flex-1 min-w-0 text-sm px-1.5 py-0.5 border border-blue-500 rounded bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-200"
+        spellCheck={false}
       />
     </div>
   )

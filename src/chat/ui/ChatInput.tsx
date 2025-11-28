@@ -87,7 +87,7 @@ export const ChatInputArea = forwardRef<
                 adjustHeight(e.target)
               }}
               onKeyPress={handleKeyPress}
-              placeholder={isLoading ? "AI正在回复中，可以预输入下一条消息..." : "发送消息给 AI Assistant..."}
+              placeholder={isLoading ? "AI正在回复中，可以预输入下一条消息..." : "发送消息给 Assistant..."}
               className="w-full bg-transparent border-none focus:outline-none resize-none placeholder-gray-400 text-gray-900 text-base leading-relaxed min-h-[60px] max-h-[150px] min-w-0"
             />
           </div>
