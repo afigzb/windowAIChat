@@ -63,6 +63,54 @@ class FileSystemManager {
   }
 
   /**
+   * 递归复制文件或目录
+   */
+  async copyRecursive(sourcePath, destPath) {
+    const stats = await fs.stat(sourcePath)
+    
+    if (stats.isDirectory()) {
+      // 创建目标目录
+      await fs.mkdir(destPath, { recursive: true })
+      
+      // 读取源目录内容
+      const entries = await fs.readdir(sourcePath, { withFileTypes: true })
+      
+      // 递归复制每个条目
+      for (const entry of entries) {
+        const srcPath = path.join(sourcePath, entry.name)
+        const dstPath = path.join(destPath, entry.name)
+        await this.copyRecursive(srcPath, dstPath)
+      }
+    } else {
+      // 复制文件
+      await fs.copyFile(sourcePath, destPath)
+    }
+  }
+
+  /**
+   * 复制文件或目录到目标目录
+   */
+  async copyPath(sourcePath, targetDirPath, newName = null) {
+    try {
+      // 计算目标路径
+      const targetName = newName || path.basename(sourcePath)
+      const destinationPath = path.join(targetDirPath, targetName)
+
+      // 目标存在则报错，避免无提示覆盖
+      if (fsSync.existsSync(destinationPath)) {
+        throw new Error('目标位置已存在同名项目')
+      }
+
+      // 执行复制
+      await this.copyRecursive(sourcePath, destinationPath)
+      return destinationPath
+    } catch (error) {
+      console.error('复制文件/文件夹失败:', error)
+      throw error
+    }
+  }
+
+  /**
    * 选择工作目录
    */
   async selectDirectory() {
@@ -494,6 +542,10 @@ class FileSystemManager {
 
     ipcMain.handle('move-path', async (event, sourcePath, targetDirPath, newName) => {
       return await this.movePath(sourcePath, targetDirPath, newName)
+    })
+
+    ipcMain.handle('copy-path', async (event, sourcePath, targetDirPath, newName) => {
+      return await this.copyPath(sourcePath, targetDirPath, newName)
     })
 
     ipcMain.handle('get-file-stats', async (event, filePath) => {

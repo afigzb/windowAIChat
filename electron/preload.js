@@ -1,9 +1,12 @@
-const { contextBridge, ipcRenderer } = require('electron')
+const { contextBridge, ipcRenderer, webUtils } = require('electron')
 
 // 向渲染进程暴露安全的API
 contextBridge.exposeInMainWorld('electronAPI', {
   // 系统信息
   platform: process.platform,
+  
+  // 文件路径获取（用于拖放）
+  getPathForFile: (file) => webUtils.getPathForFile(file),
 
   // === 文件系统管理API ===
   
@@ -46,6 +49,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteFileOrDirectory: (path) => ipcRenderer.invoke('delete-file-or-directory', path),
   rename: (oldPath, newName) => ipcRenderer.invoke('rename', oldPath, newName),
   movePath: (sourcePath, targetDirPath, newName) => ipcRenderer.invoke('move-path', sourcePath, targetDirPath, newName),
+  copyPath: (sourcePath, targetDirPath, newName) => ipcRenderer.invoke('copy-path', sourcePath, targetDirPath, newName),
   
   // 获取文件信息
   getFileStats: (path) => ipcRenderer.invoke('get-file-stats', path),

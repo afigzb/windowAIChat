@@ -23,6 +23,7 @@ interface FileTreePanelProps {
 export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onClearSelectedFiles, onReorderFiles, loadingFiles }: FileTreePanelProps) {
   const [draggedIndex, setDraggedIndex] = React.useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = React.useState<number | null>(null)
+  const [isWorkspaceDragOver, setIsWorkspaceDragOver] = React.useState(false)
 
   // 拖拽处理
   const handleDragStart = (e: React.DragEvent, index: number) => {
@@ -66,6 +67,7 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
     isLoading,
     inlineEdit,
     handleSelectWorkspace,
+    handleSetWorkspace,
     handleFileClick,
     handleContextMenuOpen,
     handleInlineEditConfirm,
@@ -184,7 +186,85 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
       </div>
 
       {/* 工作区信息 */}
-      <div className="flex-shrink-0 px-5 py-4 border-b-2 border-gray-200 bg-white">
+      <div 
+        className={`flex-shrink-0 px-5 py-4 border-b-2 transition-all duration-200 ${
+          isWorkspaceDragOver 
+            ? 'border-blue-500 bg-blue-50' 
+            : 'border-gray-200 bg-white'
+        }`}
+        onDragOver={(e) => {
+          // 允许拖放文件夹到工作区区域
+          e.preventDefault()
+          e.stopPropagation()
+          setIsWorkspaceDragOver(true)
+        }}
+        onDragLeave={(e) => {
+          setIsWorkspaceDragOver(false)
+        }}
+        onDrop={async (e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          setIsWorkspaceDragOver(false)
+          
+          console.log('🏠 工作区拖放触发:', {
+            files: e.dataTransfer.files,
+            filesLength: e.dataTransfer.files?.length,
+            types: e.dataTransfer.types
+          })
+          
+          // 检查是否是外部文件夹拖入
+          if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const file = e.dataTransfer.files[0]
+            // 使用 Electron 的 webUtils.getPathForFile 获取文件路径
+            const filePath = (window as any).electronAPI?.getPathForFile?.(file)
+            
+            console.log('📂 拖入的文件路径:', filePath)
+            
+            if (filePath && (window as any).electronAPI) {
+              try {
+                // 检查是否为文件夹
+                const stats = await (window as any).electronAPI.getFileStats(filePath)
+                console.log('📊 文件信息:', stats)
+                
+                if (stats.isDirectory) {
+                  // 使用新文件夹路径设置工作区
+                  const newWorkspace = {
+                    id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+                    name: filePath.split(/[/\\]/).filter(Boolean).pop() || filePath,
+                    rootPath: filePath,
+                    createdAt: new Date(),
+                    lastAccessed: new Date()
+                  }
+                  
+                  console.log('🔄 更换工作区到:', newWorkspace)
+                  
+                  // 使用 hook 提供的方法来更换工作区（会更新 React 状态）
+                  await handleSetWorkspace(newWorkspace)
+                  console.log('✅ 工作区更换成功')
+                } else {
+                  console.log('⚠️ 拖入的不是文件夹')
+                  await confirm({
+                    title: '无法更换工作目录',
+                    message: '请拖入文件夹而不是文件',
+                    confirmText: '确定',
+                    type: 'danger'
+                  })
+                }
+              } catch (err) {
+                console.error('❌ 更换工作目录失败:', err)
+                await confirm({
+                  title: '更换工作目录失败',
+                  message: `无法更换工作目录：${err}`,
+                  confirmText: '确定',
+                  type: 'danger'
+                })
+              }
+            } else {
+              console.log('⚠️ 无法获取文件路径或 electronAPI')
+            }
+          }
+        }}
+      >
         <div className="flex items-center justify-between min-w-0">
           <div className="flex items-center min-w-0 flex-1">
             <Icon name="folder" className="w-5 h-5 text-blue-600 flex-shrink-0 mr-2" />
@@ -193,7 +273,7 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
           <button
             onClick={handleSelectWorkspace}
             className="text-sm font-medium text-gray-500 hover:text-blue-600 transition-all duration-200 flex-shrink-0 whitespace-nowrap ml-3 hover:underline"
-            title="更换工作目录"
+            title="更换工作目录（也可拖入文件夹）"
           >
             更换
           </button>
@@ -224,15 +304,34 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
             try {
               e.preventDefault()
               e.stopPropagation()
+              
+              if (!workspace?.rootPath) return
+              
+              // 检查是否是外部文件拖入（从桌面或其他应用）
+              if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                // 处理外部文件拖入 - 复制文件到根目录
+                const files = Array.from(e.dataTransfer.files)
+                for (const file of files) {
+                  // 使用 Electron 的 webUtils.getPathForFile 获取文件路径
+                  const filePath = (window as any).electronAPI?.getPathForFile?.(file)
+                  if (filePath) {
+                    await (await import('../../storage/file-system')).fileSystemManager.copy(filePath, workspace.rootPath)
+                  }
+                }
+                return
+              }
+              
+              // 处理内部文件拖动 - 移动到根目录
               const sourcePath = e.dataTransfer.getData('application/x-filepath') || e.dataTransfer.getData('text/plain')
-              if (!sourcePath || !workspace?.rootPath) return
+              if (!sourcePath) return
+              
               // 拖到空白区域即移动到根目录
               await (await import('../../storage/file-system')).fileSystemManager.move(sourcePath, workspace.rootPath)
             } catch (err) {
-              console.error('移动失败:', err)
+              console.error('操作失败:', err)
               await confirm({
-                title: '移动失败',
-                message: `无法移动文件或文件夹：${err}`,
+                title: '操作失败',
+                message: `无法完成操作：${err}`,
                 confirmText: '确定',
                 type: 'danger'
               })

@@ -124,11 +124,12 @@ export function FileTreeNode({
     e.stopPropagation()
     setIsDragOver(false)
 
-    const sourcePath = e.dataTransfer.getData('application/x-filepath') || e.dataTransfer.getData('text/plain')
-    if (!sourcePath) return
-
-    // 自身无需处理
-    if (sourcePath === node.path) return
+    console.log('🎯 文件拖放触发:', {
+      files: e.dataTransfer.files,
+      filesLength: e.dataTransfer.files?.length,
+      types: e.dataTransfer.types,
+      items: e.dataTransfer.items
+    })
 
     // 确定目标目录
     let targetDirPath: string
@@ -140,6 +141,52 @@ export function FileTreeNode({
         ? (window as any).path.dirname(node.path) 
         : node.path.substring(0, Math.max(node.path.lastIndexOf('/'), node.path.lastIndexOf('\\')))
     }
+
+    // 检查是否是外部文件拖入（从桌面或其他应用）
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      console.log('📁 检测到外部文件拖入')
+      try {
+        // 处理外部文件拖入 - 复制文件到目标目录
+        const files = Array.from(e.dataTransfer.files)
+        console.log('📝 文件列表:', files.map(f => ({
+          name: f.name,
+          type: f.type,
+          size: f.size
+        })))
+        
+        for (const file of files) {
+          // 使用 Electron 的 webUtils.getPathForFile 获取文件路径
+          const filePath = (window as any).electronAPI?.getPathForFile?.(file)
+          console.log('🔄 准备复制文件:', filePath, '到', targetDirPath)
+          if (filePath) {
+            await fileSystemManager.copy(filePath, targetDirPath)
+            console.log('✅ 文件复制成功')
+          } else {
+            console.warn('⚠️ 无法获取文件路径')
+          }
+        }
+      } catch (err) {
+        console.error('❌ 复制文件失败:', err)
+        await confirm({
+          title: '复制失败',
+          message: `无法复制文件或文件夹：${err}`,
+          confirmText: '确定',
+          type: 'danger'
+        })
+      }
+      return
+    }
+
+    // 处理内部文件拖动 - 移动文件
+    const sourcePath = e.dataTransfer.getData('application/x-filepath') || e.dataTransfer.getData('text/plain')
+    console.log('🔀 内部文件移动:', sourcePath)
+    if (!sourcePath) {
+      console.log('⚠️ 没有找到源路径')
+      return
+    }
+
+    // 自身无需处理
+    if (sourcePath === node.path) return
 
     // 检查源文件的父目录是否就是目标目录（文件已经在目标位置）
     const sourceParentDir = (window as any).path 
@@ -155,8 +202,9 @@ export function FileTreeNode({
 
     try {
       await fileSystemManager.move(sourcePath, targetDirPath)
+      console.log('✅ 文件移动成功')
     } catch (err) {
-      console.error('移动失败:', err)
+      console.error('❌ 移动失败:', err)
       await confirm({
         title: '移动失败',
         message: `无法移动文件或文件夹：${err}`,

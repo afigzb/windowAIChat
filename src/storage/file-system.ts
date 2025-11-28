@@ -250,6 +250,24 @@ export class FileSystemManager {
   }
 
   /**
+   * 复制文件或文件夹到目标目录
+   */
+  async copy(sourcePath: string, targetDirPath: string, newName?: string): Promise<string> {
+    try {
+      // 执行复制并获取新路径
+      const newPath = await (window as any).electronAPI.copyPath(sourcePath, targetDirPath, newName)
+      
+      // 刷新文件树
+      await this.loadFileTree()
+      
+      return newPath
+    } catch (error) {
+      console.error('复制失败:', error)
+      throw error
+    }
+  }
+
+  /**
    * 根据路径查找文件节点
    */
   findNodeByPath(path: string): FileSystemNode | null {

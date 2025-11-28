@@ -64,6 +64,21 @@ export function useFileTree() {
     }
   }
 
+  const handleSetWorkspace = useCallback(async (workspace: Workspace) => {
+    setIsLoading(true)
+    try {
+      await fileSystemManager.setWorkspace(workspace)
+      setWorkspace(workspace)
+      const tree = fileSystemManager.getFileTree()
+      setFileTree(tree)
+    } catch (error) {
+      console.error('设置工作区失败:', error)
+      throw error
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
   const refreshFileTree = useCallback(async () => {
     const tree = await fileSystemManager.loadFileTree()
     setFileTree(tree)
@@ -249,6 +264,7 @@ export function useFileTree() {
     isLoading,
     inlineEdit,
     handleSelectWorkspace,
+    handleSetWorkspace,
     handleFileClick,
     handleContextMenuOpen,
     handleInlineEditConfirm,
