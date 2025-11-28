@@ -121,6 +121,25 @@ export function useFileTree() {
     }
   }
 
+  // 更新 focusedFiles 中的路径（文件移动后）
+  const updateFocusedFilesPaths = useCallback((pathMappings: Array<{ oldPath: string; newPath: string }>) => {
+    const newFocused = new Set(focusedFiles)
+    let hasChanges = false
+
+    pathMappings.forEach(({ oldPath, newPath }) => {
+      if (newFocused.has(oldPath)) {
+        newFocused.delete(oldPath)
+        newFocused.add(newPath)
+        hasChanges = true
+      }
+    })
+
+    if (hasChanges) {
+      setFocusedFiles(newFocused)
+      console.log('✅ 已更新选中文件路径:', Array.from(newFocused))
+    }
+  }, [focusedFiles])
+
   // startInlineEdit现在通过Electron IPC触发，不再需要直接调用
 
   const handleInlineEditConfirm = useCallback(async (name: string) => {
@@ -278,6 +297,11 @@ export function useFileTree() {
         setLastFocusedFile(null)
       }
       
+      // 如果是移动操作，更新路径映射
+      if (data.type === 'move' && data.pathMappings) {
+        updateFocusedFilesPaths(data.pathMappings)
+      }
+      
       // 刷新文件树而不是重载页面
       refreshFileTree()
     }
@@ -293,7 +317,7 @@ export function useFileTree() {
         // 所以我们在WritingPage中移除监听
       }
     }
-  }, [refreshFileTree])
+  }, [refreshFileTree, updateFocusedFilesPaths])
 
   return {
     workspace,
@@ -307,6 +331,7 @@ export function useFileTree() {
     handleContextMenuOpen,
     handleInlineEditConfirm,
     handleInlineEditCancel,
-    refreshFileTree
+    refreshFileTree,
+    updateFocusedFilesPaths // 导出路径更新方法
   }
 }

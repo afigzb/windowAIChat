@@ -68,15 +68,21 @@ export function setDragData(dataTransfer: DataTransfer, paths: string | string[]
 
 /**
  * 批量移动文件到目标目录
- * @returns 成功移动的文件数量
+ * @returns 成功移动的文件数量和路径映射
  */
 export async function batchMoveFiles(
   sourcePaths: string[],
   targetDirPath: string
-): Promise<{ success: number; failed: number; errors: Error[] }> {
+): Promise<{ 
+  success: number
+  failed: number
+  errors: Error[]
+  pathMappings: Array<{ oldPath: string; newPath: string }>
+}> {
   let success = 0
   let failed = 0
   const errors: Error[] = []
+  const pathMappings: Array<{ oldPath: string; newPath: string }> = []
 
   // 过滤掉已经在目标目录的文件
   const pathsToMove = sourcePaths.filter(path => {
@@ -90,6 +96,13 @@ export async function batchMoveFiles(
   for (const sourcePath of pathsToMove) {
     try {
       await fileSystemManager.move(sourcePath, targetDirPath)
+      
+      // 计算新路径
+      const fileName = sourcePath.split(/[/\\]/).pop() || ''
+      const separator = targetDirPath.includes('\\') ? '\\' : '/'
+      const newPath = `${targetDirPath}${separator}${fileName}`
+      
+      pathMappings.push({ oldPath: sourcePath, newPath })
       success++
     } catch (error) {
       failed++
@@ -98,7 +111,7 @@ export async function batchMoveFiles(
     }
   }
 
-  return { success, failed, errors }
+  return { success, failed, errors, pathMappings }
 }
 
 /**

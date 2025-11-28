@@ -73,7 +73,8 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
     handleFileClick,
     handleContextMenuOpen,
     handleInlineEditConfirm,
-    handleInlineEditCancel
+    handleInlineEditCancel,
+    updateFocusedFilesPaths
   } = useFileTree()
   
   const { confirm, confirmProps } = useConfirm()
@@ -352,6 +353,11 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
 
               const result = await batchMoveFiles(draggedData.paths, workspace.rootPath)
               
+              // 更新选中文件的路径
+              if (result.pathMappings.length > 0) {
+                updateFocusedFilesPaths(result.pathMappings)
+              }
+              
               if (result.failed > 0) {
                 await confirm({
                   title: '批量移动失败',
@@ -406,6 +412,7 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
                 selectedFiles={selectedFiles}
                 onFileSelect={onFileSelect}
                 loadingFiles={loadingFiles}
+                onUpdateFocusedFilesPaths={updateFocusedFilesPaths}
               />
             ))}
             {inlineEdit.isActive && inlineEdit.mode === 'create' && inlineEdit.parentPath === (workspace?.rootPath || '') && (

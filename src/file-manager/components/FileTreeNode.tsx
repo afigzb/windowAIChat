@@ -34,6 +34,8 @@ interface FileTreeNodeProps {
   selectedFiles?: string[]
   onFileSelect?: (filePath: string, selected: boolean) => void
   loadingFiles?: Set<string>
+  // 新增：路径更新回调
+  onUpdateFocusedFilesPaths?: (pathMappings: Array<{ oldPath: string; newPath: string }>) => void
 }
 
 function FileIcon({ node }: { node: FileSystemNode }) {
@@ -55,7 +57,8 @@ export function FileTreeNode({
   onInlineEditCancel,
   selectedFiles,
   onFileSelect,
-  loadingFiles
+  loadingFiles,
+  onUpdateFocusedFilesPaths
 }: FileTreeNodeProps) {
   const [isExpanded, setIsExpanded] = useState(() => 
     node.isDirectory ? fileSystemManager.isFolderExpanded(node.path, level) : false
@@ -189,6 +192,11 @@ export function FileTreeNode({
     try {
       const result = await batchMoveFiles(pathsToMove, targetDirPath)
       
+      // 更新选中文件的路径
+      if (result.pathMappings.length > 0 && onUpdateFocusedFilesPaths) {
+        onUpdateFocusedFilesPaths(result.pathMappings)
+      }
+      
       if (result.failed > 0) {
         await confirm({
           title: '部分文件移动失败',
@@ -294,6 +302,7 @@ export function FileTreeNode({
               selectedFiles={selectedFiles}
               onFileSelect={onFileSelect}
               loadingFiles={loadingFiles}
+              onUpdateFocusedFilesPaths={onUpdateFocusedFilesPaths}
             />
           ))}
           {inlineEdit?.isActive && 
