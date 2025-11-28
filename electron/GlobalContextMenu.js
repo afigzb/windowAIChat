@@ -111,6 +111,20 @@ class GlobalContextMenuManager {
     }
   }
 
+  // 显示多文件选择右键菜单
+  showMultipleFilesMenu(filePaths) {
+    const count = filePaths.length
+    const template = [
+      { 
+        label: `删除 ${count} 个项目`, 
+        click: () => this.deleteMultipleFiles(filePaths) 
+      }
+    ]
+
+    const contextMenu = Menu.buildFromTemplate(template)
+    contextMenu.popup({ window: this.mainWindow })
+  }
+
   // 显示目录空白区域右键菜单
   showDirectoryMenu(dirPath) {
     const template = [
@@ -174,6 +188,7 @@ class GlobalContextMenuManager {
         type: 'warning',
         buttons: ['移到回收站', '取消'],
         defaultId: 1,
+        cancelId: 1, // 点击 X 或 ESC 时返回 1（取消）
         title: '确认删除',
         message: `确定要删除${itemType} "${fileName}" 吗？`,
         detail: stats.isDirectory() ? '文件夹及其所有内容将被移动到回收站。' : '文件将被移动到回收站，可以在回收站中恢复。'
@@ -192,6 +207,55 @@ class GlobalContextMenuManager {
       }
     } catch (error) {
       console.error('移动到回收站失败:', error)
+      this.showErrorDialog('删除失败', error.message)
+    }
+  }
+
+  // 批量删除文件或文件夹（移动到回收站）
+  async deleteMultipleFiles(filePaths) {
+    try {
+      const count = filePaths.length
+      
+      // 获取前几个文件名用于显示
+      const fileNames = await Promise.all(
+        filePaths.slice(0, 5).map(async (p) => {
+          const parts = p.split(/[/\\]/)
+          return parts[parts.length - 1]
+        })
+      )
+      
+      const displayNames = fileNames.join('\n')
+      const moreText = count > 5 ? `\n...等 ${count} 个项目` : ''
+      
+      const { response } = await dialog.showMessageBox(this.mainWindow, {
+        type: 'warning',
+        buttons: ['移到回收站', '取消'],
+        defaultId: 1,
+        cancelId: 1, // 点击 X 或 ESC 时返回 1（取消）
+        title: '确认删除',
+        message: `确定要删除 ${count} 个项目吗？`,
+        detail: `以下项目将被移动到回收站：\n\n${displayNames}${moreText}`
+      })
+
+      if (response === 0) { // 移到回收站
+        // 批量移到回收站
+        for (const filePath of filePaths) {
+          try {
+            await shell.trashItem(filePath)
+          } catch (error) {
+            console.error(`删除失败: ${filePath}`, error)
+            // 继续删除其他文件
+          }
+        }
+        
+        // 通知前端刷新文件树
+        this.mainWindow.webContents.send('file-system-changed', {
+          type: 'batch-delete',
+          paths: filePaths
+        })
+      }
+    } catch (error) {
+      console.error('批量删除失败:', error)
       this.showErrorDialog('删除失败', error.message)
     }
   }

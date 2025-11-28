@@ -22,7 +22,8 @@ interface FileTreeNodeProps {
   node: FileSystemNode
   level?: number
   selectedFile?: string | null
-  onFileClick?: (node: FileSystemNode) => void
+  focusedFiles?: Set<string>
+  onFileClick?: (node: FileSystemNode, e?: React.MouseEvent) => void
   onContextMenu?: (e: React.MouseEvent, node: FileSystemNode) => void
   inlineEdit?: InlineEditState
   onInlineEditConfirm?: (name: string) => void
@@ -44,6 +45,7 @@ export function FileTreeNode({
   node, 
   level = 0, 
   selectedFile,
+  focusedFiles,
   onFileClick,
   onContextMenu,
   inlineEdit,
@@ -66,14 +68,22 @@ export function FileTreeNode({
     }
   }, [node.path, node.isDirectory, level])
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
     if (node.isDirectory) {
+      // 如果按住了 Ctrl/Meta 或 Shift，不展开/收起，而是作为选中处理
+      if (e.ctrlKey || e.metaKey || e.shiftKey) {
+        onFileClick?.(node, e)
+        return
+      }
+
+      // 普通点击目录：只展开/收起，不改变选中状态
       const newExpanded = !isExpanded
       setIsExpanded(newExpanded)
       // 更新文件系统管理器中的展开状态
       fileSystemManager.setFolderExpanded(node.path, newExpanded)
     } else {
-      onFileClick?.(node)
+      // 文件的点击总是触发选中
+      onFileClick?.(node, e)
     }
   }
 
@@ -87,7 +97,7 @@ export function FileTreeNode({
                     inlineEdit.mode === 'rename' && 
                     inlineEdit.parentPath === node.path
   
-  const isSelected = selectedFile === node.path
+  const isSelected = (focusedFiles?.has(node.path)) || (selectedFile === node.path)
   const isFileSelected = selectedFiles?.includes(node.path) || false
   const isLoading = loadingFiles?.has(node.path) || false
 
@@ -101,9 +111,18 @@ export function FileTreeNode({
     try {
       e.stopPropagation()
       e.dataTransfer.effectAllowed = 'move'
-      e.dataTransfer.setData('application/x-filepath', node.path)
-      e.dataTransfer.setData('text/plain', node.path)
-      e.dataTransfer.setData('application/x-isdir', node.isDirectory ? '1' : '0')
+      
+      // 如果当前节点是被选中的，检查是否有其他选中节点
+      if (focusedFiles?.has(node.path) && focusedFiles.size > 1) {
+          const files = Array.from(focusedFiles)
+          e.dataTransfer.setData('application/x-filepaths', JSON.stringify(files))
+          e.dataTransfer.setData('text/plain', files.join('\n'))
+          // 这里可以设置拖拽时的预览图，显示"X个文件"
+      } else {
+          e.dataTransfer.setData('application/x-filepath', node.path)
+          e.dataTransfer.setData('text/plain', node.path)
+          e.dataTransfer.setData('application/x-isdir', node.isDirectory ? '1' : '0')
+      }
     } catch {}
   }
 
@@ -178,7 +197,26 @@ export function FileTreeNode({
     }
 
     // 处理内部文件拖动 - 移动文件
+    const sourcePathsData = e.dataTransfer.getData('application/x-filepaths')
     const sourcePath = e.dataTransfer.getData('application/x-filepath') || e.dataTransfer.getData('text/plain')
+    
+    // 多文件移动
+    if (sourcePathsData) {
+        try {
+            const sourcePaths = JSON.parse(sourcePathsData) as string[]
+            // 过滤掉自身和目标目录
+            const validPaths = sourcePaths.filter(p => p !== node.path && p !== targetDirPath)
+            
+            for (const path of validPaths) {
+                 await fileSystemManager.move(path, targetDirPath)
+            }
+            console.log('✅ 批量移动成功')
+        } catch(err) {
+            console.error('❌ 批量移动失败:', err)
+        }
+        return
+    }
+
     console.log('🔀 内部文件移动:', sourcePath)
     if (!sourcePath) {
       console.log('⚠️ 没有找到源路径')
@@ -289,6 +327,7 @@ export function FileTreeNode({
               node={child}
               level={level + 1}
               selectedFile={selectedFile}
+              focusedFiles={focusedFiles}
               onFileClick={onFileClick}
               onContextMenu={onContextMenu}
               inlineEdit={inlineEdit}

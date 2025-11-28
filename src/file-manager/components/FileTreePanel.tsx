@@ -66,6 +66,7 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
     fileTree,
     isLoading,
     inlineEdit,
+    focusedFiles,
     handleSelectWorkspace,
     handleSetWorkspace,
     handleFileClick,
@@ -75,6 +76,28 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
   } = useFileTree()
   
   const { confirm, confirmProps } = useConfirm()
+
+  // 监听键盘事件处理删除
+  React.useEffect(() => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      // Delete 键删除选中的文件
+      if (e.key === 'Delete' && focusedFiles && focusedFiles.size > 0) {
+        e.preventDefault()
+        
+        const selectedPaths = Array.from(focusedFiles)
+        
+        // 调用 Electron 的批量删除（会显示原生确认对话框）
+        if (typeof window !== 'undefined' && (window as any).electronAPI) {
+          await (window as any).electronAPI.deleteMultipleFiles(selectedPaths)
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [focusedFiles])
 
   // 通知Electron设置工作区路径
   React.useEffect(() => {
@@ -322,11 +345,44 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
               }
               
               // 处理内部文件拖动 - 移动到根目录
+              const sourcePathsData = e.dataTransfer.getData('application/x-filepaths')
               const sourcePath = e.dataTransfer.getData('application/x-filepath') || e.dataTransfer.getData('text/plain')
+              
+              const { fileSystemManager } = await import('../../storage/file-system')
+
+              if (sourcePathsData) {
+                  try {
+                      const sourcePaths = JSON.parse(sourcePathsData) as string[]
+                      // 过滤掉已经在根目录的文件
+                      const validPaths = sourcePaths.filter(p => {
+                          const parentDir = (window as any).path 
+                            ? (window as any).path.dirname(p) 
+                            : p.substring(0, Math.max(p.lastIndexOf('/'), p.lastIndexOf('\\')))
+                          // 简单判断父目录是否与根目录相同
+                          // 注意：这里可能需要更严谨的路径比较
+                          return parentDir.replace(/\\/g, '/').toLowerCase() !== workspace.rootPath.replace(/\\/g, '/').toLowerCase()
+                      })
+
+                      for (const path of validPaths) {
+                          await fileSystemManager.move(path, workspace.rootPath)
+                      }
+                      console.log('✅ 批量移动成功')
+                  } catch (err) {
+                      console.error('❌ 批量移动失败:', err)
+                      await confirm({
+                        title: '批量移动失败',
+                        message: `无法移动文件：${err}`,
+                        confirmText: '确定',
+                        type: 'danger'
+                      })
+                  }
+                  return
+              }
+
               if (!sourcePath) return
               
               // 拖到空白区域即移动到根目录
-              await (await import('../../storage/file-system')).fileSystemManager.move(sourcePath, workspace.rootPath)
+              await fileSystemManager.move(sourcePath, workspace.rootPath)
             } catch (err) {
               console.error('操作失败:', err)
               await confirm({
@@ -344,11 +400,22 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
                 key={node.id}
                 node={node}
                 selectedFile={selectedFile}
+                focusedFiles={focusedFiles}
                 onFileClick={handleFileClick}
                 onContextMenu={(e, node) => {
                   e.preventDefault()
                   handleContextMenuOpen()
+                  
                   if (typeof window !== 'undefined' && (window as any).electronAPI) {
+                    // 如果是多选，且当前点击的节点在多选列表中
+                    if (focusedFiles?.has(node.path) && focusedFiles.size > 1) {
+                      // 显示多文件右键菜单
+                      const selectedPaths = Array.from(focusedFiles)
+                      ;(window as any).electronAPI.showMultipleFilesContextMenu(selectedPaths)
+                      return
+                    }
+
+                    // 单文件右键菜单
                     ;(window as any).electronAPI.showFileContextMenu({
                       filePath: node.path,
                       fileName: node.name,

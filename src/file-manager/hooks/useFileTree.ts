@@ -20,6 +20,10 @@ export function useFileTree() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [fileTree, setFileTree] = useState<FileSystemNode[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  
+  // 多选状态
+  const [focusedFiles, setFocusedFiles] = useState<Set<string>>(new Set())
+  const [lastFocusedFile, setLastFocusedFile] = useState<string | null>(null)
 
   const [inlineEdit, setInlineEdit] = useState<InlineEditState>({
     isActive: false,
@@ -84,9 +88,35 @@ export function useFileTree() {
     setFileTree(tree)
   }, [])
 
-  const handleFileClick = (node: FileSystemNode) => {
-    // 通过回调通知父组件
-    if ((window as any).onFileSelect) {
+  const handleFileClick = (node: FileSystemNode, event?: React.MouseEvent) => {
+    // 处理多选逻辑
+    if (event?.ctrlKey || event?.metaKey) {
+      const newFocused = new Set(focusedFiles)
+      if (newFocused.has(node.path)) {
+        newFocused.delete(node.path)
+      } else {
+        newFocused.add(node.path)
+      }
+      setFocusedFiles(newFocused)
+      setLastFocusedFile(node.path)
+      return
+    }
+
+    if (event?.shiftKey && lastFocusedFile) {
+      // TODO: 实现范围选择逻辑
+      // 暂时简单处理为添加到选中
+      const newFocused = new Set(focusedFiles)
+      newFocused.add(node.path)
+      setFocusedFiles(newFocused)
+      return
+    }
+
+    // 单选
+    setFocusedFiles(new Set([node.path]))
+    setLastFocusedFile(node.path)
+
+    // 通过回调通知父组件（仅在单选文件时触发，文件夹不触发）
+    if (!node.isDirectory && (window as any).onFileSelect) {
       (window as any).onFileSelect(node.path, node.name)
     }
   }
@@ -241,6 +271,13 @@ export function useFileTree() {
   useEffect(() => {
     const handleFileSystemChanged = (data: any) => {
       console.log('文件系统变化:', data)
+      
+      // 如果是批量删除或单个删除，清空选中状态
+      if (data.type === 'delete' || data.type === 'batch-delete') {
+        setFocusedFiles(new Set())
+        setLastFocusedFile(null)
+      }
+      
       // 刷新文件树而不是重载页面
       refreshFileTree()
     }
@@ -263,6 +300,7 @@ export function useFileTree() {
     fileTree,
     isLoading,
     inlineEdit,
+    focusedFiles, // 导出多选状态
     handleSelectWorkspace,
     handleSetWorkspace,
     handleFileClick,

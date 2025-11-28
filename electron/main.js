@@ -118,6 +118,18 @@ class Application {
       }
     })
 
+    ipcMain.handle('show-multiple-files-context-menu', async (event, filePaths) => {
+      if (this.contextMenuManager) {
+        this.contextMenuManager.showMultipleFilesMenu(filePaths)
+      }
+    })
+
+    ipcMain.handle('delete-multiple-files', async (event, filePaths) => {
+      if (this.contextMenuManager) {
+        await this.contextMenuManager.deleteMultipleFiles(filePaths)
+      }
+    })
+
     // ========== 通用子窗口管理 IPC ==========
 
     // 获取子窗口管理器的辅助函数

@@ -80,6 +80,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 显示目录右键菜单  
   showDirectoryContextMenu: (dirPath) => ipcRenderer.invoke('show-directory-context-menu', dirPath),
   
+  // 显示多文件右键菜单
+  showMultipleFilesContextMenu: (filePaths) => ipcRenderer.invoke('show-multiple-files-context-menu', filePaths),
+  
+  // 批量删除文件
+  deleteMultipleFiles: (filePaths) => ipcRenderer.invoke('delete-multiple-files', filePaths),
+  
   // 监听文件系统变化事件
   onFileSystemChanged: (callback) => ipcRenderer.on('file-system-changed', (event, data) => callback(data)),
   
