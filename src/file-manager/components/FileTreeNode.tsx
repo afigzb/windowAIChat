@@ -7,6 +7,8 @@ import { useConfirm } from '../hooks/useConfirm'
 import { Icon } from '../../components'
 import type { FileSystemNode } from '../../storage/file-system'
 import { fileSystemManager } from '../../storage/file-system'
+import { getParentDir } from '../utils/pathHelper'
+import { extractDraggedPaths, setDragData, batchMoveFiles, handleExternalFilesDrop } from '../utils/dragDropHelper'
 
 interface InlineEditState {
   isActive: boolean
@@ -114,14 +116,10 @@ export function FileTreeNode({
       
       // 如果当前节点是被选中的，检查是否有其他选中节点
       if (focusedFiles?.has(node.path) && focusedFiles.size > 1) {
-          const files = Array.from(focusedFiles)
-          e.dataTransfer.setData('application/x-filepaths', JSON.stringify(files))
-          e.dataTransfer.setData('text/plain', files.join('\n'))
-          // 这里可以设置拖拽时的预览图，显示"X个文件"
+        const files = Array.from(focusedFiles)
+        setDragData(e.dataTransfer, files)
       } else {
-          e.dataTransfer.setData('application/x-filepath', node.path)
-          e.dataTransfer.setData('text/plain', node.path)
-          e.dataTransfer.setData('application/x-isdir', node.isDirectory ? '1' : '0')
+        setDragData(e.dataTransfer, node.path, node.isDirectory)
       }
     } catch {}
   }
@@ -143,46 +141,23 @@ export function FileTreeNode({
     e.stopPropagation()
     setIsDragOver(false)
 
-    console.log('🎯 文件拖放触发:', {
-      files: e.dataTransfer.files,
-      filesLength: e.dataTransfer.files?.length,
-      types: e.dataTransfer.types,
-      items: e.dataTransfer.items
-    })
-
     // 确定目标目录
-    let targetDirPath: string
-    if (node.isDirectory) {
-      targetDirPath = node.path
-    } else {
-      // 如果是文件，目标是其父目录
-      targetDirPath = (window as any).path 
-        ? (window as any).path.dirname(node.path) 
-        : node.path.substring(0, Math.max(node.path.lastIndexOf('/'), node.path.lastIndexOf('\\')))
-    }
+    const targetDirPath = node.isDirectory ? node.path : getParentDir(node.path)
 
     // 检查是否是外部文件拖入（从桌面或其他应用）
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       console.log('📁 检测到外部文件拖入')
       try {
-        // 处理外部文件拖入 - 复制文件到目标目录
-        const files = Array.from(e.dataTransfer.files)
-        console.log('📝 文件列表:', files.map(f => ({
-          name: f.name,
-          type: f.type,
-          size: f.size
-        })))
-        
-        for (const file of files) {
-          // 使用 Electron 的 webUtils.getPathForFile 获取文件路径
-          const filePath = (window as any).electronAPI?.getPathForFile?.(file)
-          console.log('🔄 准备复制文件:', filePath, '到', targetDirPath)
-          if (filePath) {
-            await fileSystemManager.copy(filePath, targetDirPath)
-            console.log('✅ 文件复制成功')
-          } else {
-            console.warn('⚠️ 无法获取文件路径')
-          }
+        const result = await handleExternalFilesDrop(e.dataTransfer.files, targetDirPath)
+        if (result.failed > 0) {
+          await confirm({
+            title: '部分文件复制失败',
+            message: `成功: ${result.success}, 失败: ${result.failed}\n\n${result.errors.map(e => e.message).join('\n')}`,
+            confirmText: '确定',
+            type: 'danger'
+          })
+        } else {
+          console.log(`✅ 成功复制 ${result.success} 个文件`)
         }
       } catch (err) {
         console.error('❌ 复制文件失败:', err)
@@ -197,50 +172,33 @@ export function FileTreeNode({
     }
 
     // 处理内部文件拖动 - 移动文件
-    const sourcePathsData = e.dataTransfer.getData('application/x-filepaths')
-    const sourcePath = e.dataTransfer.getData('application/x-filepath') || e.dataTransfer.getData('text/plain')
+    const draggedData = extractDraggedPaths(e.dataTransfer)
     
-    // 多文件移动
-    if (sourcePathsData) {
-        try {
-            const sourcePaths = JSON.parse(sourcePathsData) as string[]
-            // 过滤掉自身和目标目录
-            const validPaths = sourcePaths.filter(p => p !== node.path && p !== targetDirPath)
-            
-            for (const path of validPaths) {
-                 await fileSystemManager.move(path, targetDirPath)
-            }
-            console.log('✅ 批量移动成功')
-        } catch(err) {
-            console.error('❌ 批量移动失败:', err)
-        }
-        return
-    }
-
-    console.log('🔀 内部文件移动:', sourcePath)
-    if (!sourcePath) {
+    if (draggedData.type === 'none') {
       console.log('⚠️ 没有找到源路径')
       return
     }
 
-    // 自身无需处理
-    if (sourcePath === node.path) return
-
-    // 检查源文件的父目录是否就是目标目录（文件已经在目标位置）
-    const sourceParentDir = (window as any).path 
-      ? (window as any).path.dirname(sourcePath)
-      : sourcePath.substring(0, Math.max(sourcePath.lastIndexOf('/'), sourcePath.lastIndexOf('\\')))
-
-    // 简单规范化路径比较 (处理 Windows 路径分隔符和大小写)
-    const normalize = (p: string) => p.replace(/\\/g, '/').toLowerCase()
+    // 排除自身
+    const pathsToMove = draggedData.paths.filter(p => p !== node.path && p !== targetDirPath)
     
-    if (normalize(sourceParentDir) === normalize(targetDirPath)) {
+    if (pathsToMove.length === 0) {
       return
     }
 
     try {
-      await fileSystemManager.move(sourcePath, targetDirPath)
-      console.log('✅ 文件移动成功')
+      const result = await batchMoveFiles(pathsToMove, targetDirPath)
+      
+      if (result.failed > 0) {
+        await confirm({
+          title: '部分文件移动失败',
+          message: `成功: ${result.success}, 失败: ${result.failed}`,
+          confirmText: '确定',
+          type: 'danger'
+        })
+      } else {
+        console.log(`✅ 成功移动 ${result.success} 个文件`)
+      }
     } catch (err) {
       console.error('❌ 移动失败:', err)
       await confirm({
@@ -273,7 +231,7 @@ export function FileTreeNode({
             data-file-node
             className={`group flex items-center gap-2 py-2 px-3 cursor-pointer transition-all duration-100 ${
               isSelected 
-                ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 ' 
+                ? 'bg-gradient-to-r from-blue-50 to-indigo-50  ' 
                 : `${isDragOver ? 'bg-blue-50/70 ring-2 ring-blue-300' : 'hover:bg-gray-50'}`
             }`}
             style={{ marginLeft: level * 20 }}

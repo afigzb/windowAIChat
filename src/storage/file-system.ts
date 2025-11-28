@@ -196,8 +196,12 @@ export class FileSystemManager {
 
   /**
    * 删除文件或文件夹
+   * 注意：删除操作应该通过 Electron 的原生菜单或快捷键触发
+   * 直接调用此方法会绕过用户确认，不推荐使用
+   * @deprecated 请使用 electronAPI.deleteMultipleFiles() 或右键菜单
    */
   async delete(path: string): Promise<void> {
+    console.warn('直接调用 delete() 已废弃，请使用 electronAPI.deleteMultipleFiles()')
     // 删除前先清理缓存（包括文件夹下所有文件的缓存）
     fileContentCache.removeByPrefix(path)
     

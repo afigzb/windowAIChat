@@ -9,6 +9,7 @@ import { useFileTree } from '../hooks/useFileTree'
 import { Icon } from '../../components'
 import type { FileSystemNode } from '../../storage/file-system'
 import { getFileName } from '../utils/fileHelper'
+import { extractDraggedPaths, batchMoveFiles, handleExternalFilesDrop } from '../utils/dragDropHelper'
 
 interface FileTreePanelProps {
   selectedFile?: string | null
@@ -332,57 +333,33 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
               
               // 检查是否是外部文件拖入（从桌面或其他应用）
               if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                // 处理外部文件拖入 - 复制文件到根目录
-                const files = Array.from(e.dataTransfer.files)
-                for (const file of files) {
-                  // 使用 Electron 的 webUtils.getPathForFile 获取文件路径
-                  const filePath = (window as any).electronAPI?.getPathForFile?.(file)
-                  if (filePath) {
-                    await (await import('../../storage/file-system')).fileSystemManager.copy(filePath, workspace.rootPath)
-                  }
+                const result = await handleExternalFilesDrop(e.dataTransfer.files, workspace.rootPath)
+                if (result.failed > 0) {
+                  await confirm({
+                    title: '部分文件复制失败',
+                    message: `成功: ${result.success}, 失败: ${result.failed}`,
+                    confirmText: '确定',
+                    type: 'danger'
+                  })
                 }
                 return
               }
               
               // 处理内部文件拖动 - 移动到根目录
-              const sourcePathsData = e.dataTransfer.getData('application/x-filepaths')
-              const sourcePath = e.dataTransfer.getData('application/x-filepath') || e.dataTransfer.getData('text/plain')
+              const draggedData = extractDraggedPaths(e.dataTransfer)
               
-              const { fileSystemManager } = await import('../../storage/file-system')
+              if (draggedData.type === 'none') return
 
-              if (sourcePathsData) {
-                  try {
-                      const sourcePaths = JSON.parse(sourcePathsData) as string[]
-                      // 过滤掉已经在根目录的文件
-                      const validPaths = sourcePaths.filter(p => {
-                          const parentDir = (window as any).path 
-                            ? (window as any).path.dirname(p) 
-                            : p.substring(0, Math.max(p.lastIndexOf('/'), p.lastIndexOf('\\')))
-                          // 简单判断父目录是否与根目录相同
-                          // 注意：这里可能需要更严谨的路径比较
-                          return parentDir.replace(/\\/g, '/').toLowerCase() !== workspace.rootPath.replace(/\\/g, '/').toLowerCase()
-                      })
-
-                      for (const path of validPaths) {
-                          await fileSystemManager.move(path, workspace.rootPath)
-                      }
-                      console.log('✅ 批量移动成功')
-                  } catch (err) {
-                      console.error('❌ 批量移动失败:', err)
-                      await confirm({
-                        title: '批量移动失败',
-                        message: `无法移动文件：${err}`,
-                        confirmText: '确定',
-                        type: 'danger'
-                      })
-                  }
-                  return
+              const result = await batchMoveFiles(draggedData.paths, workspace.rootPath)
+              
+              if (result.failed > 0) {
+                await confirm({
+                  title: '批量移动失败',
+                  message: `成功: ${result.success}, 失败: ${result.failed}`,
+                  confirmText: '确定',
+                  type: 'danger'
+                })
               }
-
-              if (!sourcePath) return
-              
-              // 拖到空白区域即移动到根目录
-              await fileSystemManager.move(sourcePath, workspace.rootPath)
             } catch (err) {
               console.error('操作失败:', err)
               await confirm({
