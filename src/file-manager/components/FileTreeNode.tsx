@@ -3,12 +3,11 @@
 import { useState, useEffect } from 'react'
 import { InlineEdit } from './InlineEdit'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { useConfirm } from '../hooks/useConfirm'
+import { useConfirm } from '../../components/useConfirm'
+import { useDragDrop } from '../hooks/useDragDrop'
 import { Icon } from '../../components'
 import type { FileSystemNode } from '../../storage/file-system'
 import { fileSystemManager } from '../../storage/file-system'
-import { getParentDir } from '../utils/pathHelper'
-import { extractDraggedPaths, setDragData, batchMoveFiles, handleExternalFilesDrop } from '../utils/dragDropHelper'
 
 interface InlineEditState {
   isActive: boolean
@@ -63,8 +62,23 @@ export function FileTreeNode({
   const [isExpanded, setIsExpanded] = useState(() => 
     node.isDirectory ? fileSystemManager.isFolderExpanded(node.path, level) : false
   )
-  const [isDragOver, setIsDragOver] = useState(false)
   const { confirm, confirmProps } = useConfirm()
+  
+  // 使用拖拽Hook
+  const { isDragOver, dragHandlers } = useDragDrop({
+    nodePath: node.path,
+    isDirectory: node.isDirectory,
+    focusedFiles,
+    onError: async (error, message) => {
+      await confirm({
+        title: error.message,
+        message,
+        confirmText: '确定',
+        type: 'danger'
+      })
+    },
+    onUpdatePaths: onUpdateFocusedFilesPaths
+  })
 
   // 当节点路径变化时，更新展开状态
   useEffect(() => {
@@ -107,118 +121,9 @@ export function FileTreeNode({
   const isLoading = loadingFiles?.has(node.path) || false
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.stopPropagation() // 防止触发文件点击
+    e.stopPropagation()
     onFileSelect?.(node.path, e.target.checked)
   }
-
-  // 原生拖拽处理
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
-    try {
-      e.stopPropagation()
-      e.dataTransfer.effectAllowed = 'move'
-      
-      // 如果当前节点是被选中的，检查是否有其他选中节点
-      if (focusedFiles?.has(node.path) && focusedFiles.size > 1) {
-        const files = Array.from(focusedFiles)
-        setDragData(e.dataTransfer, files)
-      } else {
-        setDragData(e.dataTransfer, node.path, node.isDirectory)
-      }
-    } catch {}
-  }
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    // 允许拖放到任何节点（目录或文件）
-    e.preventDefault()
-    e.stopPropagation()
-    e.dataTransfer.dropEffect = 'move'
-    setIsDragOver(true)
-  }
-
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    setIsDragOver(false)
-  }
-
-  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragOver(false)
-
-    // 确定目标目录
-    const targetDirPath = node.isDirectory ? node.path : getParentDir(node.path)
-
-    // 检查是否是外部文件拖入（从桌面或其他应用）
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      console.log('📁 检测到外部文件拖入')
-      try {
-        const result = await handleExternalFilesDrop(e.dataTransfer.files, targetDirPath)
-        if (result.failed > 0) {
-          await confirm({
-            title: '部分文件复制失败',
-            message: `成功: ${result.success}, 失败: ${result.failed}\n\n${result.errors.map(e => e.message).join('\n')}`,
-            confirmText: '确定',
-            type: 'danger'
-          })
-        } else {
-          console.log(`✅ 成功复制 ${result.success} 个文件`)
-        }
-      } catch (err) {
-        console.error('❌ 复制文件失败:', err)
-        await confirm({
-          title: '复制失败',
-          message: `无法复制文件或文件夹：${err}`,
-          confirmText: '确定',
-          type: 'danger'
-        })
-      }
-      return
-    }
-
-    // 处理内部文件拖动 - 移动文件
-    const draggedData = extractDraggedPaths(e.dataTransfer)
-    
-    if (draggedData.type === 'none') {
-      console.log('⚠️ 没有找到源路径')
-      return
-    }
-
-    // 排除自身
-    const pathsToMove = draggedData.paths.filter(p => p !== node.path && p !== targetDirPath)
-    
-    if (pathsToMove.length === 0) {
-      return
-    }
-
-    try {
-      const result = await batchMoveFiles(pathsToMove, targetDirPath)
-      
-      // 更新选中文件的路径
-      if (result.pathMappings.length > 0 && onUpdateFocusedFilesPaths) {
-        onUpdateFocusedFilesPaths(result.pathMappings)
-      }
-      
-      if (result.failed > 0) {
-        await confirm({
-          title: '部分文件移动失败',
-          message: `成功: ${result.success}, 失败: ${result.failed}`,
-          confirmText: '确定',
-          type: 'danger'
-        })
-      } else {
-        console.log(`✅ 成功移动 ${result.success} 个文件`)
-      }
-    } catch (err) {
-      console.error('❌ 移动失败:', err)
-      await confirm({
-        title: '移动失败',
-        message: `无法移动文件或文件夹：${err}`,
-        confirmText: '确定',
-        type: 'danger'
-      })
-    }
-  }
-
-  // 移除重命名时的提前返回，改为在下方渲染
 
   return (
     <>
@@ -245,11 +150,7 @@ export function FileTreeNode({
             style={{ marginLeft: level * 20 }}
             onClick={handleClick}
             onContextMenu={handleContextMenu}
-            draggable
-            onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
+            {...dragHandlers}
           >
             {node.isDirectory && (
               <div className={`transition-transform duration-300 ${isExpanded ? '' : '-rotate-90'}`}>

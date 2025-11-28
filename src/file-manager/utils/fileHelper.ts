@@ -5,14 +5,10 @@
  * 注意：需要纯文本时使用 electronAPI.readFileAsText()
  */
 
-/**
- * 获取文件名（不包含路径）
- */
-export function getFileName(filePath: string): string {
-  const pathSeparator = filePath.includes('/') ? '/' : '\\'
-  const segments = filePath.split(pathSeparator)
-  return segments[segments.length - 1] || filePath
-}
+import { getFileName } from './pathHelper'
+
+// 重新导出 getFileName，保持向后兼容
+export { getFileName }
 
 /**
  * 格式化文件的结果

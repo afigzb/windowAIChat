@@ -4,10 +4,11 @@ import React from 'react'
 import { FileTreeNode } from './FileTreeNode'
 import { InlineEdit } from './InlineEdit'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { useConfirm } from '../hooks/useConfirm'
+import { useConfirm } from '../../components/useConfirm'
 import { useFileTree } from '../hooks/useFileTree'
+import { useFileDragSort } from '../hooks/useFileDragSort'
+import { useWorkspaceDrop } from '../hooks/useWorkspaceDrop'
 import { Icon } from '../../components'
-import type { FileSystemNode } from '../../storage/file-system'
 import { getFileName } from '../utils/fileHelper'
 import { extractDraggedPaths, batchMoveFiles, handleExternalFilesDrop } from '../utils/dragDropHelper'
 
@@ -22,45 +23,7 @@ interface FileTreePanelProps {
 }
 
 export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onClearSelectedFiles, onReorderFiles, loadingFiles }: FileTreePanelProps) {
-  const [draggedIndex, setDraggedIndex] = React.useState<number | null>(null)
-  const [dragOverIndex, setDragOverIndex] = React.useState<number | null>(null)
-  const [isWorkspaceDragOver, setIsWorkspaceDragOver] = React.useState(false)
-
-  // 拖拽处理
-  const handleDragStart = (e: React.DragEvent, index: number) => {
-    setDraggedIndex(index)
-    e.dataTransfer.effectAllowed = 'move'
-  }
-
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault()
-    if (draggedIndex === null || draggedIndex === index) return
-    setDragOverIndex(index)
-  }
-
-  const handleDragLeave = () => {
-    setDragOverIndex(null)
-  }
-
-  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
-    e.preventDefault()
-    setDragOverIndex(null)
-    
-    if (draggedIndex === null || draggedIndex === dropIndex || !selectedFiles || !onReorderFiles) return
-    
-    const newOrder = [...selectedFiles]
-    const draggedItem = newOrder[draggedIndex]
-    newOrder.splice(draggedIndex, 1)
-    newOrder.splice(dropIndex, 0, draggedItem)
-    
-    onReorderFiles(newOrder)
-    setDraggedIndex(null)
-  }
-
-  const handleDragEnd = () => {
-    setDraggedIndex(null)
-    setDragOverIndex(null)
-  }
+  const { confirm, confirmProps } = useConfirm()
 
   const {
     workspace,
@@ -77,7 +40,29 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
     updateFocusedFilesPaths
   } = useFileTree()
   
-  const { confirm, confirmProps } = useConfirm()
+  // 文件列表拖拽排序
+  const {
+    draggedIndex,
+    dragOverIndex,
+    handleDragStart,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    handleDragEnd
+  } = useFileDragSort(onReorderFiles)
+  
+  // 工作区拖放
+  const { isWorkspaceDragOver, workspaceDropHandlers } = useWorkspaceDrop({
+    onSetWorkspace: handleSetWorkspace,
+    onError: async (message) => {
+      await confirm({
+        title: '无法更换工作目录',
+        message,
+        confirmText: '确定',
+        type: 'danger'
+      })
+    }
+  })
 
   // 监听键盘事件处理删除
   React.useEffect(() => {
@@ -164,7 +149,7 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
                   onDragStart={(e) => handleDragStart(e, index)}
                   onDragOver={(e) => handleDragOver(e, index)}
                   onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, index)}
+                  onDrop={(e) => handleDrop(e, index, selectedFiles)}
                   onDragEnd={handleDragEnd}
                   className={`flex items-center justify-between text-sm py-1 px-1.5 rounded hover:bg-blue-100 transition-all duration-200 group min-w-0 ${
                     draggedIndex === index ? 'opacity-50' : ''
@@ -217,78 +202,7 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
             ? 'border-blue-500 bg-blue-50' 
             : 'border-gray-200 bg-white'
         }`}
-        onDragOver={(e) => {
-          // 允许拖放文件夹到工作区区域
-          e.preventDefault()
-          e.stopPropagation()
-          setIsWorkspaceDragOver(true)
-        }}
-        onDragLeave={(e) => {
-          setIsWorkspaceDragOver(false)
-        }}
-        onDrop={async (e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          setIsWorkspaceDragOver(false)
-          
-          console.log('🏠 工作区拖放触发:', {
-            files: e.dataTransfer.files,
-            filesLength: e.dataTransfer.files?.length,
-            types: e.dataTransfer.types
-          })
-          
-          // 检查是否是外部文件夹拖入
-          if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            const file = e.dataTransfer.files[0]
-            // 使用 Electron 的 webUtils.getPathForFile 获取文件路径
-            const filePath = (window as any).electronAPI?.getPathForFile?.(file)
-            
-            console.log('📂 拖入的文件路径:', filePath)
-            
-            if (filePath && (window as any).electronAPI) {
-              try {
-                // 检查是否为文件夹
-                const stats = await (window as any).electronAPI.getFileStats(filePath)
-                console.log('📊 文件信息:', stats)
-                
-                if (stats.isDirectory) {
-                  // 使用新文件夹路径设置工作区
-                  const newWorkspace = {
-                    id: Date.now().toString(36) + Math.random().toString(36).substr(2),
-                    name: filePath.split(/[/\\]/).filter(Boolean).pop() || filePath,
-                    rootPath: filePath,
-                    createdAt: new Date(),
-                    lastAccessed: new Date()
-                  }
-                  
-                  console.log('🔄 更换工作区到:', newWorkspace)
-                  
-                  // 使用 hook 提供的方法来更换工作区（会更新 React 状态）
-                  await handleSetWorkspace(newWorkspace)
-                  console.log('✅ 工作区更换成功')
-                } else {
-                  console.log('⚠️ 拖入的不是文件夹')
-                  await confirm({
-                    title: '无法更换工作目录',
-                    message: '请拖入文件夹而不是文件',
-                    confirmText: '确定',
-                    type: 'danger'
-                  })
-                }
-              } catch (err) {
-                console.error('❌ 更换工作目录失败:', err)
-                await confirm({
-                  title: '更换工作目录失败',
-                  message: `无法更换工作目录：${err}`,
-                  confirmText: '确定',
-                  type: 'danger'
-                })
-              }
-            } else {
-              console.log('⚠️ 无法获取文件路径或 electronAPI')
-            }
-          }
-        }}
+        {...workspaceDropHandlers}
       >
         <div className="flex items-center justify-between min-w-0">
           <div className="flex items-center min-w-0 flex-1">
