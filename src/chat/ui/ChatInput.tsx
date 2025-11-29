@@ -52,6 +52,45 @@ export const ChatInputArea = forwardRef<
     return editorRef.current.innerText || ''
   }
 
+  // 修正插入点：如果插入点在文件块内部，修正到块的前面或后面
+  const fixInsertionPoint = (
+    point: { node: Node; offset: number },
+    e: React.DragEvent,
+    excludeElement?: HTMLElement
+  ): { node: Node; offset: number } => {
+    let currentNode: Node | null = point.node
+    
+    // 向上查找，看是否在某个文件块内部
+    while (currentNode && currentNode !== editorRef.current) {
+      if (currentNode.nodeType === Node.ELEMENT_NODE) {
+        const element = currentNode as HTMLElement
+        if (element.dataset.fileId && element !== excludeElement) {
+          // 找到了目标块，不能插入到块内部
+          const rect = element.getBoundingClientRect()
+          const middleX = rect.left + rect.width / 2
+          
+          // 根据鼠标位置决定插入到前面还是后面
+          if (e.clientX < middleX) {
+            // 插入到块前面
+            return { 
+              node: element.parentNode!, 
+              offset: Array.from(element.parentNode!.childNodes).indexOf(element) 
+            }
+          } else {
+            // 插入到块后面
+            return { 
+              node: element.parentNode!, 
+              offset: Array.from(element.parentNode!.childNodes).indexOf(element) + 1 
+            }
+          }
+        }
+      }
+      currentNode = currentNode.parentNode
+    }
+    
+    return point
+  }
+
   // 暴露方法给父组件
   useImperativeHandle(ref, () => ({
     focus: () => {
@@ -81,8 +120,9 @@ export const ChatInputArea = forwardRef<
     
     const isBlockDrag = e.dataTransfer.types.includes('application/file-block-id')
     const hasFileData = e.dataTransfer.types.includes('application/file-path')
+    const hasTextBlock = e.dataTransfer.types.includes('application/text-block')
     
-    if (isBlockDrag || hasFileData) {
+    if (isBlockDrag || hasFileData || hasTextBlock) {
       setIsDragOver(true)
       
       // 使用 requestAnimationFrame 节流光标更新
@@ -127,13 +167,16 @@ export const ChatInputArea = forwardRef<
     const draggedElement = editorRef.current.querySelector(`[data-file-id="${blockId}"]`) as HTMLElement
     if (!draggedElement) return
     
-    const point = getInsertionPoint(e.clientX, e.clientY, editorRef.current)
+    let point = getInsertionPoint(e.clientX, e.clientY, editorRef.current)
     if (!point) return
     
     // 如果目标就是被拖动的元素自己，不做任何操作
     if (point.node === draggedElement || draggedElement.contains(point.node)) {
       return
     }
+    
+    // 修正插入点：如果在文件块内部，改为插入到块的前后
+    point = fixInsertionPoint(point, e, draggedElement)
     
     try {
       removeBlockNode(draggedElement)
@@ -144,13 +187,14 @@ export const ChatInputArea = forwardRef<
   }
 
   // 处理外部文件拖入
-  const handleFileDrop = (filePath: string, fileName: string, fileContent: string, e: React.DragEvent) => {
+  const handleFileDrop = (filePath: string, fileName: string, fileContent: string, e: React.DragEvent, blockType: 'file' | 'text' = 'file') => {
     const newBlock: FileBlockData = {
       id: `${Date.now()}-${Math.random()}`,
       filePath,
       fileName,
       content: fileContent,
-      size: new Blob([fileContent]).size
+      size: new Blob([fileContent]).size,
+      type: blockType
     }
     setFileBlocks(prev => [...prev, newBlock])
     
@@ -158,9 +202,11 @@ export const ChatInputArea = forwardRef<
     editorRef.current.focus()
     
     const blockElement = createFileBlockElement(newBlock)
-    const point = getInsertionPoint(e.clientX, e.clientY, editorRef.current)
+    let point = getInsertionPoint(e.clientX, e.clientY, editorRef.current)
     
     if (point) {
+      // 修正插入点：如果在文件块内部，改为插入到块的前后
+      point = fixInsertionPoint(point, e)
       insertNodeWithSpace(blockElement, point.node, point.offset)
     } else {
       // 添加到末尾
@@ -196,13 +242,24 @@ export const ChatInputArea = forwardRef<
       return
     }
     
-    // 情况2: 外部文件拖入
+    // 情况2: 文本块拖入（从文件编辑器拖入文本）
+    const isTextBlock = e.dataTransfer.getData('application/text-block')
+    const textContent = e.dataTransfer.getData('application/text-content')
+    const sourceFile = e.dataTransfer.getData('application/source-file')
+    const sourceName = e.dataTransfer.getData('application/source-name')
+    
+    if (isTextBlock && textContent && sourceFile && sourceName) {
+      handleFileDrop(sourceFile, sourceName, textContent, e, 'text')
+      return
+    }
+    
+    // 情况3: 外部文件拖入
     const filePath = e.dataTransfer.getData('application/file-path')
     const fileName = e.dataTransfer.getData('application/file-name')
     const fileContent = e.dataTransfer.getData('application/file-content')
 
     if (filePath && fileName && fileContent) {
-      handleFileDrop(filePath, fileName, fileContent, e)
+      handleFileDrop(filePath, fileName, fileContent, e, 'file')
     }
   }
 

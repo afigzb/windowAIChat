@@ -18,6 +18,7 @@ export interface FileBlockData {
   fileName: string
   content: string
   size: number
+  type?: 'file' | 'text' // 新增：区分文件块和文本块
 }
 
 
@@ -70,16 +71,34 @@ export function createFileBlockElement(block: FileBlockData): HTMLSpanElement {
   const blockElement = document.createElement('span')
   blockElement.contentEditable = 'false'
   blockElement.draggable = true
-  blockElement.className = 'inline-flex items-center gap-1 px-2 py-0.5 mx-0.5 bg-blue-100 border border-blue-300 rounded text-blue-700 text-sm whitespace-nowrap hover:bg-blue-200 transition-colors cursor-move align-middle'
   blockElement.dataset.fileId = block.id
-  blockElement.title = `${block.filePath}\n${(block.size / 1024).toFixed(1)}KB\n\n拖动可调整位置`
+  
+  const isTextBlock = block.type === 'text'
+  
+  // 根据块类型设置不同的样式
+  if (isTextBlock) {
+    blockElement.className = 'inline-flex items-center gap-1 px-2 py-0.5 mx-0.5 bg-green-100 border border-green-300 rounded text-green-700 text-sm whitespace-nowrap hover:bg-green-200 transition-colors cursor-move align-middle'
+    blockElement.title = `文本片段来自: ${block.fileName}\n${(block.size / 1024).toFixed(1)}KB\n\n拖动可调整位置`
+  } else {
+    blockElement.className = 'inline-flex items-center gap-1 px-2 py-0.5 mx-0.5 bg-blue-100 border border-blue-300 rounded text-blue-700 text-sm whitespace-nowrap hover:bg-blue-200 transition-colors cursor-move align-middle'
+    blockElement.title = `${block.filePath}\n${(block.size / 1024).toFixed(1)}KB\n\n拖动可调整位置`
+  }
+  
+  // 根据块类型选择不同的图标
+  const icon = isTextBlock 
+    ? `<svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+       </svg>`
+    : `<svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+       </svg>`
+  
+  const hoverBg = isTextBlock ? 'hover:bg-green-300' : 'hover:bg-blue-300'
   
   blockElement.innerHTML = `
-    <svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-    </svg>
-    <span class="font-medium max-w-[150px] truncate">${block.fileName}</span>
-    <button class="ml-0.5 p-0.5 rounded hover:bg-blue-300 transition-colors file-block-remove" data-file-id="${block.id}" title="删除">
+    ${icon}
+    <span class="font-medium max-w-[150px] truncate">${isTextBlock ? '📝 ' : ''}${block.fileName}</span>
+    <button class="ml-0.5 p-0.5 rounded ${hoverBg} transition-colors file-block-remove" data-file-id="${block.id}" title="删除">
       <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
       </svg>
@@ -155,7 +174,8 @@ export function parseEditorContent(editor: HTMLElement, fileBlocks: FileBlockDat
       if (element.dataset.fileId) {
         const block = fileBlocks.find(b => b.id === element.dataset.fileId)
         if (block) {
-          parts.push(`\`\`\`${block.fileName}\n${block.content}\n\`\`\``)
+          // 只添加内容，不包含文件名
+          parts.push(`\`\`\`\n${block.content}\n\`\`\``)
         }
       } else {
         node.childNodes.forEach(processNode)

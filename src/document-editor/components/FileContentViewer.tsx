@@ -5,6 +5,7 @@
  * 使用新的联合类型定义
  */
 
+import { useRef, useEffect } from 'react'
 import { TiptapDocxEditor } from '../../md-html-dock/renderers/TiptapDocxEditor'
 import { ImageViewer } from './ImageViewer'
 import type { WordCountResult } from '../../md-html-dock/types'
@@ -26,6 +27,33 @@ export function FileContentViewer({
   onContentChange,
   onWordCountChange
 }: FileContentViewerProps) {
+  const editorContainerRef = useRef<HTMLDivElement>(null)
+
+  // 处理编辑器内文本的拖拽
+  useEffect(() => {
+    const container = editorContainerRef.current
+    if (!container || fileContent.type === 'image' || fileContent.type === 'unsupported') return
+
+    const handleDragStart = (e: DragEvent) => {
+      const selection = window.getSelection()
+      const selectedText = selection?.toString().trim()
+      
+      if (selectedText && selectedText.length > 0) {
+        // 设置拖拽数据
+        e.dataTransfer!.effectAllowed = 'copy'
+        e.dataTransfer!.setData('application/text-block', 'true')
+        e.dataTransfer!.setData('application/text-content', selectedText)
+        e.dataTransfer!.setData('application/source-file', fileContent.path)
+        e.dataTransfer!.setData('application/source-name', fileContent.name)
+      }
+    }
+
+    container.addEventListener('dragstart', handleDragStart)
+    
+    return () => {
+      container.removeEventListener('dragstart', handleDragStart)
+    }
+  }, [fileContent.type, fileContent.path, fileContent.name])
   
   // 根据文件类型渲染不同的查看器
   switch (fileContent.type) {
@@ -33,7 +61,7 @@ export function FileContentViewer({
     case 'text':
       // 文档和文本类型：使用编辑器
       return (
-        <div className="h-full p-4 overflow-hidden">
+        <div ref={editorContainerRef} className="h-full p-4 overflow-hidden">
           <TiptapDocxEditor
             key={fileContent.path}
             content={fileContent.htmlContent || ''}

@@ -81,41 +81,61 @@ export function FileTreeNode({
     onUpdatePaths: onUpdateFocusedFilesPaths
   })
 
+  // 预加载文件内容（在鼠标按下时）
+  const handleMouseDown = (e: React.MouseEvent) => {
+    // 只在左键按下且是文件时预加载
+    if (e.button === 0 && !node.isDirectory) {
+      // 异步预加载，不阻塞鼠标按下事件
+      const preloadContent = async () => {
+        try {
+          // 如果已经有缓存，跳过
+          if (fileContentCache.get(node.path) !== null) {
+            return
+          }
+          
+          // 预加载文件内容
+          const result = await (window as any).electronAPI.readFileAsText(node.path)
+          if (result.success) {
+            fileContentCache.set(node.path, result.content)
+          } else {
+            // 如果不支持，尝试普通文本读取
+            const content = await fileSystemManager.readFile(node.path)
+            if (content) {
+              fileContentCache.set(node.path, content)
+            }
+          }
+        } catch (error) {
+          console.error('预加载文件内容失败:', error)
+        }
+      }
+      
+      preloadContent()
+    }
+  }
+
   // 自定义拖拽开始处理器，为文件添加拖拽到输入框的支持
-  const handleDragStart = async (e: React.DragEvent) => {
+  const handleDragStart = (e: React.DragEvent) => {
     // 先调用原始的拖拽处理器（用于文件系统内移动）
     dragHandlers.onDragStart?.(e)
 
     // 如果是文件（非目录），添加额外的数据用于拖拽到输入框
     if (!node.isDirectory) {
       try {
-        // 尝试从缓存获取内容
-        let content: string | null = fileContentCache.get(node.path)
+        // 从缓存获取内容（应该已经被 handleMouseDown 预加载了）
+        const content = fileContentCache.get(node.path)
         
-        // 如果缓存中没有，读取文件内容为纯文本
-        if (content === null) {
-          // 使用 readFileAsText 以支持各种格式（包括 docx）并获取纯文本
-          const result = await (window as any).electronAPI.readFileAsText(node.path)
-          if (result.success) {
-            content = result.content  // readFileAsText 返回的字段是 content
-          } else {
-            // 如果不支持，尝试普通文本读取
-            content = await fileSystemManager.readFile(node.path)
-          }
-          if (content) {
-            fileContentCache.set(node.path, content)
-          }
-        }
-
         // 确保content不为null时才设置dataTransfer
         if (content) {
           // 设置文件信息到dataTransfer（用于拖拽到输入框）
           e.dataTransfer.setData('application/file-path', node.path)
           e.dataTransfer.setData('application/file-name', node.name)
           e.dataTransfer.setData('application/file-content', content)
+        } else {
+          // 如果缓存中没有内容，说明预加载还没完成或失败了
+          console.warn('文件内容未就绪，拖拽可能失败:', node.path)
         }
       } catch (error) {
-        console.error('读取文件内容失败:', error)
+        console.error('设置拖拽数据失败:', error)
       }
     }
   }
@@ -196,6 +216,7 @@ export function FileTreeNode({
             style={{ marginLeft: level * 20 }}
             onClick={handleClick}
             onContextMenu={handleContextMenu}
+            onMouseDown={handleMouseDown}
             {...combinedDragHandlers}
           >
             {node.isDirectory && (
