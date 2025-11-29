@@ -37,6 +37,7 @@ export const ChatInputArea = forwardRef<
   const [draggingBlockId, setDraggingBlockId] = useState<string | null>(null)
   const editorRef = useRef<HTMLDivElement>(null)
   const dropZoneRef = useRef<HTMLDivElement>(null)
+  const dragOverRafRef = useRef<number | null>(null)
 
   // 提取编辑器内容（纯文本）
   const getEditorTextContent = (): string => {
@@ -107,6 +108,49 @@ export const ChatInputArea = forwardRef<
     
     if (isBlockDrag || hasFileData) {
       setIsDragOver(true)
+      
+      // 使用 requestAnimationFrame 节流光标更新，避免性能问题
+      if (dragOverRafRef.current !== null) {
+        return
+      }
+      
+      dragOverRafRef.current = requestAnimationFrame(() => {
+        dragOverRafRef.current = null
+        
+        // 实时更新光标位置以提供视觉反馈
+        if (editorRef.current && document.caretRangeFromPoint) {
+          try {
+            const range = document.caretRangeFromPoint(e.clientX, e.clientY)
+            if (range && editorRef.current.contains(range.commonAncestorContainer)) {
+              const selection = window.getSelection()
+              if (selection) {
+                selection.removeAllRanges()
+                selection.addRange(range)
+              }
+            }
+          } catch (err) {
+            // 忽略错误，继续拖动
+          }
+        } else if (editorRef.current && (document as any).caretPositionFromPoint) {
+          // Firefox 兼容
+          try {
+            const position = (document as any).caretPositionFromPoint(e.clientX, e.clientY)
+            if (position && editorRef.current.contains(position.offsetNode)) {
+              const range = document.createRange()
+              range.setStart(position.offsetNode, position.offset)
+              range.collapse(true)
+              
+              const selection = window.getSelection()
+              if (selection) {
+                selection.removeAllRanges()
+                selection.addRange(range)
+              }
+            }
+          } catch (err) {
+            // 忽略错误，继续拖动
+          }
+        }
+      })
     }
   }
 
@@ -117,6 +161,11 @@ export const ChatInputArea = forwardRef<
     // 只有当鼠标真正离开 dropZone 时才清除状态
     if (dropZoneRef.current && !dropZoneRef.current.contains(e.relatedTarget as Node)) {
       setIsDragOver(false)
+      // 清理待处理的 raf
+      if (dragOverRafRef.current !== null) {
+        cancelAnimationFrame(dragOverRafRef.current)
+        dragOverRafRef.current = null
+      }
     }
   }
 
@@ -124,6 +173,12 @@ export const ChatInputArea = forwardRef<
     e.preventDefault()
     e.stopPropagation()
     setIsDragOver(false)
+    
+    // 清理待处理的 raf
+    if (dragOverRafRef.current !== null) {
+      cancelAnimationFrame(dragOverRafRef.current)
+      dragOverRafRef.current = null
+    }
 
     // 检查是内部块拖动还是外部文件拖入
     const blockId = e.dataTransfer.getData('application/file-block-id')
@@ -134,24 +189,37 @@ export const ChatInputArea = forwardRef<
         const draggedElement = editorRef.current.querySelector(`[data-file-id="${blockId}"]`) as HTMLElement
         if (!draggedElement) return
         
-        // 获取鼠标位置对应的插入点
-        let range: Range | null = null
+        // 获取鼠标位置对应的插入点（在移除节点之前）
+        let targetNode: Node | null = null
+        let targetOffset: number = 0
+        
         try {
           if (document.caretRangeFromPoint) {
-            range = document.caretRangeFromPoint(e.clientX, e.clientY)
+            const range = document.caretRangeFromPoint(e.clientX, e.clientY)
+            if (range && editorRef.current.contains(range.commonAncestorContainer)) {
+              targetNode = range.startContainer
+              targetOffset = range.startOffset
+            }
           } else if ((document as any).caretPositionFromPoint) {
             const position = (document as any).caretPositionFromPoint(e.clientX, e.clientY)
-            if (position) {
-              range = document.createRange()
-              range.setStart(position.offsetNode, position.offset)
-              range.collapse(true)
+            if (position && editorRef.current.contains(position.offsetNode)) {
+              targetNode = position.offsetNode
+              targetOffset = position.offset
             }
           }
           
-          if (range && editorRef.current.contains(range.commonAncestorContainer)) {
-            // 移除原位置的块
+          // 如果获取到了有效的目标位置
+          if (targetNode) {
+            // 保存兄弟节点引用（用于后续清理）
             const nextSibling = draggedElement.nextSibling
             const prevSibling = draggedElement.previousSibling
+            
+            // 如果目标就是被拖动的元素自己，不做任何操作
+            if (targetNode === draggedElement || draggedElement.contains(targetNode)) {
+              return
+            }
+            
+            // 移除原位置的块
             draggedElement.remove()
             
             // 清理可能留下的多余空格
@@ -161,21 +229,26 @@ export const ChatInputArea = forwardRef<
               prevSibling.remove()
             }
             
+            // 创建新的range在目标位置插入
+            const newRange = document.createRange()
+            newRange.setStart(targetNode, targetOffset)
+            newRange.collapse(true)
+            
             // 在新位置插入块
-            range.insertNode(draggedElement)
+            newRange.insertNode(draggedElement)
             
             // 在块后添加空格
             const space = document.createTextNode(' ')
-            range.setStartAfter(draggedElement)
-            range.insertNode(space)
-            range.setStartAfter(space)
-            range.collapse(true)
+            newRange.setStartAfter(draggedElement)
+            newRange.insertNode(space)
+            newRange.setStartAfter(space)
+            newRange.collapse(true)
             
             // 更新选区
             const selection = window.getSelection()
             if (selection) {
               selection.removeAllRanges()
-              selection.addRange(range)
+              selection.addRange(newRange)
             }
           }
         } catch (err) {
@@ -226,46 +299,46 @@ export const ChatInputArea = forwardRef<
         `
         
         // 根据鼠标位置获取插入位置
-        let range: Range | null = null
+        let targetNode: Node | null = null
+        let targetOffset: number = 0
         
-        // 尝试使用鼠标位置创建Range
+        // 尝试使用鼠标位置获取插入点
         try {
-          // 使用 caretRangeFromPoint 获取鼠标位置对应的Range
           if (document.caretRangeFromPoint) {
-            range = document.caretRangeFromPoint(e.clientX, e.clientY)
-          } else if ((document as any).caretPositionFromPoint) {
-            // Firefox 使用 caretPositionFromPoint
-            const position = (document as any).caretPositionFromPoint(e.clientX, e.clientY)
-            if (position) {
-              range = document.createRange()
-              range.setStart(position.offsetNode, position.offset)
-              range.collapse(true)
+            const range = document.caretRangeFromPoint(e.clientX, e.clientY)
+            if (range && editorRef.current.contains(range.commonAncestorContainer)) {
+              targetNode = range.startContainer
+              targetOffset = range.startOffset
             }
-          }
-          
-          // 验证Range是否在编辑器内
-          if (range && !editorRef.current.contains(range.commonAncestorContainer)) {
-            range = null
+          } else if ((document as any).caretPositionFromPoint) {
+            const position = (document as any).caretPositionFromPoint(e.clientX, e.clientY)
+            if (position && editorRef.current.contains(position.offsetNode)) {
+              targetNode = position.offsetNode
+              targetOffset = position.offset
+            }
           }
         } catch (err) {
           console.warn('无法从鼠标位置获取插入点:', err)
-          range = null
         }
         
-        // 如果没有从鼠标位置获取到有效Range，尝试使用当前选区
-        if (!range) {
+        // 如果没有从鼠标位置获取到有效位置，尝试使用当前选区
+        if (!targetNode) {
           const selection = window.getSelection()
           if (selection && selection.rangeCount > 0) {
             const existingRange = selection.getRangeAt(0)
-            // 确保选区在编辑器内
             if (editorRef.current.contains(existingRange.commonAncestorContainer)) {
-              range = existingRange
+              targetNode = existingRange.startContainer
+              targetOffset = existingRange.startOffset
             }
           }
         }
         
         // 插入文件块
-        if (range) {
+        if (targetNode) {
+          const range = document.createRange()
+          range.setStart(targetNode, targetOffset)
+          range.collapse(true)
+          
           range.deleteContents()
           range.insertNode(blockElement)
           
@@ -354,6 +427,11 @@ export const ChatInputArea = forwardRef<
         setDraggingBlockId(null)
         // 恢复透明度
         target.style.opacity = '1'
+        // 清理待处理的 raf
+        if (dragOverRafRef.current !== null) {
+          cancelAnimationFrame(dragOverRafRef.current)
+          dragOverRafRef.current = null
+        }
       }
     }
 
@@ -365,6 +443,11 @@ export const ChatInputArea = forwardRef<
       editor.removeEventListener('click', handleClick)
       editor.removeEventListener('dragstart', handleBlockDragStart)
       editor.removeEventListener('dragend', handleBlockDragEnd)
+      // 清理待处理的 raf
+      if (dragOverRafRef.current !== null) {
+        cancelAnimationFrame(dragOverRafRef.current)
+        dragOverRafRef.current = null
+      }
     }
   }, [fileBlocks])
 
