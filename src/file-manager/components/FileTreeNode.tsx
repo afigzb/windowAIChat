@@ -8,6 +8,7 @@ import { useDragDrop } from '../hooks/useDragDrop'
 import { Icon } from '../../components'
 import type { FileSystemNode } from '../../storage/file-system'
 import { fileSystemManager } from '../../storage/file-system'
+import { fileContentCache } from '../../storage/fileContentCache'
 
 interface InlineEditState {
   isActive: boolean
@@ -80,6 +81,51 @@ export function FileTreeNode({
     onUpdatePaths: onUpdateFocusedFilesPaths
   })
 
+  // 自定义拖拽开始处理器，为文件添加拖拽到输入框的支持
+  const handleDragStart = async (e: React.DragEvent) => {
+    // 先调用原始的拖拽处理器（用于文件系统内移动）
+    dragHandlers.onDragStart?.(e)
+
+    // 如果是文件（非目录），添加额外的数据用于拖拽到输入框
+    if (!node.isDirectory) {
+      try {
+        // 尝试从缓存获取内容
+        let content: string | null = fileContentCache.get(node.path)
+        
+        // 如果缓存中没有，读取文件内容为纯文本
+        if (content === null) {
+          // 使用 readFileAsText 以支持各种格式（包括 docx）并获取纯文本
+          const result = await (window as any).electronAPI.readFileAsText(node.path)
+          if (result.success) {
+            content = result.content  // readFileAsText 返回的字段是 content
+          } else {
+            // 如果不支持，尝试普通文本读取
+            content = await fileSystemManager.readFile(node.path)
+          }
+          if (content) {
+            fileContentCache.set(node.path, content)
+          }
+        }
+
+        // 确保content不为null时才设置dataTransfer
+        if (content) {
+          // 设置文件信息到dataTransfer（用于拖拽到输入框）
+          e.dataTransfer.setData('application/file-path', node.path)
+          e.dataTransfer.setData('application/file-name', node.name)
+          e.dataTransfer.setData('application/file-content', content)
+        }
+      } catch (error) {
+        console.error('读取文件内容失败:', error)
+      }
+    }
+  }
+
+  // 组合拖拽处理器
+  const combinedDragHandlers = {
+    ...dragHandlers,
+    onDragStart: handleDragStart
+  }
+
   // 当节点路径变化时，更新展开状态
   useEffect(() => {
     if (node.isDirectory) {
@@ -150,7 +196,7 @@ export function FileTreeNode({
             style={{ marginLeft: level * 20 }}
             onClick={handleClick}
             onContextMenu={handleContextMenu}
-            {...dragHandlers}
+            {...combinedDragHandlers}
           >
             {node.isDirectory && (
               <div className={`transition-transform duration-300 ${isExpanded ? '' : '-rotate-90'}`}>
