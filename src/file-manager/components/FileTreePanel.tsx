@@ -291,7 +291,7 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
             }
           }}
         >
-          <div className="p-4 min-h-full">
+          <div className="min-h-full">
             {fileTree.map((node) => (
               <FileTreeNode
                 key={node.id}

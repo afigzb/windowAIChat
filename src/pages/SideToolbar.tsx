@@ -1,10 +1,10 @@
 import { Icon } from '../components'
 
 interface SideToolbarProps {
-  activeTool: 'workspace' | 'api' | 'docs' | 'settings' | 'prompt' | 'agents'
+  activeTool: 'workspace' | 'api' | 'docs' | 'settings' | 'prompt' | 'agents' | 'booksplit'
   isPromptWindowOpen: boolean
   isTextEditorWindowOpen: boolean
-  onSelectTool: (tool: 'workspace' | 'api' | 'docs' | 'settings' | 'prompt' | 'agents') => void
+  onSelectTool: (tool: 'workspace' | 'api' | 'docs' | 'settings' | 'prompt' | 'agents' | 'booksplit') => void
   onOpenPromptWindow: () => void
   onOpenTextEditorWindow: () => void
 }
@@ -17,6 +17,7 @@ export function SideToolbar({ activeTool, isPromptWindowOpen, isTextEditorWindow
           { key: 'workspace', label: '工作区', icon: <Icon name="workspace" className="w-5 h-5" /> },
           { key: 'api', label: 'API', icon: <Icon name="api" className="w-5 h-5" /> },
           { key: 'agents', label: 'Agents', icon: <Icon name="agents" className="w-5 h-5" /> },
+          { key: 'booksplit', label: '拆书', icon: <Icon name="document" className="w-5 h-5" /> },
           { key: 'prompt', label: '提示词', icon: <Icon name="prompt" className="w-5 h-5" /> },
           { key: 'text-editor', label: '空白文本', icon: <Icon name="textEditor" className="w-5 h-5" /> },
         ] as const).map(item => {

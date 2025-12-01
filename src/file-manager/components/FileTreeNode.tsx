@@ -186,9 +186,64 @@ export function FileTreeNode({
   const isFileSelected = selectedFiles?.includes(node.path) || false
   const isLoading = loadingFiles?.has(node.path) || false
 
+  // 收集文件夹内所有文件的路径
+  const collectAllFilesInDirectory = (node: FileSystemNode): string[] => {
+    const files: string[] = []
+    
+    const traverse = (currentNode: FileSystemNode) => {
+      if (!currentNode.isDirectory) {
+        files.push(currentNode.path)
+      } else if (currentNode.children) {
+        currentNode.children.forEach(child => traverse(child))
+      }
+    }
+    
+    traverse(node)
+    return files
+  }
+
+  // 计算文件夹的选中状态
+  const getDirectoryCheckState = () => {
+    if (!node.isDirectory) {
+      return { checked: isFileSelected, indeterminate: false }
+    }
+    
+    const allFiles = collectAllFilesInDirectory(node)
+    if (allFiles.length === 0) {
+      return { checked: false, indeterminate: false }
+    }
+    
+    const selectedCount = allFiles.filter(path => selectedFiles?.includes(path)).length
+    
+    if (selectedCount === 0) {
+      return { checked: false, indeterminate: false }
+    } else if (selectedCount === allFiles.length) {
+      return { checked: true, indeterminate: false }
+    } else {
+      return { checked: false, indeterminate: true }
+    }
+  }
+
+  const checkState = getDirectoryCheckState()
+  const hasLoadingFiles = node.isDirectory && 
+    collectAllFilesInDirectory(node).some(path => loadingFiles?.has(path))
+
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation()
-    onFileSelect?.(node.path, e.target.checked)
+    
+    if (node.isDirectory) {
+      // 选择文件夹时，选择/取消选择所有子文件
+      const allFiles = collectAllFilesInDirectory(node)
+      const shouldSelect = e.target.checked
+      
+      // 批量处理所有文件
+      allFiles.forEach(filePath => {
+        onFileSelect?.(filePath, shouldSelect)
+      })
+    } else {
+      // 选择单个文件
+      onFileSelect?.(node.path, e.target.checked)
+    }
   }
 
   return (
@@ -224,31 +279,55 @@ export function FileTreeNode({
                 <Icon name="chevronDown" className="w-4 h-4 text-gray-500" />
               </div>
             )}
-            {!node.isDirectory && (
-              <div className="relative group/checkbox flex items-center">
-                <input
-                  type="checkbox"
-                  checked={isFileSelected}
-                  onChange={handleCheckboxChange}
-                  onClick={(e) => e.stopPropagation()} // 防止触发父元素的点击事件
-                  disabled={isLoading}
-                  className={`w-4 h-4 text-blue-600 bg-white border-2 border-gray-300 rounded focus:ring-blue-400 focus:ring-2 focus:ring-offset-1 transition-all duration-200 ${isLoading ? 'opacity-50' : 'hover:border-blue-400 hover:shadow-sm'} ${isFileSelected ? 'scale-110 border-blue-500' : ''}`}
-                  title={isLoading ? '文件内容加载中...' : '选择此文件用于AI对话'}
-                />
-                {isLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                  </div>
-                )}
-                {/* 选中状态指示器 */}
-                {isFileSelected && !isLoading && (
-                  <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
-                )}
-              </div>
-            )}
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <FileIcon node={node} />
               <span className="text-sm font-medium truncate">{node.name}</span>
+            </div>
+            <div className="relative group/checkbox flex items-center">
+              <input
+                type="checkbox"
+                checked={checkState.checked}
+                ref={(el) => {
+                  if (el) {
+                    el.indeterminate = checkState.indeterminate
+                  }
+                }}
+                onChange={handleCheckboxChange}
+                onClick={(e) => e.stopPropagation()} // 防止触发父元素的点击事件
+                disabled={node.isDirectory ? hasLoadingFiles : isLoading}
+                className={`w-4 h-4 text-blue-600 bg-white border-2 border-gray-300 rounded focus:ring-blue-400 focus:ring-2 focus:ring-offset-1 transition-all duration-200 ${
+                  (node.isDirectory ? hasLoadingFiles : isLoading) 
+                    ? 'opacity-50' 
+                    : 'hover:border-blue-400 hover:shadow-sm'
+                } ${
+                  checkState.checked || checkState.indeterminate 
+                    ? 'scale-110 border-blue-500' 
+                    : ''
+                }`}
+                title={
+                  node.isDirectory
+                    ? hasLoadingFiles 
+                      ? '文件夹内有文件正在加载...' 
+                      : '选择此文件夹内所有文件用于AI对话'
+                    : isLoading 
+                      ? '文件内容加载中...' 
+                      : '选择此文件用于AI对话'
+                }
+              />
+              {((node.isDirectory && hasLoadingFiles) || (!node.isDirectory && isLoading)) && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
+              {/* 选中状态指示器 */}
+              {(checkState.checked || checkState.indeterminate) && 
+               !(node.isDirectory ? hasLoadingFiles : isLoading) && (
+                <div className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full shadow-lg ${
+                  checkState.indeterminate 
+                    ? 'bg-yellow-500 animate-pulse shadow-yellow-500/50' 
+                    : 'bg-green-500 animate-pulse shadow-green-500/50'
+                }`}></div>
+              )}
             </div>
           </div>
         )}
