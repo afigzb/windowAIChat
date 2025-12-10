@@ -4,6 +4,8 @@ const StorageManager = require('./storage')
 const FileSystemManager = require('./file-system')
 const GlobalContextMenuManager = require('./GlobalContextMenu')
 const fileConverter = require('./converters')
+const path = require('path')
+const fs = require('fs')
 
 /**
  * 应用主入口
@@ -16,6 +18,7 @@ class Application {
     this.fileSystemManager = null
     this.contextMenuManager = null
     this.fileConverter = fileConverter
+    this.mainWindow = null
   }
 
   /**
@@ -23,13 +26,13 @@ class Application {
    */
   async initialize() {
     // 创建主窗口
-    const mainWindow = this.windowManager.createWindow()
+    this.mainWindow = this.windowManager.createWindow()
 
     // 初始化文件系统管理器
-    this.fileSystemManager = new FileSystemManager(mainWindow)
+    this.fileSystemManager = new FileSystemManager(this.mainWindow)
 
     // 初始化上下文菜单管理器
-    this.contextMenuManager = new GlobalContextMenuManager(mainWindow)
+    this.contextMenuManager = new GlobalContextMenuManager(this.mainWindow)
     this.windowManager.setContextMenuManager(this.contextMenuManager)
 
     // 注册所有IPC处理器
@@ -37,6 +40,61 @@ class Application {
 
     // 移除顶部菜单栏
     Menu.setApplicationMenu(null)
+
+    // 处理启动时的命令行参数（拖拽到图标打开的文件）
+    this._handleStartupFiles()
+  }
+
+  /**
+   * 处理启动时通过拖拽打开的文件
+   */
+  _handleStartupFiles() {
+    // 获取命令行参数中的文件路径
+    // process.argv[0] 是 electron 可执行文件
+    // process.argv[1] 是 main.js
+    // process.argv[2] 开始才是用户拖拽的文件
+    const filePaths = this._extractFilePathsFromArgs(process.argv)
+    
+    if (filePaths.length > 0) {
+      // 延迟发送，确保渲染进程已经准备好接收
+      setTimeout(() => {
+        this._sendDroppedFilesToRenderer(filePaths)
+      }, 1000)
+    }
+  }
+
+  /**
+   * 从命令行参数中提取文件路径
+   */
+  _extractFilePathsFromArgs(argv) {
+    // 跳过前两个参数（electron 和 main.js）
+    const args = process.env.NODE_ENV === 'development' ? argv.slice(2) : argv.slice(1)
+    
+    return args.filter(arg => {
+      // 过滤掉非文件路径的参数（例如 --开头的选项）
+      if (arg.startsWith('--') || arg.startsWith('-')) {
+        return false
+      }
+      
+      // 检查路径是否存在
+      try {
+        return fs.existsSync(arg)
+      } catch (error) {
+        return false
+      }
+    }).map(filePath => {
+      // 转换为绝对路径
+      return path.resolve(filePath)
+    })
+  }
+
+  /**
+   * 将拖拽的文件路径发送到渲染进程
+   */
+  _sendDroppedFilesToRenderer(filePaths) {
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.webContents.send('files-dropped-on-app-icon', filePaths)
+    }
   }
 
   /**
@@ -195,17 +253,43 @@ class Application {
 // 创建应用实例
 const application = new Application()
 
-// 当Electron完成初始化并准备创建浏览器窗口时调用
-app.whenReady().then(() => {
-  application.initialize()
+// 单实例锁：确保只有一个应用实例在运行
+// 在Windows中，当文件拖到已运行的应用图标上时，会触发 second-instance 事件
+const gotTheLock = app.requestSingleInstanceLock()
 
-  app.on('activate', () => {
-    // 在macOS上，当单击dock图标并且没有其他窗口打开时，重新创建窗口
-    if (require('electron').BrowserWindow.getAllWindows().length === 0) {
-      application.initialize()
+if (!gotTheLock) {
+  // 如果获取锁失败，说明已有实例在运行，直接退出
+  app.quit()
+} else {
+  // 监听第二个实例启动（比如拖拽文件到图标）
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    // 如果用户尝试打开第二个实例，聚焦主窗口
+    if (application.mainWindow) {
+      if (application.mainWindow.isMinimized()) {
+        application.mainWindow.restore()
+      }
+      application.mainWindow.focus()
+      
+      // 处理新拖拽的文件
+      const filePaths = application._extractFilePathsFromArgs(commandLine)
+      if (filePaths.length > 0) {
+        application._sendDroppedFilesToRenderer(filePaths)
+      }
     }
   })
-})
+
+  // 当Electron完成初始化并准备创建浏览器窗口时调用
+  app.whenReady().then(() => {
+    application.initialize()
+
+    app.on('activate', () => {
+      // 在macOS上，当单击dock图标并且没有其他窗口打开时，重新创建窗口
+      if (require('electron').BrowserWindow.getAllWindows().length === 0) {
+        application.initialize()
+      }
+    })
+  })
+}
 
 // 当所有窗口都被关闭时退出应用
 app.on('window-all-closed', () => {

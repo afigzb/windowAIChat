@@ -93,6 +93,63 @@ export function FileTreePanel({ selectedFile, selectedFiles, onFileSelect, onCle
     }
   }, [workspace])
 
+  // 监听拖拽文件到应用图标事件
+  React.useEffect(() => {
+    const handleFilesDropped = async (event: Event) => {
+      const customEvent = event as CustomEvent<{ filePaths: string[] }>
+      const { filePaths } = customEvent.detail
+      console.log('文件管理器接收到拖拽的文件:', filePaths)
+      
+      if (!filePaths || filePaths.length === 0) return
+
+      // 自动切换工作目录
+      try {
+        const firstPath = filePaths[0]
+        
+        if (typeof window !== 'undefined' && (window as any).electronAPI) {
+          // 检查路径是文件还是目录
+          const stats = await (window as any).electronAPI.getFileStats(firstPath)
+          
+          if (stats) {
+            let targetDirectory = firstPath
+            
+            // 如果是文件，获取其父目录
+            if (!stats.isDirectory) {
+              // 获取父目录路径
+              const pathParts = firstPath.split(/[/\\]/)
+              pathParts.pop() // 移除文件名
+              targetDirectory = pathParts.join('\\') // Windows 使用反斜杠
+            }
+            
+            console.log('切换工作目录到:', targetDirectory)
+            
+            // 创建 Workspace 对象
+            const pathParts = targetDirectory.split(/[/\\]/)
+            const dirName = pathParts[pathParts.length - 1] || targetDirectory
+            
+            const newWorkspace = {
+              id: `workspace-${Date.now()}`,
+              name: dirName,
+              rootPath: targetDirectory,
+              createdAt: new Date(),
+              lastAccessed: new Date()
+            }
+            
+            // 切换工作目录
+            await handleSetWorkspace(newWorkspace)
+          }
+        }
+      } catch (error) {
+        console.error('切换工作目录失败:', error)
+      }
+    }
+
+    window.addEventListener('files-dropped-on-app-icon', handleFilesDropped)
+    return () => {
+      window.removeEventListener('files-dropped-on-app-icon', handleFilesDropped)
+    }
+  }, [handleSetWorkspace])
+
   if (!workspace) {
     return (
       <>

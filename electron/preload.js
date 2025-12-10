@@ -126,6 +126,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 监听提示词卡片更新事件
   onPromptCardsChanged: (callback) => ipcRenderer.on('prompt-cards-changed', () => callback()),
 
+  // ========== 拖拽到应用图标 API ==========
+
+  // 监听文件拖拽到应用图标事件
+  onFilesDroppedOnAppIcon: (callback) => {
+    const handler = (event, filePaths) => callback(filePaths)
+    ipcRenderer.on('files-dropped-on-app-icon', handler)
+    // 返回清理函数
+    return () => ipcRenderer.removeListener('files-dropped-on-app-icon', handler)
+  },
+
 })
 
 // DOM加载完成后的处理

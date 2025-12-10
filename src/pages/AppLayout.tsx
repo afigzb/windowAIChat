@@ -94,6 +94,27 @@ export default function EditorWorkspace() {
       }
 
       ;(window as any).electronAPI.onTriggerInlineEdit(handleTriggerInlineEdit)
+
+      // 监听拖拽文件到应用图标事件
+      const cleanupDropListener = (window as any).electronAPI.onFilesDroppedOnAppIcon((filePaths: string[]) => {
+        console.log('收到拖拽到应用图标的文件:', filePaths)
+        
+        // 切换到工作区视图
+        setActiveTool('workspace')
+        
+        // 触发自定义事件，通知文件管理器有新文件
+        const event = new CustomEvent('files-dropped-on-app-icon', { 
+          detail: { filePaths } 
+        })
+        window.dispatchEvent(event)
+      })
+
+      // 清理监听器
+      return () => {
+        if (cleanupDropListener) {
+          cleanupDropListener()
+        }
+      }
     }
   }, [openFileForEdit])
 
