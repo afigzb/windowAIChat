@@ -167,7 +167,7 @@ export function WorkspaceView({
                   <div className="text-6xl mb-4">📝</div>
                   <h3 className="text-lg font-medium mb-2">文件查看器</h3>
                   <p className="text-sm mb-4">从左侧文件管理中选择一个文件开始</p>
-                  <div className="text-xs text-slate-400">支持格式：.docx, .doc, .txt, .md, .png, .jpg 等</div>
+                  <div className="text-xs text-slate-400">支持格式：.docx, .doc, .txt, .md, .xlsx, .xls, .png, .jpg 等</div>
                 </div>
               </div>
             )}

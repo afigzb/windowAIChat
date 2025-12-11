@@ -12,6 +12,7 @@ const fs = require('fs').promises
 const path = require('path')
 const mammoth = require('mammoth')
 const HTMLtoDOCX = require('html-to-docx')
+const xlsx = require('xlsx')
 
 // ==================== DOCX 转换器 ====================
 
@@ -226,6 +227,48 @@ async function readImage(filePath) {
 // 图片不支持保存功能
 // 如果需要保存图片，应该使用文件系统的writeFile
 
+// ==================== Excel 转换器 ====================
+
+/**
+ * 读取Excel文件并提取纯文本
+ * 只提取表格中的文本内容，不保留格式
+ */
+async function readExcel(filePath) {
+  try {
+    const buffer = await fs.readFile(filePath)
+    const workbook = xlsx.read(buffer, { type: 'buffer' })
+    
+    const textParts = []
+    
+    // 遍历所有工作表
+    workbook.SheetNames.forEach(sheetName => {
+      const worksheet = workbook.Sheets[sheetName]
+      
+      // 添加工作表名称
+      if (workbook.SheetNames.length > 1) {
+        textParts.push(`\n\n=== ${sheetName} ===\n`)
+      }
+      
+      // 将工作表转换为CSV格式，然后提取文本
+      const csv = xlsx.utils.sheet_to_csv(worksheet, { FS: '\t' })
+      
+      if (csv && csv.trim()) {
+        // 将每行转换为文本，保留表格结构
+        const rows = csv.split('\n').filter(row => row.trim())
+        textParts.push(rows.join('\n'))
+      }
+    })
+    
+    const text = textParts.join('\n').trim()
+    return text || '(空表格)'
+  } catch (error) {
+    console.error('读取Excel文件失败:', error)
+    throw new Error(`读取Excel文件失败: ${error.message}`)
+  }
+}
+
+// Excel不支持保存功能（只读）
+
 // ==================== 转换器注册表 ====================
 
 /**
@@ -273,7 +316,13 @@ const CONVERTER_REGISTRY = {
   'gif': { type: 'image', read: readImage, save: null },
   'bmp': { type: 'image', read: readImage, save: null },
   'webp': { type: 'image', read: readImage, save: null },
-  'svg': { type: 'image', read: readImage, save: null }
+  'svg': { type: 'image', read: readImage, save: null },
+  
+  // Excel类型（只读，不支持编辑）
+  'xlsx': { type: 'excel', read: readExcel, save: null },
+  'xls': { type: 'excel', read: readExcel, save: null },
+  'xlsm': { type: 'excel', read: readExcel, save: null },
+  'xlsb': { type: 'excel', read: readExcel, save: null }
 }
 
 /**

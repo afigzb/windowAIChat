@@ -39,6 +39,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 从HTML中提取纯文本
   extractTextFromHtml: (html) => ipcRenderer.invoke('file:extractText', html),
 
+  // 用系统默认程序打开文件
+  openFileWithDefault: (filePath) => ipcRenderer.invoke('file:openWithDefault', filePath),
+
   // === 基础文件读写（仅用于简单场景，一般情况请使用上面的统一接口） ===
   readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
   writeFile: (filePath, content) => ipcRenderer.invoke('write-file', filePath, content),

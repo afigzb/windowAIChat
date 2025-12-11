@@ -96,6 +96,14 @@ export function useFileEditor() {
           imageData
         })
         
+      } else if (result.type === 'excel') {
+        // Excel文件只读，不支持编辑
+        setOpenFile({
+          type: 'excel',
+          path: filePath,
+          name: fileName
+        })
+        
       } else {
         setOpenFile({
           type: 'unsupported',

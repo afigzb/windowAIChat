@@ -172,6 +172,35 @@ export function FileTreeNode({
     }
   }
 
+  // 双击处理：对于不支持编辑的文件（Excel等），用系统默认程序打开
+  const handleDoubleClick = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    
+    // 只处理文件，不处理文件夹
+    if (node.isDirectory) return
+    
+    try {
+      // 检查文件类型
+      const fileInfo = await window.electronAPI.getFileFormatInfo(node.path)
+      
+      // 如果是Excel文件，用系统默认程序打开
+      if (fileInfo.type === 'excel') {
+        const result = await window.electronAPI.openFileWithDefault(node.path)
+        if (!result.success && result.error) {
+          console.error('打开文件失败:', result.error)
+          await confirm({
+            title: '打开文件失败',
+            message: result.error,
+            confirmText: '确定',
+            type: 'danger'
+          })
+        }
+      }
+    } catch (error) {
+      console.error('处理双击事件失败:', error)
+    }
+  }
+
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -270,6 +299,7 @@ export function FileTreeNode({
             }`}
             style={{ marginLeft: level * 20 }}
             onClick={handleClick}
+            onDoubleClick={handleDoubleClick}
             onContextMenu={handleContextMenu}
             onMouseDown={handleMouseDown}
             {...combinedDragHandlers}

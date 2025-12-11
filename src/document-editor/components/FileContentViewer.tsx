@@ -83,6 +83,30 @@ export function FileContentViewer({
         />
       )
 
+    case 'excel':
+      // Excel类型：只读，提示用户双击打开
+      return (
+        <div className="h-full flex items-center justify-center text-slate-500">
+          <div className="text-center max-w-md">
+            <div className="text-6xl mb-4">📊</div>
+            <p className="text-lg font-medium mb-2">Excel 表格文件</p>
+            <p className="text-sm text-slate-400 mb-4">{fileContent.name}</p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-slate-600 mb-2">
+                💡 Excel文件不支持在线编辑
+              </p>
+              <p className="text-sm text-slate-600">
+                双击文件可以用系统默认程序打开编辑
+              </p>
+            </div>
+            <div className="text-xs text-slate-400">
+              <p>✓ 勾选文件后，文本内容会自动发送给AI</p>
+              <p className="mt-1">✓ 支持格式：.xlsx, .xls, .xlsm, .xlsb</p>
+            </div>
+          </div>
+        </div>
+      )
+
     case 'unsupported':
       // 不支持的文件类型
       return (

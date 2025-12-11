@@ -103,6 +103,9 @@ async function readFileAsText(filePath) {
       const fileName = filePath.split(/[/\\]/).pop() || filePath
       const sizeKB = Math.round(result.content.size / 1024)
       textContent = `[图片文件: ${fileName}]\n类型: ${result.content.mimeType}\n大小: ${sizeKB} KB`
+    } else if (result.type === 'excel') {
+      // Excel文件已经是纯文本格式
+      textContent = result.content
     } else {
       // 文档和文本提取纯文本
       textContent = extractTextFromHtml(result.content)

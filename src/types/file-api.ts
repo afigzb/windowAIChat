@@ -24,7 +24,7 @@ export interface ImageData {
  */
 export interface FileInfo {
   supported: boolean
-  type: 'document' | 'text' | 'image' | 'unsupported'
+  type: 'document' | 'text' | 'image' | 'excel' | 'unsupported'
   extension: string
   canSave?: boolean
 }
@@ -35,7 +35,7 @@ export interface FileInfo {
 export interface FileReadResult {
   success: boolean
   content?: string | ImageData
-  type?: 'document' | 'text' | 'image'
+  type?: 'document' | 'text' | 'image' | 'excel'
   extension?: string
   error?: string
   supportedFormats?: string[]
@@ -55,7 +55,7 @@ export interface FileSaveResult {
 export interface FileReadAsTextResult {
   success: boolean
   content?: string
-  type?: 'document' | 'text' | 'image'
+  type?: 'document' | 'text' | 'image' | 'excel'
   extension?: string
   error?: string
 }
@@ -105,6 +105,15 @@ export interface ImageContent {
 }
 
 /**
+ * Excel内容（只读）
+ */
+export interface ExcelContent {
+  type: 'excel'
+  path: string
+  name: string
+}
+
+/**
  * 不支持的文件
  */
 export interface UnsupportedContent {
@@ -122,6 +131,7 @@ export type FileContent =
   | DocumentContent 
   | TextContent 
   | ImageContent 
+  | ExcelContent
   | UnsupportedContent
 
 //  类型守卫函数 
@@ -136,6 +146,10 @@ export function isTextContent(content: FileContent): content is TextContent {
 
 export function isImageContent(content: FileContent): content is ImageContent {
   return content.type === 'image'
+}
+
+export function isExcelContent(content: FileContent): content is ExcelContent {
+  return content.type === 'excel'
 }
 
 export function isUnsupportedContent(content: FileContent): content is UnsupportedContent {
@@ -161,6 +175,7 @@ declare global {
       getFileFormatInfo: (filePath: string) => Promise<FileInfo>
       getSupportedFormatsInfo: () => Promise<SupportedFormatsInfo>
       extractTextFromHtml: (html: string) => Promise<string>
+      openFileWithDefault: (filePath: string) => Promise<{ success: boolean; error?: string }>
       
       //  文件系统管理 
       selectDirectory: () => Promise<string | null>

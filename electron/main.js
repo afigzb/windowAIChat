@@ -1,4 +1,4 @@
-const { app, Menu, ipcMain } = require('electron')
+const { app, Menu, ipcMain, shell } = require('electron')
 const WindowManager = require('./window')
 const StorageManager = require('./storage')
 const FileSystemManager = require('./file-system')
@@ -147,6 +147,20 @@ class Application {
     // 从HTML提取纯文本
     ipcMain.handle('file:extractText', async (event, html) => {
       return this.fileConverter.extractTextFromHtml(html)
+    })
+
+    // 用系统默认程序打开文件
+    ipcMain.handle('file:openWithDefault', async (event, filePath) => {
+      try {
+        const result = await shell.openPath(filePath)
+        if (result) {
+          // result是错误信息字符串
+          return { success: false, error: result }
+        }
+        return { success: true }
+      } catch (error) {
+        return { success: false, error: error.message }
+      }
     })
   }
 
